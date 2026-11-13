@@ -27,7 +27,6 @@ export function buildUI(app) {
   };
 
   // Rehearse / play
-  const $id = $;
   $('btnPlay').onclick = () => {
     if (app.page.playing) { app.page.stop(); app.resetToBase?.(); }
     else { app.page.play(); }
