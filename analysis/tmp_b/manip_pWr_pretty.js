@@ -1,0 +1,1565 @@
+pWr(t,
+  e){
+  const{
+    a:n,
+    camera:r,
+    renderer:s,
+    meshById:a
+  }=t,
+  {
+    orbit:o,
+    pilot:l
+  }=e,
+  c=new ozr(r,
+    s.domElement);
+  Pzr(c);
+  const d=c.getHelper();
+  t.scene.add(d),
+  t.planningAids.push(()=>[d]),
+  e.gizmoLink.detachIfAttached=Ve=>{
+    c.object===Ve&&c.detach()
+  },
+  e.gizmoLink.reseat=()=>B();
+  let u={
+    x:0,
+    y:0,
+    atMs:-1/0,
+    selectionBefore:[],
+    focusBefore:n.peekFocus()
+  };
+  const h=Ve=>{
+    const st=Ve.timeStamp-u.atMs<uWr&&Math.hypot(Ve.clientX-u.x,
+      Ve.clientY-u.y)<hWr;
+    return u={
+      x:Ve.clientX,
+      y:Ve.clientY,
+      atMs:st?-1/0:Ve.timeStamp,
+      selectionBefore:n.selectedIds.peek(),
+      focusBefore:n.peekFocus()
+    },
+    st
+  };
+  let f=null,
+  m=null;
+  const g=new di;
+  t.scene.add(g);
+  let b=null,
+  y=null;
+  c.addEventListener("objectChange",
+    ()=>{
+      const Ve=c.object;
+      !y||!Ve||Ve instanceof bT||(y=GA([Ve.rotation.x,
+            Ve.rotation.y,
+            Ve.rotation.z],
+          y),
+        Ve.rotation.set(...y))
+    });
+  let v=null;
+  const x=new di;
+  t.scene.add(x);
+  let w=null;
+  const k=(Ve,
+    st)=>Rzr(st,
+    Re=>{
+      const it=e.boneOf(Ve,
+        Re)?.parent;
+      return it instanceof bT?it.name:null
+    }).map(Re=>({
+        joint:Re,
+        bone:e.boneOf(Ve,
+          Re)
+      })).filter(Re=>!!Re.bone),
+  S=Ve=>{
+    const st=new Ge,
+    Me=new Ge;
+    for(const Re of Ve)st.add(Re.getWorldPosition(Me));
+    st.divideScalar(Ve.length),
+    x.position.copy(st),
+    x.quaternion.identity(),
+    x.scale.set(1,
+      1,
+      1),
+    x.updateMatrixWorld(!0)
+  },
+  T=(Ve,
+    st,
+    Me)=>{
+    const Re=e.clipLocalOf(Ve,
+      st)??v?.clipLocal;
+    return Re?mBe(Me,
+      Re):Hzt(QCe)
+  },
+  A=()=>{
+    if(!w)return null;
+    const Ve={
+      position:x.position.clone().sub(w.start.position),
+      quaternion:x.quaternion.clone(),
+      scale:x.scale.clone()
+    },
+    st={
+      
+    };
+    for(const{
+        joint:Me,
+        clipLocal:Re,
+        startOffset:it
+      }of w.joints){
+      const ct=e.boneOf(w.objectId,
+        Me);
+      ct&&(st[Me]=Dzr(ct,
+          Re,
+          it,
+          Ve))
+    }return Object.keys(st).length>0?st:null
+  },
+  C=()=>{
+    const Ve=n.selectedIds.peek();
+    if(Ve.length<2)return null;
+    const st=Ve.map(Me=>a.get(Me)).filter(Me=>!!Me);
+    return st.length>=2?st:null
+  },
+  E=Ve=>{
+    const st=new Ge,
+    Me=new Ge;
+    for(const Re of Ve)st.add(Re.getWorldPosition(Me));
+    st.divideScalar(Ve.length),
+    g.position.copy(st),
+    g.quaternion.identity(),
+    g.scale.set(1,
+      1,
+      1),
+    g.updateMatrixWorld(!0)
+  };
+  let j=!1;
+  const I=Ve=>{
+    j=Ve.altKey,
+    o.mouseButtons=iat(n.controlMode.peek(),
+      Ve.altKey)
+  };
+  t.disposers.push(qt(()=>{
+        const Ve=n.controlMode.get();
+        o.mouseButtons=iat(Ve,
+          !1),
+        o.screenSpacePanning=Ve!=="default",
+        o.touches.ONE=Ve==="default"?P8.PAN:P8.ROTATE
+      })),
+  s.domElement.addEventListener("pointerdown",
+    I,
+    {
+      capture:!0
+    }),
+  t.disposers.push(()=>s.domElement.removeEventListener("pointerdown",
+      I,
+      {
+        capture:!0
+      }));
+  let N=!1;
+  c.addEventListener("dragging-changed",
+    Ve=>{
+      Ve.value?N=!0:y=null,
+      o.enabled=!Ve.value&&n.mode.peek()==="edit";
+      const st=c.object;
+      if(Ve.value===!0&&c.object===x){
+        const Ht=n.rigPoseObjectId.peek(),
+        Yt=Ht?k(Ht,
+          e.rigHandles.selectedJoints()):[];
+        if(!Ht||Yt.length===0){
+          c.detach();
+          return
+        }w={
+          objectId:Ht,
+          start:{
+            position:x.position.clone()
+          },
+          joints:Yt.map(({
+                joint:mn,
+                bone:Nt
+              })=>({
+                joint:mn,
+                clipLocal:e.clipLocalOf(Ht,
+                  mn)??Uie(Nt),
+                startOffset:T(Ht,
+                  mn,
+                  Nt)
+              }))
+        },
+        e.setLiveRigDrag({
+            objectId:Ht,
+            offsets:Object.fromEntries(w.joints.map(mn=>[mn.joint,
+                  mn.startOffset]))
+          });
+        return
+      }if(Ve.value===!0&&st instanceof bT){
+        const Ht=n.rigPoseObjectId.peek(),
+        Yt=(Ht?k(Ht,
+            e.rigHandles.selectedJoints()):[]).find(mn=>mn.bone===st)?.joint??null;
+        if(!Ht||!Yt){
+          c.detach();
+          return
+        }v={
+          objectId:Ht,
+          joint:Yt,
+          clipLocal:e.clipLocalOf(Ht,
+            Yt)??Uie(st)
+        },
+        e.setLiveRigDrag({
+            objectId:Ht,
+            offsets:{
+              [Yt]:T(Ht,
+                Yt,
+                st)
+            }
+          });
+        return
+      }if(Ve.value===!1&&w){
+        const Ht=A();
+        w=null,
+        e.setLiveRigDrag(null),
+        Ht&&n.captureFocusedRigPose(Ht),
+        B();
+        return
+      }if(Ve.value===!1&&v){
+        const Ht=e.boneOf(v.objectId,
+          v.joint),
+        Yt=Ht?T(v.objectId,
+          v.joint,
+          Ht):null,
+        mn=v.joint;
+        v=null,
+        e.setLiveRigDrag(null),
+        Yt&&n.captureFocusedRigPose({
+            [mn]:Yt
+          });
+        return
+      }if(Ve.value===!0){
+        if(m=null,
+          y=c.object?[c.object.rotation.x,
+            c.object.rotation.y,
+            c.object.rotation.z]:null,
+          c.object===g){
+          let It=C()??[];
+          if(j&&It.length){
+            const pn=aMr(It.map(on=>on.userData.objectId),
+              n.objects.peek()),
+            fn=It.filter(on=>pn.includes(on.userData.objectId)).map(on=>n.duplicateObjectAt({
+                  id:on.userData.objectId,
+                  position:[on.position.x,
+                    on.position.y,
+                    on.position.z],
+                  rotation:[on.rotation.x,
+                    on.rotation.y,
+                    on.rotation.z],
+                  scale:[on.scale.x,
+                    on.scale.y,
+                    on.scale.z]
+                })).filter(on=>!!on);
+            n.setSelectedIds(fn),
+            It=fn.map(on=>a.get(on)).filter(on=>!!on)
+          }b=It.map(pn=>({
+                mesh:pn,
+                parent:pn.parent??t.scene,
+                rotation:[pn.rotation.x,
+                  pn.rotation.y,
+                  pn.rotation.z]
+              }));
+          for(const{
+              mesh:pn
+            }of b)g.attach(pn);
+          return
+        }const Ht=c.object;
+        if(j&&Ht&&!Xu(n.objects.peek(),
+            Ht.userData.objectId)){
+          const It=Ht.userData.kind==="camera"?Die(t,
+            Ht):null,
+          pn=n.duplicateObjectAt({
+              id:Ht.userData.objectId,
+              position:[Ht.position.x,
+                Ht.position.y,
+                Ht.position.z],
+              rotation:[Ht.rotation.x,
+                Ht.rotation.y,
+                Ht.rotation.z],
+              scale:[Ht.scale.x,
+                Ht.scale.y,
+                Ht.scale.z],
+              targetPosition:It?[It.position.x,
+                It.position.y,
+                It.position.z]:void 0
+            });
+          m=pn;
+          const Tt=pn?a.get(pn):void 0;
+          Tt&&c.attach(Tt)
+        }const Yt=c.object,
+        mn=Yt?.userData.objectId,
+        Nt=Yt?.userData.kind==="camera"&&xq(n,
+          mn??null)?Die(t,
+          Yt):null;
+        f=Yt&&Nt?{
+          camera:Yt.getWorldPosition(new Ge),
+          quaternion:Yt.getWorldQuaternion(new qn),
+          target:Nt.getWorldPosition(new Ge),
+          targetMesh:Nt
+        }:null;
+        return
+      }if(b){
+        const Ht=b.map(({
+              mesh:mn,
+              parent:Nt,
+              rotation:It
+            })=>(Nt.attach(mn),
+            {
+              id:mn.userData.objectId,
+              position:[mn.position.x,
+                mn.position.y,
+                mn.position.z],
+              rotation:GA([mn.rotation.x,
+                  mn.rotation.y,
+                  mn.rotation.z],
+                It),
+              scale:[mn.scale.x,
+                mn.scale.y,
+                mn.scale.z]
+            }));
+        b=null;
+        for(const mn of Ht)n.updateObjectTransform(mn.id,
+          {
+            position:[...mn.position],
+            rotation:[...mn.rotation],
+            scale:[...mn.scale]
+          });
+        const Yt=C();
+        Yt&&E(Yt);
+        return
+      }const Me=c.object,
+      Re=Me?.userData.objectId,
+      it=f?f.targetMesh:null,
+      ct=it?.userData.objectId,
+      At=it?.position.clone();
+      f=null;
+      const Dt=m;
+      if(m=null,
+        !Me||!Re)return;
+      if(!mZt(Me)){
+        kZt(n,
+          Re,
+          {
+            position:[Me.position.x,
+              Me.position.y,
+              Me.position.z],
+            rotation:[Me.rotation.x,
+              Me.rotation.y,
+              Me.rotation.z],
+            scale:[Me.scale.x,
+              Me.scale.y,
+              Me.scale.z]
+          });
+        return
+      }const zt=()=>{
+        const Ht=n.objects.peek();
+        for(const Yt of[Re,
+            ct]){
+          const mn=Yt?Ht[Yt]:void 0,
+          Nt=Yt?t.meshById.get(Yt):void 0;
+          !mn||!Nt||(Nt.position.set(...mn.position),
+            Nt.rotation.set(...mn.rotation))
+        }
+      },
+      Zt=SZt(n,
+        {
+          id:Re,
+          world:Bie(Me),
+          windFrom:[Me.rotation.x,
+            Me.rotation.y,
+            Me.rotation.z],
+          mode:n.transformMode.peek(),
+          resolveAim:e.foldResolvers(Re,
+            n.performanceTimeS.peek())?.resolveAim??null,
+          toLocal:(Ht,
+            Yt)=>(Hie(Me,
+              lWr.set(...Yt.position),
+              cWr.setFromEuler(dWr.set(...Yt.rotation))),
+            {
+              position:[Me.position.x,
+                Me.position.y,
+                Me.position.z],
+              rotation:[Me.rotation.x,
+                Me.rotation.y,
+                Me.rotation.z],
+              scale:[Me.scale.x,
+                Me.scale.y,
+                Me.scale.z]
+            }),
+          worldPoseOf:Ht=>{
+            const Yt=t.meshById.get(Ht);
+            return Yt?{
+              position:Yt.getWorldPosition(new Ge),
+              quaternion:Yt.getWorldQuaternion(new qn)
+            }:null
+          },
+          target:ct&&At?{
+            id:ct,
+            position:[At.x,
+              At.y,
+              At.z]
+          }:null
+        });
+      if(Zt.outcome==="refused")Dt?n.deleteObject(Dt):zt(),
+      ot.warning(TZt(Zt.reason));
+      else if(Zt.outcome==="keyed"){
+        const Ht=ct?n.objects.peek()[ct]:void 0;
+        it&&Ht&&it.position.set(...Ht.position)
+      }else if(Zt.outcome==="unbased"){
+        if(Dt){
+          n.deleteObject(Dt),
+          ot.warning(Zt.reason==="anchored"?_._({
+                id:"euVfNP"
+              }):_._({
+                id:"UWeJnj"
+              }));
+          return
+        }zt(),
+        ot.warning(AZt(Zt.reason))
+      }
+    }),
+  c.addEventListener("objectChange",
+    ()=>{
+      const Ve=c.object;
+      !v||!(Ve instanceof bT)||e.setLiveRigDrag({
+          objectId:v.objectId,
+          offsets:{
+            [v.joint]:T(v.objectId,
+              v.joint,
+              Ve)
+          }
+        })
+    }),
+  c.addEventListener("objectChange",
+    ()=>{
+      if(!w||c.object!==x)return;
+      const Ve=A();
+      Ve&&e.setLiveRigDrag({
+          objectId:w.objectId,
+          offsets:Ve
+        })
+    }),
+  c.addEventListener("objectChange",
+    ()=>{
+      if(!f||!c.object)return;
+      const Ve=f.targetMesh;
+      POr(Ve,
+        XWt(f,
+          {
+            position:c.object.getWorldPosition(aWr),
+            quaternion:c.object.getWorldQuaternion(oWr)
+          },
+          iWr))
+    });
+  function P(Ve,
+    st){
+    const Me=e.foldResolvers(Ve,
+      n.performanceTimeS.peek());
+    return Me?wje(n,
+      Ve,
+      st,
+      Me.resolveAim):!0
+  }function F(){
+    const Ve=c.object?.userData.objectId,
+    st=c.object?.userData.kind,
+    Me=n.transformMode.peek(),
+    Re=Ve?Xu(n.objects.peek(),
+      Ve):!1,
+    it=()=>st==="camera"&&!!Ve&&!!c.object&&!P(Ve,
+      Bie(c.object)),
+    ct=Me==="rotate"&&it();
+    c.setMode(Re||ct||st==="camera"&&Me==="scale"?"translate":Me),
+    n.setRotateAvailable(!Re&&!it())
+  }function B(){
+    if(b||w)return;
+    const Ve=n.mode.peek()==="edit"&&n.editInteraction.peek()==="idle"&&n.playSession.peek()===null,
+    st=Ve?C():null;
+    if(st){
+      E(st),
+      c.attach(g),
+      F();
+      return
+    }const Me=Ve?n.rigPoseObjectId.peek():null,
+    Re=e.rigHandles.selectedJoints();
+    if(Me&&Re.length>0){
+      const zt=k(Me,
+        Re);
+      if(zt.length>1){
+        S(zt.map(Zt=>Zt.bone)),
+        c.attach(x),
+        F();
+        return
+      }if(zt.length===1){
+        c.attach(zt[0].bone),
+        F();
+        return
+      }
+    }const ct=n.transformPoseObjectId.peek()??n.selectedId.peek(),
+    At=ct?a.get(ct):void 0,
+    Dt=!!ct&&At?.userData.kind==="target"&&!uZt(n,
+      n.objects.peek(),
+      n.focusedCameraId.peek(),
+      ct,
+      ct);
+    At&&!Dt&&n.mode.peek()==="edit"&&n.editInteraction.peek()==="idle"&&n.playSession.peek()===null?(c.attach(At),
+      F()):c.detach()
+  }B(),
+  t.disposers.push(qt(()=>{
+        n.selectedId.get(),
+        n.selectedIds.get(),
+        n.transformPoseObjectId.get(),
+        n.rigPoseObjectId.get(),
+        n.editInteraction.get(),
+        n.playSession.get(),
+        n.show.get(),
+        B()
+      })),
+  c.setMode(n.transformMode.peek()),
+  t.disposers.push(qt(()=>{
+        n.transformMode.get(),
+        n.performanceTimeS.get(),
+        n.show.get(),
+        F()
+      }));
+  const H=new Xo,
+  z=new rzr(H,
+    s.domElement);
+  z.pointerSpeed=tWr;
+  let L=Zrt,
+  $=Krt,
+  O={
+    value:0,
+    rate:0
+  },
+  W={
+    value:0,
+    rate:0
+  },
+  U={
+    value:0,
+    rate:0
+  };
+  const V=new va(0,
+    0,
+    0,
+    "YXZ");
+  function G(){
+    V.setFromQuaternion(l.quaternion),
+    V.z=0,
+    H.quaternion.setFromEuler(V),
+    O={
+      value:V.y,
+      rate:0
+    },
+    W={
+      value:V.x,
+      rate:0
+    },
+    U={
+      value:0,
+      rate:0
+    },
+    L=Zrt,
+    $=Krt
+  }const Z=new Set;
+  let se=null;
+  const X=new va(0,
+    0,
+    0,
+    "YXZ");
+  let te=!1;
+  const ne=()=>n.controlMode.peek()==="default"&&n.mode.peek()==="edit"&&n.playSession.peek()===null&&!n.planShown.peek()&&!n.sceneNodeOpen.peek(),
+  Q=new Map,
+  q=Ve=>{
+    if(!ix()||Ve.repeat)return;
+    const st=n.mode.peek();
+    if(Ve.key==="Shift"&&Z.add("shift"),
+      NGt(Ve)||st!=="camera"&&!te&&!ne()||st==="camera"&&!n.pageLive.peek())return;
+    const Me=Ve.key.toLowerCase();
+    if(Z.add(Me),
+      Q.set(Ve.code,
+        Me),
+      st==="camera"){
+      if(Me==="r"){
+        n.toggleRecording();
+        return
+      }Me==="escape"&&sWr({
+          pointerLocked:z.isLocked,
+          consumed:Ve.defaultPrevented
+        })&&(Ve.preventDefault(),
+        n.exitCameraMode())
+    }
+  },
+  Y=Ve=>{
+    Z.delete(Ve.key.toLowerCase());
+    const st=Q.get(Ve.code);
+    st&&Z.delete(st),
+    Ve.key==="Meta"&&Z.clear()
+  },
+  re=()=>{
+    Z.clear(),
+    le()
+  };
+  document.addEventListener("keydown",
+    q),
+  document.addEventListener("keyup",
+    Y),
+  window.addEventListener("blur",
+    re),
+  t.disposers.push(()=>{
+      document.removeEventListener("keydown",
+        q),
+      document.removeEventListener("keyup",
+        Y),
+      window.removeEventListener("blur",
+        re)
+    });
+  const ae=new va(0,
+    0,
+    0,
+    "YXZ"),
+  ie=new Ge,
+  ge=new Ge,
+  pe=new Ge,
+  ce=new Ge,
+  be=new XEe;
+  function fe(Ve){
+    const st=r.position.clone().sub(o.target);
+    st.lengthSq()<1e-12&&r.getWorldDirection(st).multiplyScalar(-_ot);
+    const Me=Math.exp(Ve*wot),
+    Re=m_.clamp(st.length()*Me,
+      _ot,
+      AFr(e.sceneBounds()?.radius)),
+    it=st.length();
+    st.setLength(Re),
+    r.position.copy(o.target).add(st),
+    it>0&&e.addNavProgress("zoom",
+      Math.abs(Math.log(Re/it)))
+  }function we(Ve,
+    st){
+    const Me=2*Math.PI*o.rotateSpeed/Math.max(1,
+      s.domElement.clientHeight);
+    ce.copy(r.position).sub(o.target),
+    be.setFromVector3(ce),
+    be.theta+=Ve*Me,
+    be.phi=m_.clamp(be.phi+st*Me,
+      kot,
+      Math.min(Math.PI-kot,
+        o.maxPolarAngle)),
+    r.position.copy(o.target).add(ce.setFromSpherical(be)),
+    r.lookAt(o.target),
+    e.addNavProgress("orbit",
+      Math.hypot(Ve,
+        st)*Me)
+  }function Ee(Ve,
+    st){
+    const Me=r.position.distanceTo(o.target),
+    Re=Me*rWr;
+    r.getWorldDirection(ie),
+    ge.crossVectors(ie,
+      r.up).normalize(),
+    pe.crossVectors(ge,
+      ie).normalize();
+    const it=ge.multiplyScalar(-Ve*Re).add(pe.multiplyScalar(st*Re));
+    r.position.add(it),
+    o.target.add(it),
+    Me>0&&e.addNavProgress("pan",
+      it.length()/Me)
+  }const xe=Ve=>{
+    if(n.mode.peek()==="camera"){
+      Ve.preventDefault(),
+      n.zoomCameraByWheel(Ve.deltaY,
+        Ve.deltaMode);
+      return
+    }if(n.mode.peek()!=="edit"||n.playSession.peek()!==null)return;
+    if(Vzr(Ve,
+        n.inputDevice.peek())==="zoom"){
+      Ve.preventDefault(),
+      fe(Ve.deltaY);
+      return
+    }if(n.controlMode.peek()==="default"){
+      Ve.preventDefault(),
+      we(Ve.deltaX,
+        Ve.deltaY);
+      return
+    }Ve.preventDefault(),
+    Ee(Ve.deltaX,
+      Ve.deltaY)
+  };
+  function J(){
+    const Ve=o.target.distanceTo(r.position);
+    r.getWorldDirection(ie),
+    o.target.copy(r.position).addScaledVector(ie,
+      Ve),
+    o.enabled=n.mode.peek()==="edit"
+  }function le(){
+    te&&(te=!1,
+      J())
+  }const ue=Ve=>{
+    Ve.button===2&&n.controlMode.peek()!=="default"&&(n.mode.peek()!=="edit"||c.dragging||n.playSession.peek()===null&&(te=!0,
+        o.enabled=!1,
+        s.domElement.setPointerCapture(Ve.pointerId)))
+  },
+  oe=Ve=>{
+    if(!te)return;
+    ae.setFromQuaternion(r.quaternion),
+    ae.y-=Ve.movementX*xot,
+    ae.x-=Ve.movementY*xot;
+    const st=Math.PI/2-.01;
+    ae.x=Math.max(-st,
+      Math.min(st,
+        ae.x)),
+    r.quaternion.setFromEuler(ae)
+  },
+  ye=Ve=>{
+    Ve.button===2&&le()
+  },
+  je=()=>le(),
+  ve=()=>{
+    if(n.phoneStreaming.peek()){
+      z.unlock();
+      return
+    }n.setFlyLocked(!0)
+  },
+  ke=()=>{
+    n.setFlyLocked(!1);
+    const Ve=n.mode.peek();
+    (Ve==="edit"||Ve==="camera")&&J()
+  };
+  z.addEventListener("lock",
+    ve),
+  z.addEventListener("unlock",
+    ke),
+  t.disposers.push(()=>{
+      z.removeEventListener("lock",
+        ve),
+      z.removeEventListener("unlock",
+        ke)
+    });
+  const Ae={
+    offset:new Ge,
+    target:new Ge
+  };
+  let Se=!1;
+  const me=()=>{
+    Ae.offset.copy(r.position).sub(o.target),
+    Ae.target.copy(o.target)
+  },
+  Te=()=>{
+    Se=!0,
+    me()
+  },
+  Le=()=>{
+    Se=!1
+  },
+  Fe=()=>{
+    if(!Se)return;
+    const Ve=r.position.clone().sub(o.target),
+    st=Ae.offset.length(),
+    Me=Ve.length();
+    e.addNavProgress("pan",
+      Ae.target.distanceTo(o.target)/(Me||1)),
+    st>0&&Me>0&&(e.addNavProgress("orbit",
+        Ae.offset.angleTo(Ve)),
+      e.addNavProgress("zoom",
+        Math.abs(Math.log(Me/st)))),
+    me()
+  };
+  o.addEventListener("start",
+    Te),
+  o.addEventListener("change",
+    Fe),
+  o.addEventListener("end",
+    Le),
+  t.disposers.push(()=>{
+      o.removeEventListener("start",
+        Te),
+      o.removeEventListener("change",
+        Fe),
+      o.removeEventListener("end",
+        Le)
+    });
+  const tt=Ve=>Ve.preventDefault(),
+  Oe=Ve=>{
+    Ve.button===1&&Ve.preventDefault()
+  };
+  s.domElement.addEventListener("pointerdown",
+    ue),
+  s.domElement.addEventListener("pointermove",
+    oe),
+  s.domElement.addEventListener("pointerup",
+    ye),
+  s.domElement.addEventListener("pointercancel",
+    je),
+  s.domElement.addEventListener("contextmenu",
+    tt),
+  s.domElement.addEventListener("mousedown",
+    Oe),
+  s.domElement.addEventListener("wheel",
+    xe,
+    {
+      passive:!1
+    }),
+  t.disposers.push(()=>{
+      s.domElement.removeEventListener("pointerdown",
+        ue),
+      s.domElement.removeEventListener("pointermove",
+        oe),
+      s.domElement.removeEventListener("pointerup",
+        ye),
+      s.domElement.removeEventListener("pointercancel",
+        je),
+      s.domElement.removeEventListener("contextmenu",
+        tt),
+      s.domElement.removeEventListener("mousedown",
+        Oe),
+      s.domElement.removeEventListener("wheel",
+        xe)
+    });
+  {
+    let Ve=null,
+    st=!0;
+    const Me=Yt=>{
+      const mn=Yt[0],
+      Nt=Yt[1];
+      return Math.hypot(Nt.clientX-mn.clientX,
+        Nt.clientY-mn.clientY)
+    },
+    Re=Yt=>({
+        x:(Yt[0].clientX+Yt[1].clientX)/2,
+        y:(Yt[0].clientY+Yt[1].clientY)/2
+      });
+    let it={
+      x:0,
+      y:0
+    },
+    ct=!1;
+    const At=()=>n.mode.peek()==="edit"&&n.playSession.peek()===null,
+    Dt=Yt=>{
+      Yt.touches.length<2||!At()||(Yt.cancelable&&Yt.preventDefault(),
+        Ve=Me(Yt.touches),
+        it=Re(Yt.touches),
+        ct||(st=o.enabled),
+        ct=!0,
+        o.enabled=!1)
+    },
+    zt=Yt=>{
+      if(Ve===null||Yt.touches.length<2||!At())return;
+      Yt.cancelable&&Yt.preventDefault();
+      const mn=Me(Yt.touches);
+      if(Ve>0&&mn>0){
+        const It=mn/Ve;
+        fe(-Math.log(It)/wot)
+      }Ve=mn;
+      const Nt=Re(Yt.touches);
+      n.controlMode.peek()==="default"&&we(it.x-Nt.x,
+        it.y-Nt.y),
+      it=Nt
+    },
+    Zt=Yt=>{
+      Yt.touches.length>=2||(Ve=null,
+        Yt.touches.length===0&&ct&&(ct=!1,
+          o.enabled=st))
+    },
+    Ht=s.domElement;
+    Ht.addEventListener("touchstart",
+      Dt,
+      {
+        passive:!1
+      }),
+    Ht.addEventListener("touchmove",
+      zt,
+      {
+        passive:!1
+      }),
+    Ht.addEventListener("touchend",
+      Zt),
+    Ht.addEventListener("touchcancel",
+      Zt),
+    t.disposers.push(()=>{
+        Ht.removeEventListener("touchstart",
+          Dt),
+        Ht.removeEventListener("touchmove",
+          zt),
+        Ht.removeEventListener("touchend",
+          Zt),
+        Ht.removeEventListener("touchcancel",
+          Zt)
+      })
+  }const Je=()=>{
+    n.mode.peek()==="camera"&&!n.phoneStreaming.peek()&&!z.isLocked&&z.lock()
+  };
+  s.domElement.addEventListener("click",
+    Je),
+  t.disposers.push(()=>s.domElement.removeEventListener("click",
+      Je)),
+  t.disposers.push(qt(()=>{
+        !n.phoneStreaming.get()||!z.isLocked||z.unlock()
+      }));
+  function $e(){
+    const Ve=n.mode.peek();
+    Ve==="edit"?(z.isLocked&&z.unlock(),
+      se&&(r.position.copy(se.position),
+        r.quaternion.copy(se.quaternion),
+        o.target.copy(se.target),
+        se=null),
+      o.enabled=!0,
+      r.fov=FP,
+      r.updateProjectionMatrix(),
+      B()):(le(),
+      c.detach(),
+      o.enabled=!1,
+      Ve==="camera"&&(se||(se={
+            position:r.position.clone(),
+            quaternion:r.quaternion.clone(),
+            target:o.target.clone()
+          }),
+        vZt(t,
+          null,
+          r)||(r.position.y=Math.max(r.position.y,
+            Yzr)),
+        e.applyCameraModeFov(),
+        l.position.copy(r.position),
+        l.quaternion.copy(r.quaternion),
+        G(),
+        e.captureSpawnPose(r.quaternion,
+          r.position)),
+      Ve==="review"&&(z.isLocked&&z.unlock(),
+        r.fov=FP,
+        r.updateProjectionMatrix())),
+    e.updateFrameGuide()
+  }$e(),
+  t.disposers.push(qt(()=>{
+        n.mode.get(),
+        $e()
+      }));
+  const Ue=new Bv;
+  let et=null,
+  He=0,
+  qe=null,
+  ze=!1,
+  We=!1;
+  t.disposers.push(qt(()=>{
+        const Ve=n.editInteraction.get()==="lasso";
+        Ve&&!We?(ze=o.enabled,
+          o.enabled=!1,
+          s.domElement.style.cursor=nWr):!Ve&&We&&(o.enabled=ze,
+          s.domElement.style.cursor="",
+          qe=null,
+          n.lassoRect.set(null)),
+        We=Ve
+      }));
+  const dt=(Ve,
+    st)=>{
+    if(!qe)return;
+    const Me=s.domElement.getBoundingClientRect(),
+    Re=qe.x-Me.left,
+    it=qe.y-Me.top,
+    ct=Ve-Me.left,
+    At=st-Me.top;
+    n.lassoRect.set({
+        x:Math.min(Re,
+          ct),
+        y:Math.min(it,
+          At),
+        w:Math.abs(ct-Re),
+        h:Math.abs(At-it)
+      })
+  },
+  mt=new Ge,
+  jt=(Ve,
+    st)=>{
+    const Me=s.domElement.getBoundingClientRect(),
+    Re=Math.min(Ve.x,
+      st.x)-Me.left,
+    it=Math.max(Ve.x,
+      st.x)-Me.left,
+    ct=Math.min(Ve.y,
+      st.y)-Me.top,
+    At=Math.max(Ve.y,
+      st.y)-Me.top,
+    Dt=n.objects.peek(),
+    zt=[];
+    for(const[Zt,
+        Ht]of a){
+      if(!Dt[Zt]?.kind||Xu(Dt,
+          Zt)||(Ht.getWorldPosition(mt).project(r),
+          mt.z>1))continue;
+      const mn=(mt.x*.5+.5)*Me.width,
+      Nt=(-mt.y*.5+.5)*Me.height;
+      mn>=Re&&mn<=it&&Nt>=ct&&Nt<=At&&zt.push(Zt)
+    }n.setSelectedIds(zt)
+  };
+  let bt=null,
+  gt=!1;
+  const rt=new r2,
+  Ct=new Ge,
+  Kt=new r2,
+  Pn=new Ge,
+  pr=new Ge,
+  _t=(Ve,
+    st)=>{
+    const Me=s.domElement.getBoundingClientRect();
+    return new On((Ve-Me.left)/Me.width*2-1,
+      -((st-Me.top)/Me.height)*2+1)
+  },
+  sn=()=>{
+    const Ve=n.performancePaint.peek();
+    if(!Ve)return[];
+    const st=n.show.peek().tracks.flatMap(Me=>Me.items).find(Me=>Me.id===Ve.itemId);
+    return st&&g2(st)?st.anchors:[]
+  },
+  En=(Ve,
+    st)=>{
+    if(n.editInteraction.peek()!=="editingPath"||t.pathEditPickables.length===0)return null;
+    Ue.setFromCamera(_t(Ve,
+        st),
+      r);
+    const Me=Ue.intersectObjects(t.pathEditPickables,
+      !1)[0];
+    if(!Me)return null;
+    const Re=Me.object.userData;
+    return Re.pathHandle==="in"||Re.pathHandle==="out"?{
+      kind:"handle",
+      index:Re.pathHandleAnchor,
+      handle:Re.pathHandle
+    }:typeof Re.pathHeightAnchor=="number"?{
+      kind:"height",
+      index:Re.pathHeightAnchor
+    }:typeof Re.pathAnchorIndex=="number"?{
+      kind:"anchor",
+      index:Re.pathAnchorIndex
+    }:null
+  },
+  Hn=Ve=>{
+    if(Ve.button!==0)return;
+    const st=En(Ve.clientX,
+      Ve.clientY);
+    st&&(bt=st.kind==="anchor"?{
+        kind:"anchor",
+        index:st.index,
+        moved:!1
+      }:st.kind==="height"?{
+        kind:"height",
+        index:st.index
+      }:{
+        kind:"handle",
+        index:st.index,
+        handle:st.handle
+      },
+      gt=o.enabled,
+      o.enabled=!1,
+      s.domElement.setPointerCapture(Ve.pointerId))
+  },
+  Gr=Ve=>{
+    if(!bt)return;
+    if(Ue.setFromCamera(_t(Ve.clientX,
+          Ve.clientY),
+        r),
+      bt.kind==="anchor"){
+      const Me=Ue.intersectObjects(e.walkableSurfaces(),
+        !0)[0];
+      if(!Me)return;
+      bt.moved=!0,
+      n.movePathAnchor(bt.index,
+        [Me.point.x,
+          Me.point.y,
+          Me.point.z]);
+      return
+    }const st=sn()[bt.index];
+    if(st){
+      if(bt.kind==="height"){
+        if(Pn.subVectors(r.position,
+            pr.set(st.pos[0],
+              st.pos[1],
+              st.pos[2])).setY(0),
+          Pn.lengthSq()<1e-8||(Pn.normalize(),
+            Kt.setFromNormalAndCoplanarPoint(Pn,
+              pr),
+            !Ue.ray.intersectPlane(Kt,
+              Ct)))return;
+        n.setPathAnchorHeight(bt.index,
+          MOr(Ct.y));
+        return
+      }rt.set(new Ge(0,
+          1,
+          0),
+        -st.pos[1]),
+      Ue.ray.intersectPlane(rt,
+        Ct)&&n.movePathHandle(bt.index,
+        bt.handle,
+        [Ct.x-st.pos[0],
+          0,
+          Ct.z-st.pos[2]],
+        {
+          break:Ve.altKey
+        })
+    }
+  },
+  zn=Ve=>{
+    if(!bt)return;
+    const st=bt;
+    bt=null,
+    o.enabled=gt,
+    s.domElement.hasPointerCapture(Ve.pointerId)&&s.domElement.releasePointerCapture(Ve.pointerId),
+    st.kind==="anchor"&&!st.moved&&n.selectPathAnchor(st.index),
+    st.kind==="height"&&n.selectPathAnchor(st.index)
+  },
+  br=Ve=>{
+    et=Ve.button===0?{
+      x:Ve.clientX,
+      y:Ve.clientY
+    }:null,
+    He=0,
+    Ve.button===0&&n.editInteraction.peek()==="lasso"&&(qe={
+        x:Ve.clientX,
+        y:Ve.clientY
+      },
+      dt(Ve.clientX,
+        Ve.clientY),
+      s.domElement.setPointerCapture(Ve.pointerId))
+  },
+  Nr=Ve=>{
+    qe&&dt(Ve.clientX,
+      Ve.clientY),
+    et&&(He=Math.max(He,
+        Math.hypot(Ve.clientX-et.x,
+          Ve.clientY-et.y)))
+  },
+  ua=Ve=>{
+    if(Ve.button!==0)return;
+    if(N){
+      N=!1;
+      const It=et&&Math.hypot(Ve.clientX-et.x,
+        Ve.clientY-et.y)<=Sye;
+      if(et=null,
+        It&&h(Ve)){
+        const pn=n.selectedId.peek();
+        pn&&e.focusObject(pn)
+      }return
+    }if(bt){
+      et=null;
+      return
+    }if(qe){
+      const It=qe;
+      qe=null,
+      n.lassoRect.set(null),
+      s.domElement.hasPointerCapture(Ve.pointerId)&&s.domElement.releasePointerCapture(Ve.pointerId),
+      et=null,
+      Math.hypot(Ve.clientX-It.x,
+        Ve.clientY-It.y)>Sye&&(jt(It,
+          {
+            x:Ve.clientX,
+            y:Ve.clientY
+          }),
+        n.editInteraction.set("idle"));
+      return
+    }if(!et||n.mode.peek()!=="edit"||c.dragging||n.playSession.peek()!==null){
+      et=null;
+      return
+    }const st=He;
+    if(et=null,
+      st>Sye)return;
+    const Me=s.domElement.getBoundingClientRect(),
+    Re=new On((Ve.clientX-Me.left)/Me.width*2-1,
+      -((Ve.clientY-Me.top)/Me.height)*2+1);
+    if(Ue.setFromCamera(Re,
+        r),
+      n.editInteraction.peek()!=="idle"){
+      const It=Ue.intersectObjects(e.walkableSurfaces(),
+        !0)[0];
+      if(!It)return;
+      {
+        const pn=[It.point.x,
+          It.point.y,
+          It.point.z],
+        Tt=n.performancePaint.peek(),
+        fn=Tt?n.show.peek().tracks.flatMap(Ns=>Ns.items).find(Ns=>Ns.id===Tt.itemId):void 0,
+        on=fn&&g2(fn)?fn.anchors:[],
+        Es=j2r(on,
+          pn);
+        Es&&Es.distance<Qzr?n.insertPathAnchor(Es.segmentIndex,
+          pn):n.appendPathAnchor(pn)
+      }return
+    }if(t.rigJointPickables.length>0){
+      const It=Ue.intersectObjects(t.rigJointPickables,
+        !1)[0];
+      if(It){
+        const pn=It.object.userData.rigJoint,
+        Tt=Ve.metaKey||Ve.ctrlKey||Ve.shiftKey,
+        fn=e.rigHandles.selectedJoints();
+        e.rigHandles.setSelectedJoints(Fzr(fn,
+            pn,
+            Tt)),
+        B();
+        return
+      }
+    }const At=Ue.intersectObjects([...a.values()],
+      !0)[0],
+    {
+      selectionBefore:Dt,
+      focusBefore:zt
+    }=u;
+    if(h(Ve)){
+      const It=n.selectedId.peek();
+      if(At&&It)e.focusObject(It);
+      else{
+        n.setSelectedIds(Dt),
+        n.restoreFocus(zt);
+        const pn=At??Ue.intersectObjects(e.walkableSurfaces(),
+          !0)[0];
+        pn&&e.centerViewOn(pn)
+      }return
+    }if(!At){
+      n.selectObject(null);
+      return
+    }let Zt=At.object;
+    for(;
+      Zt&&Zt.userData.objectId===void 0;
+      )Zt=Zt.parent;
+    const Ht=Zt?.userData.objectId??null;
+    if(!Ht){
+      n.selectObject(null);
+      return
+    }const Yt=n.objects.peek(),
+    mn=n.selectedId.peek(),
+    Nt=JEe(Yt,
+      Ht,
+      mn);
+    if(Ve.metaKey||Ve.ctrlKey){
+      const It=mn&&Yt[mn]?.parentId?Nt:JEe(Yt,
+        Ht,
+        null);
+      n.toggleSelect(Ve.altKey?Ht:It)
+    }else Ve.altKey?n.selectObject(Ht):n.selectObject(Nt)
+  },
+  Qs=()=>{
+    N=!1,
+    et=null
+  };
+  s.domElement.addEventListener("pointerdown",
+    br),
+  s.domElement.addEventListener("pointermove",
+    Nr),
+  s.domElement.addEventListener("pointerup",
+    ua),
+  s.domElement.addEventListener("pointercancel",
+    Qs),
+  s.domElement.addEventListener("pointerdown",
+    Hn,
+    {
+      capture:!0
+    }),
+  s.domElement.addEventListener("pointermove",
+    Gr),
+  s.domElement.addEventListener("pointerup",
+    zn),
+  t.disposers.push(()=>{
+      s.domElement.removeEventListener("pointerdown",
+        br),
+      s.domElement.removeEventListener("pointermove",
+        Nr),
+      s.domElement.removeEventListener("pointerup",
+        ua),
+      s.domElement.removeEventListener("pointercancel",
+        Qs),
+      s.domElement.removeEventListener("pointerdown",
+        Hn,
+        {
+          capture:!0
+        }),
+      s.domElement.removeEventListener("pointermove",
+        Gr),
+      s.domElement.removeEventListener("pointerup",
+        zn)
+    });
+  const Sa=Hzr(n,
+    ()=>te);
+  document.addEventListener("keydown",
+    Sa),
+  t.disposers.push(()=>document.removeEventListener("keydown",
+      Sa));
+  function Ma(Ve){
+    if(n.mode.peek()==="camera")if(n.peekPhoneDelta()){
+      e.applyPhoneAim(),
+      G();
+      const st=1-Math.exp(-Ve/Jzr);
+      r.position.lerp(l.position,
+        st),
+      r.quaternion.slerp(l.quaternion,
+        st)
+    }else en(Ve),
+    r.position.copy(l.position),
+    r.quaternion.copy(l.quaternion);
+    else if(te){
+      const st=Z.has("shift")?Aye:1,
+      Me=Tye*st*Ve;
+      r.getWorldDirection(ie),
+      ge.crossVectors(ie,
+        r.up).normalize(),
+      Z.has("w")&&r.position.addScaledVector(ie,
+        Me),
+      Z.has("s")&&r.position.addScaledVector(ie,
+        -Me),
+      Z.has("d")&&r.position.addScaledVector(ge,
+        Me),
+      Z.has("a")&&r.position.addScaledVector(ge,
+        -Me),
+      Z.has("q")&&(r.position.y-=Me),
+      Z.has("e")&&(r.position.y+=Me)
+    }else ha(Ve),
+    Ye(Ve)
+  }function ha(Ve){
+    if(!ne()||c.dragging)return;
+    const st=Number(Z.has("w"))-Number(Z.has("s")),
+    Me=Number(Z.has("d"))-Number(Z.has("a")),
+    Re=Number(Z.has("e"))-Number(Z.has("q"));
+    if(st===0&&Me===0&&Re===0)return;
+    const it=Z.has("shift")?Aye:1,
+    ct=Tye*it*Ve;
+    bot({
+        forward:st,
+        strafe:Me
+      },
+      ct,
+      r.position,
+      r.quaternion,
+      o.target),
+    r.position.y+=Re*ct,
+    o.target.y+=Re*ct;
+    const At=r.position.distanceTo(o.target);
+    At>0&&e.addNavProgress("pan",
+      ct/At)
+  }function en(Ve){
+    const st=Ht=>Z.has(Ht)?1:0,
+    Me=WCr(gq[n.cameraRig.peek()],
+      n.cameraWeight.peek());
+    let Re=st("d")-st("a"),
+    it=st("w")-st("s");
+    const ct=Math.hypot(Re,
+      it),
+    At=Z.has("shift")?eWr:1;
+    ct>0&&(Re*=At/Math.max(1,
+        ct),
+      it*=At/Math.max(1,
+        ct));
+    const Dt=O.value;
+    if(V.setFromQuaternion(H.quaternion),
+      $=JCr($,
+        {
+          stickX:Re,
+          stickY:it,
+          rig:Me,
+          panDegPerS:n.cameraPanDegPerS.peek(),
+          dtS:Ve
+        }),
+      !QCr($)){
+      const[Ht,
+        Yt]=$,
+      mn=Ht.value*Ve,
+      Nt=qCr(V.x,
+        Yt.value*Ve);
+      V.y+=mn,
+      V.x+=Nt,
+      H.quaternion.setFromEuler(V),
+      O={
+        ...O,
+        value:O.value+mn
+      },
+      W={
+        ...W,
+        value:W.value+Nt
+      }
+    }O=RU(O,
+      O.value+Yrt(O.value,
+        V.y,
+        1),
+      Me.lookEaseS,
+      Ve),
+    W=RU(W,
+      V.x,
+      Me.lookEaseS,
+      Ve),
+    X.set(W.value,
+      O.value,
+      0),
+    l.quaternion.setFromEuler(X);
+    const zt=l.quaternion;
+    L=YCr(L,
+      {
+        stickX:Re,
+        stickY:it,
+        vertical:st("e")-st("q"),
+        aim:[zt.x,
+          zt.y,
+          zt.z,
+          zt.w],
+        rig:Me,
+        speedMps:n.cameraSpeedMps.peek(),
+        dtS:Ve
+      });
+    const Zt=XCr(L);
+    l.position.x+=Zt[0]*Ve,
+    l.position.y+=Zt[1]*Ve,
+    l.position.z+=Zt[2]*Ve,
+    U=nEr(U,
+      {
+        rig:Me,
+        turnRadPerS:Yrt(Dt,
+          O.value,
+          Ve),
+        sidewaysMps:tEr(Zt,
+          O.value),
+        topMps:n.cameraSpeedMps.peek(),
+        dtS:Ve
+      }),
+    U.value&&(X.z=U.value,
+      l.quaternion.setFromEuler(X))
+  }function Ye(Ve){
+    const st=n.navBallVector.peek();
+    if(!st||n.mode.peek()!=="edit"||n.playSession.peek()!==null||st.forward===0&&st.strafe===0)return;
+    const Me=Z.has("shift")?Aye:1,
+    Re=Tye*Me*Ve;
+    bot(st,
+      Re,
+      r.position,
+      r.quaternion,
+      o.target)
+  }return{
+    applyMode:$e,
+    detachGizmo:()=>c.detach(),
+    gizmoHot:()=>c.dragging||c.axis!==null,
+    isDraggingMesh:Ve=>c.dragging&&NOr(Ve,
+      c.object??null),
+    tick:Ma,
+    disposeControls:()=>{
+      c.dispose(),
+      z.dispose()
+    }
+  }
+}const oQ=new di;
+function fWr(t,
+  e){
+  const n={
+    
+  };
+  for(const[r,
+      s]of Object.entries(e)){
+    const a=t[r];
+    a&&(oQ.position.copy(s.position),
+      oQ.quaternion.copy(s.quaternion),
+      oQ.scale.copy(s.scale),
+      n[r]=mBe(oQ,
+        a))
+  }return n
+}const Fje="float dotNL = saturate( dot( geometryNormal, directLight.direction ) );";
+na.lights_physical_pars_fragment.includes(Fje);
+na.lights_physical_pars_fragment=na.lights_physical_pars_fragment.replace(Fje,
+  `${Fje}
+    #ifdef SOFT_TERMINATOR
+      dotNL = ( dotNL < 0.3 ? dotNL * dotNL / 0.6 : dotNL - 0.15 ) / 0.85;
+    #endif`);
+function oKt(t){
+  t.defines={
+    ...t.defines,
+    SOFT_TERMINATOR:""
+  }
+}const mWr=.5,gWr=24,bWr=24,yWr=[64,
+  32],vWr=96;
+function xWr(t){
+  return t==="sphere"||t==="cylinder"?t:"cube"
+}function wWr(t,
+  e){
+  const n=new Io({
+      color:e??pq,
+      roughness:X_
+    }),
+  r=t!=="cube";
+  r&&oKt(n);
+  const s=new Vt(lKt(t,
+      !1),
+    n);
+  return s.userData.softTerminator=r,
+  s.userData.primitiveKind=t,
+  s
+}function lKt(t,
+  e){
+  const n=t==="sphere"?e?new Ku(.5,
+    ...yWr):new Ku(.5,
+    32,
+    16):t==="cylinder"?new Al(.5,
+    .5,
+    1,
+    e?vWr:gWr):new mi(1,
+    1,
+    1);
+  return n.translate(0,
+    mWr,
+    0),
+  n
+}function _Wr(t,
+  e){
+  const n=t.userData.primitiveKind;
+  if(!(t instanceof Vt)||!n||n==="cube")return;
+  const r=Math.max(...e.map(Math.abs))>=bWr;
+  r!==!!t.userData.bigPrimitive&&(t.userData.bigPrimitive=r,
+    t.geometry.dispose(),
+    t.geometry=lKt(n,
+      r))
+}const Sot=.25,kWr=.25,Tot=.22;
+function SWr(t,
+  e){
+  for(const[n,
+      r]of t)r.stopFading(),
+  r.enabled=n===e
+}function Oje(t){
+  t.traverse(e=>{
+      e instanceof RR&&e.skeleton.dispose()
+    })
+}function TWr(t,
+  e,
+  n){
+  for(const r of[...t.children]){
+    const s=r.userData.objectId;
+    s&&n(s)&&e.add(r)
+  }t.removeFromParent()
+}function Cye(t,
+  e,
+  n,
+  r){
+  const s=`${e}.${n}`,
+  a=t.tracks.find(l=>l.name===s);
+  return a?a.createInterpolant().evaluate(r):null
+}function Aot(t,
+  e,
+  n,
+  r){
+  const s=Uie(n),
+  a=Cye(t,
+    e,
+    "position",
+    r),
+  o=Cye(t,
+    e,
+    "quaternion",
+    r),
+  l=Cye(t,
+    e,
+    "scale",
+    r);
+  return{
+    position:a?new Ge(a[0],
+      a[1],
+      a[2]):s.position,
+    quaternion:o?new qn(o[0],
+      o[1],
+      o[2],
+      o[3]):s.quaternion,
+    scale:l?new Ge(l[0],
+      l[1],
+      l[2]):s.scale
+  }
+}function 

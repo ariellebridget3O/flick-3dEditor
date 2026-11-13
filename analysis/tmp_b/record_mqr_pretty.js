@@ -1,0 +1,1769 @@
+mqr(t,
+  e){
+  const{
+    a:n,
+    camera:r
+  }=t;
+  let s=null,
+  a=null,
+  o=!1,
+  l=0,
+  c={
+    fromS:0,
+    runS:0
+  },
+  d=!1;
+  const u=new Map;
+  let h=null,
+  f=null,
+  m=0,
+  g=null,
+  b=!1,
+  y=!1,
+  v=new Set;
+  const x=lZt(),
+  w=new Xo,
+  k=new Xo,
+  S=new Set;
+  let T=0,
+  A=null;
+  const C=me=>me==="off"?null:Dzt({
+      t:T,
+      intensity:me
+    });
+  let E=0,
+  j=null,
+  I=!1;
+  const N=new Ge,
+  P=new qn;
+  let F=!1;
+  function B(me){
+    const Te=new t0({
+        antialias:!0,
+        preserveDrawingBuffer:me.preserveDrawingBuffer
+      });
+    fZt(Te),
+    Te.shadowMap.autoUpdate=!1,
+    Te.setPixelRatio(1),
+    Te.setSize(me.width,
+      me.height,
+      me.updateStyle);
+    const Le=new Xo(FP,
+      me.aspect,
+      Khe,
+      RP);
+    let Fe=0;
+    const tt=pZt({
+        camera:Le,
+        meshById:t.meshById,
+        scene:t.scene,
+        now:me.deterministic?()=>Fe*fqr:void 0
+      });
+    let Oe=null;
+    const Je={
+      renderer:Te,
+      camera:Le,
+      render:($e=!1)=>{
+        e.redrawShadows(Te),
+        $e&&Dje(Te)?(Oe??=hKt(Te),
+          Oe.render(t.scene,
+            Le)):Te.render(t.scene,
+          Le)
+      },
+      fitPlanes:()=>{
+        Fe++,
+        tt.tick()
+      },
+      dispose:()=>{
+        S.delete(Je),
+        Oe?.dispose(),
+        Te.forceContextLoss(),
+        Te.dispose()
+      }
+    };
+    return S.add(Je),
+    Je
+  }const H=()=>n.mode.peek()==="camera";
+  function z(me){
+    return L(me)[0]?.startS??0
+  }function L(me){
+    return n.show.peek().tracks.find(Te=>Te.characterId===me)?.items??[]
+  }function $(me){
+    return me.focalLengthMm??Hv
+  }function O(me){
+    const Te=L(me)[0];
+    return Te?.kind==="cam-follow"&&Te.offset&&Te.objectId&&Te.startS<=0?Te:null
+  }function W(me,
+    Te){
+    const Le=Fe=>Fe<Te-1e-6;
+    return{
+      resolveAim:(Fe,
+        tt)=>{
+        if(Fe){
+          if(Le(tt)){
+            const Oe=e.playback.objectPoseAt(Fe,
+              tt);
+            if(Oe)return[Oe.position[0],
+              Oe.position[1]+NP(Fe,
+                n.objects.peek()),
+              Oe.position[2]]
+          }return ROr(t,
+            Fe)
+        }return xZt(t,
+          me)?.target??null
+      },
+      resolveFollowObject:(Fe,
+        tt)=>{
+        if(Le(tt))return e.playback.objectPoseAt(Fe,
+          tt);
+        const Oe=t.meshById.get(Fe);
+        return Oe?(Oe.getWorldPosition(dQ),
+          Oe.getWorldQuaternion(wL),
+          {
+            position:[dQ.x,
+              dQ.y,
+              dQ.z],
+            quaternion:[wL.x,
+              wL.y,
+              wL.z,
+              wL.w]
+          }):null
+      }
+    }
+  }const U=()=>n.isPreviewPlaying.peek()||d,
+  V=()=>!U()&&n.performanceSeekS.peek()!==null,
+  G=()=>U()||V(),
+  Z=()=>n.performanceTimeS.peek(),
+  se=me=>{
+    const Te=t.meshById.get(me);
+    return!!Te&&e.isMeshDragged(Te)
+  },
+  X=me=>{
+    const Te=t.meshById.get(me);
+    return vFr({
+        recording:s!==null,
+        editMode:n.mode.peek()==="edit",
+        meshDragged:!!Te&&e.isMeshDragged(Te),
+        previewActive:G(),
+        isSelected:me===n.selectedId.peek()
+      })
+  };
+  function te(){
+    e.updateCameraMarkerVisual()
+  }function ne(me){
+    const Te=n.isPreviewPlaying.peek(),
+    Le=V();
+    (Te&&!b||Le&&!y)&&te(),
+    b=Te,
+    y=Le,
+    Q()
+  }function Q(){
+    const me=new Set;
+    if(G()&&n.mode.peek()==="edit")for(const[Te,
+        Le]of Object.entries(n.objects.peek())){
+      if(Le.kind!=="camera"||X(Te))continue;
+      const Fe=t.meshById.get(Te);
+      Fe&&ce(Te,
+        w)&&(Hie(Fe,
+          w.position,
+          w.quaternion),
+        me.add(Te))
+    }else if(n.mode.peek()==="edit")for(const[Te,
+        Le]of Object.entries(n.objects.peek())){
+      if(Le.kind!=="camera")continue;
+      const Fe=O(Te);
+      if(!Fe)continue;
+      const tt=t.meshById.get(Te),
+      Oe=t.meshById.get(Fe.objectId);
+      if(!(!tt||!Oe)){
+        if(X(Te)){
+          v.has(Te)&&n.updateObjectTransform(Te,
+            {
+              position:[tt.position.x,
+                tt.position.y,
+                tt.position.z],
+              rotation:[tt.rotation.x,
+                tt.rotation.y,
+                tt.rotation.z]
+            });
+          continue
+        }U8r(Eye,
+          Oe,
+          Fe.offset),
+        Hie(tt,
+          Eye.position,
+          Eye.quaternion),
+        me.add(Te)
+      }
+    }for(const Te of v){
+      if(!xFr({
+            animatedNow:me.has(Te),
+            dragging:se(Te)
+          }))continue;
+      const Le=t.meshById.get(Te),
+      Fe=n.objects.peek()[Te];
+      Le&&Fe&&(Le.position.set(...Fe.position),
+        Le.rotation.set(...Fe.rotation))
+    }v=new Set([...me,
+        ...[...v].filter(Te=>se(Te))])
+  }function q(me){
+    let Te=0;
+    if(j&&me>0){
+      const Fe=r.position.x-j.x,
+      tt=r.position.z-j.z;
+      Te=Math.hypot(Fe,
+        tt)/me
+    }(j??=new Ge).copy(r.position);
+    const Le=oEr({
+        rig:gq[n.cameraRig.peek()],
+        t:T,
+        stridePhase:E,
+        groundSpeedMps:Te,
+        dtS:me
+      });
+    return E=Le.stridePhase,
+    Le.pose
+  }function Y(me){
+    T+=me,
+    n.mode.peek()==="camera"?A=q(me):(j=null,
+      A=C(n.cameraShake.peek())),
+    A&&H()&&(N.copy(r.position),
+      P.copy(r.quaternion),
+      I=!0,
+      cL(r,
+        A))
+  }function re(){
+    I&&(r.position.copy(N),
+      r.quaternion.copy(P),
+      I=!1)
+  }function ae(me){
+    return me.position.copy(r.position),
+    me.quaternion.copy(r.quaternion),
+    me.fov=BU(n),
+    me.updateProjectionMatrix(),
+    A&&cL(me,
+      A),
+    !0
+  }function ie(me){
+    return z2r(L(me),
+      ge())
+  }function ge(){
+    return G()?Z():0
+  }function pe(me,
+    Te){
+    if(ie(me))return;
+    const Le=C(n.objects.peek()[me]?.shake??"off");
+    Le&&cL(Te,
+      Le)
+  }function ce(me,
+    Te){
+    const Le=n.objects.peek()[me];
+    if(!Le)return!1;
+    const Fe=G(),
+    tt=Am(n.recordAspect.peek()).aspect,
+    Oe=t.meshById.get(me);
+    if(X(me))return Oe?(Oe.getWorldPosition(Te.position),
+      Oe.getWorldQuaternion(Te.quaternion),
+      Te.fov=Z_($(Le),
+        tt),
+      Te.updateProjectionMatrix(),
+      !0):!1;
+    const Je=Zo(Le,
+      n.objects.peek()),
+    $e=Fe||!Oe?{
+      position:Je.position,
+      rotation:Je.rotation,
+      focalLengthMm:$(Le)
+    }:{
+      ...Bie(Oe),
+      focalLengthMm:$(Le)
+    },
+    Ue=ge();
+    return dZt({
+        items:L(me),
+        timeS:Ue,
+        base:$e,
+        aspect:tt,
+        resolvers:W(me,
+          Ue),
+        out:x
+      }),
+    Te.position.copy(x.position),
+    Te.quaternion.copy(x.quaternion),
+    Te.fov=x.fovDeg,
+    !0
+  }function be(me,
+    Te){
+    return H()&&n.filmingCameraId.peek()===me?ae(Te):ce(me,
+      Te)?(Te.updateProjectionMatrix(),
+      pe(me,
+        Te),
+      !0):!1
+  }async function fe(me){
+    const Te=me.aim??ae,
+    Le=me.takeOver?{
+      position:r.position.clone(),
+      quaternion:r.quaternion.clone(),
+      fov:r.fov
+    }:null;
+    me.takeOver&&(e.detachGizmo(),
+      e.orbit.enabled=!1);
+    const{
+      width:Fe,
+      height:tt
+    }=Am(n.recordAspect.peek()),
+    Oe=we(me.record===!1),
+    Je=e.finishEnabled(),
+    $e=document.createElement("canvas");
+    $e.width=Fe,
+    $e.height=tt;
+    const Ue=$e.getContext("2d");
+    let et=!1;
+    const He=()=>{
+      et||(et=!0,
+        Ee())
+    },
+    qe=ze=>{
+      !Le||t.isDisposed()||(ze&&(r.position.copy(Le.position),
+          r.quaternion.copy(Le.quaternion),
+          r.fov=Le.fov,
+          r.updateProjectionMatrix()),
+        e.applyMode())
+    };
+    try{
+      if(!Ue)throw new Error("2d context unavailable for capture");
+      const ze=()=>{
+        Oe.fitPlanes(),
+        Oe.render(pqr({
+              offlineFrame:F,
+              recorded:me.record!==!1,
+              enabled:Je
+            })),
+        Ue.drawImage(Oe.renderer.domElement,
+          0,
+          0)
+      };
+      e.playback.resetPerformersToStart(),
+      me.takeOver?.poseFirstFrame();
+      const We=Ew(t);
+      Te(Oe.camera),
+      ze(),
+      We();
+      const dt=me.record===!1?null:uqr($e);
+      let mt=1,
+      jt=!1;
+      const bt=()=>{
+        jt||(jt=!0,
+          mt=0,
+          dt?.start())
+      };
+      return me.deferStart||bt(),
+      {
+        canvas:$e,
+        startRecording:bt,
+        renderFrame:()=>{
+          !et&&Te(Oe.camera)&&(ze(),
+            jt&&mt++)
+        },
+        stop:async()=>(bt(),
+          dt?{
+            ...await dt.stop(),
+            framesRendered:mt
+          }:{
+            videoBlob:new Blob,
+            videoMimeType:"",
+            width:Fe,
+            height:tt,
+            durationS:0,
+            framesRendered:mt
+          }),
+        dispose:()=>{
+          He(),
+          qe(!0)
+        }
+      }
+    }catch(ze){
+      throw He(),
+      qe(me.takeOver?.restorePoseOnFailure!==!1),
+      ze
+    }
+  }function we(me){
+    if(!f){
+      const{
+        aspect:Te,
+        width:Le,
+        height:Fe
+      }=Am(n.recordAspect.peek());
+      f=B({
+          width:Le,
+          height:Fe,
+          aspect:Te,
+          preserveDrawingBuffer:!0,
+          updateStyle:!1,
+          deterministic:me
+        })
+    }return m++,
+    f
+  }function Ee(){
+    m=Math.max(0,
+      m-1),
+    m===0&&f&&(f.dispose(),
+      f=null)
+  }function xe(){
+    return h||(h=B({
+          width:1,
+          height:1,
+          aspect:1,
+          preserveDrawingBuffer:!0,
+          updateStyle:!1
+        })),
+    h
+  }function J(){
+    u.size===0&&h&&(e.forgetStroke(h.renderer),
+      h.dispose(),
+      h=null)
+  }function le(me,
+    Te,
+    Le){
+    const Fe=document.createElement("canvas"),
+    tt=Fe.getContext("2d");
+    tt&&(Te.appendChild(Fe),
+      u.set(me,
+        {
+          host:Te,
+          canvas:Fe,
+          ctx:tt,
+          aim:Le
+        }))
+  }function ue(me){
+    const Te=u.get(me);
+    Te&&(Te.canvas.remove(),
+      u.delete(me))
+  }async function oe(me,
+    Te=!0){
+    const Le=[];
+    d=!0,
+    te();
+    try{
+      for(const Fe of me)Le.push({
+          cameraId:Fe,
+          startsAtS:z(Fe),
+          rolling:!1,
+          session:await fe({
+              deferStart:!0,
+              record:Te,
+              aim:tt=>be(Fe,
+                tt)
+            })
+        });
+      return Le
+    }catch(Fe){
+      d=!1;
+      for(const tt of Le)tt.session.dispose();
+      throw Fe
+    }
+  }async function ye(me){
+    a=null,
+    d=!1,
+    e.playback.stopManualClock();
+    try{
+      const Te={
+        
+      };
+      return await Promise.all(me.map(async Le=>{
+            const Fe=await Le.session.stop();
+            Te[Le.cameraId]=Le.rolling?Fe:null
+          })),
+      Te
+    }finally{
+      for(const Te of me)Te.session.dispose()
+    }
+  }function je(me,
+    Te){
+    const Le=Te.host.clientWidth,
+    Fe=Te.host.clientHeight;
+    if(Le<=0||Fe<=0)return!1;
+    const tt=xe(),
+    Oe=tt.renderer.domElement;
+    (Oe.width!==Le||Oe.height!==Fe)&&(tt.renderer.setSize(Le,
+        Fe,
+        !1),
+      tt.camera.aspect=Le/Fe);
+    const Je=Te.aim?Te.aim(tt.camera):be(me,
+      tt.camera);
+    if(!Je)return!1;
+    tt.fitPlanes();
+    const $e=Je==="plan"||Je==="selection"?jOr(t):null,
+    Ue=Je==="selection"?e.showSelectionRings(tt.camera,
+      Fe):null;
+    try{
+      tt.render(),
+      Je==="selection"&&e.strokeSelection(tt.renderer,
+        tt.camera)
+    }finally{
+      Ue?.(),
+      $e?.()
+    }return(Te.canvas.width!==Le||Te.canvas.height!==Fe)&&(Te.canvas.width=Le,
+      Te.canvas.height=Fe),
+    Te.ctx.drawImage(Oe,
+      0,
+      0),
+    !0
+  }function ve(me){
+    if(s){
+      const Te=Ew(t);
+      s.renderFrame(),
+      Te()
+    }if(u.size>0||a){
+      const Te=Ew(t),
+      Le=new Map(a?.map(({
+              cameraId:Fe,
+              session:tt
+            })=>[Fe,
+            tt])??[]);
+      for(const[Fe,
+          tt]of u)Le.has(Fe)||je(Fe,
+        tt);
+      if(a){
+        const Fe=n.performanceTimeS.peek();
+        let tt=!1;
+        for(const Oe of a){
+          const{
+            cameraId:Je,
+            session:$e
+          }=Oe;
+          !Oe.rolling&&Fe>=Oe.startsAtS&&($e.startRecording(),
+            Oe.rolling=!0,
+            tt=!0);
+          const Ue=u.get(Je),
+          et=Ue?.host.clientWidth??0,
+          He=Ue?.host.clientHeight??0,
+          qe=!!Ue&&et>0&&He>0;
+          (qe||!o)&&$e.renderFrame(),
+          qe&&((Ue.canvas.width!==et||Ue.canvas.height!==He)&&(Ue.canvas.width=et,
+              Ue.canvas.height=He),
+            Ue.ctx.drawImage($e.canvas,
+              0,
+              0,
+              et,
+              He))
+        }tt&&n.rollingCameraIds.set(a.filter(Oe=>Oe.rolling).map(Oe=>Oe.cameraId))
+      }Te()
+    }if(g){
+      const Te=g.host.clientWidth,
+      Le=g.host.clientHeight,
+      Fe=g.rig.renderer.domElement;
+      Te>0&&Le>0&&(Fe.width!==Te||Fe.height!==Le)&&(g.rig.renderer.setSize(Te,
+          Le),
+        g.rig.camera.aspect=Te/Le);
+      const tt=g.rig.camera;
+      if(ke(tt)){
+        tt.updateProjectionMatrix(),
+        g.rig.fitPlanes();
+        const Oe=Ew(t);
+        g.rig.render(),
+        Oe()
+      }
+    }
+  }function ke(me){
+    if(H())return ae(me);
+    const Te=iBe(t)?.userData.objectId;
+    return Te&&ce(Te,
+      me)?(A&&!ie(Te)&&cL(me,
+        A),
+      !0):vZt(t,
+      null,
+      me)?(me.fov=BU(n),
+      A&&cL(me,
+        A),
+      !0):!1
+  }function Ae(){
+    const me=t.renderer.domElement,
+    Te=Math.min(1,
+      768/Math.max(1,
+        me.width)),
+    Le=Math.max(1,
+      Math.round(me.width*Te)),
+    Fe=Math.max(1,
+      Math.round(me.height*Te)),
+    tt=document.createElement("canvas");
+    tt.width=Le,
+    tt.height=Fe;
+    const Oe=tt.getContext("2d");
+    return Oe?(Oe.drawImage(me,
+        0,
+        0,
+        Le,
+        Fe),
+      tt.toDataURL("image/png")):me.toDataURL("image/png")
+  }function Se(me,
+    Te=!1){
+    const Le=Am(n.recordAspect.peek()),
+    Fe=Le.aspect,
+    tt=Te?Le.width:768,
+    Oe=Te?Le.height:Math.round(tt/Fe),
+    Je=B({
+        width:tt,
+        height:Oe,
+        aspect:Fe,
+        preserveDrawingBuffer:!0,
+        updateStyle:!1
+      });
+    if(!ce(me,
+        Je.camera))return Je.dispose(),
+    null;
+    Je.camera.updateProjectionMatrix(),
+    Je.fitPlanes();
+    const $e=Ew(t);
+    Je.render(!0);
+    const Ue=Je.renderer.domElement.toDataURL("image/png");
+    return $e(),
+    Je.dispose(),
+    Ue
+  }return{
+    isViewportFilming:H,
+    isTakeRolling:()=>s!==null,
+    isCapturing:()=>s!==null||a!==null,
+    foldResolvers:W,
+    cameraFovDeg:me=>ce(me,
+      k)?k.fov:null,
+    captureViewport:Ae,
+    captureCamera:Se,
+    aimHubCamera:be,
+    tickPreview:ne,
+    tickShake:Y,
+    restoreShake:re,
+    tickCapture:ve,
+    startRecording:async()=>{
+      s=await fe({
+          
+        }),
+      e.playback.startManualClock()
+    },
+    stopRecording:async()=>{
+      const me=s;
+      if(!me)throw new Error("not recording");
+      s=null,
+      e.playback.stopManualClock();
+      try{
+        return await me.stop()
+      }finally{
+        me.dispose()
+      }
+    },
+    startHubRecording:async(me,
+      Te)=>{
+      if(s||a)throw new Error("already recording");
+      o=Te?.monitorOnly===!0,
+      a=await oe(me,
+        !o),
+      l=e.playback.startManualClock({
+          bounded:!0
+        })
+    },
+    stopHubRecording:async()=>{
+      if(!a)throw new Error("not recording");
+      c={
+        fromS:l,
+        runS:n.performanceTimeS.peek()-l
+      };
+      const me=await ye(a);
+      return o?{
+        
+      }:me
+    },
+    canRenderOffline:()=>{
+      const{
+        width:me,
+        height:Te
+      }=Am(n.recordAspect.peek());
+      return mKt(me,
+        Te)
+    },
+    beginOfflineHub:async me=>{
+      if(s||a)throw new Error("already recording");
+      const Te=await oe(me,
+        !1),
+      {
+        fromS:Le
+      }=c;
+      return e.playback.startManualClock({
+          fromS:Le
+        }),
+      {
+        fromS:Le,
+        runS:Math.max(.1,
+          c.runS),
+        cameras:Te.map(({
+              cameraId:Fe,
+              startsAtS:tt,
+              session:Oe
+            })=>({
+              cameraId:Fe,
+              startsAtS:tt,
+              canvas:Oe.canvas,
+              renderFrame:()=>{
+                const Je=Ew(t);
+                F=!0;
+                try{
+                  Oe.renderFrame()
+                }finally{
+                  F=!1,
+                  Je()
+                }
+              }
+            })),
+        settle:()=>{
+          d=!1,
+          e.playback.stopManualClock();
+          for(const Fe of Te)Fe.session.dispose()
+        }
+      }
+    },
+    recordHubBatch:async me=>{
+      const Te=Math.max(.1,
+        c.runS);
+      if(s||a)throw new Error("already recording");
+      const Le=await oe(me);
+      a=Le;
+      try{
+        e.playback.startManualClock({
+            fromS:c.fromS
+          }),
+        await new Promise(Fe=>setTimeout(Fe,
+            Te*1e3))
+      }catch(Fe){
+        throw await ye(Le),
+        Fe
+      }return await ye(Le)
+    },
+    redrawFeed:me=>{
+      const Te=u.get(me);
+      if(!Te||a)return!1;
+      const Le=Ew(t);
+      try{
+        return je(me,
+          Te)
+      }finally{
+        Le()
+      }
+    },
+    attachFeed:(me,
+      Te,
+      Le)=>{
+      for(const[tt,
+          Oe]of u)tt!==me&&Oe.host===Te&&ue(tt);
+      const Fe=u.get(me);
+      if(Fe){
+        Fe.host!==Te&&Te.appendChild(Fe.canvas),
+        u.set(me,
+          {
+            ...Fe,
+            host:Te,
+            aim:Le
+          });
+        return
+      }le(me,
+        Te,
+        Le)
+    },
+    detachFeed:me=>{
+      queueMicrotask(()=>{
+          if(t.isDisposed())return;
+          const Te=u.get(me);
+          !Te||Te.host.isConnected||(ue(me),
+            J())
+        })
+    },
+    attachPreview:me=>{
+      if(g)return;
+      const Te=B({
+          width:me.clientWidth,
+          height:me.clientHeight,
+          aspect:me.clientWidth/Math.max(1,
+            me.clientHeight),
+          preserveDrawingBuffer:!1,
+          updateStyle:!0
+        });
+      g={
+        rig:Te,
+        host:me
+      },
+      me.appendChild(Te.renderer.domElement)
+    },
+    detachPreview:()=>{
+      g&&(g.rig.renderer.domElement.remove(),
+        g.rig.dispose(),
+        g=null)
+    },
+    dispose:()=>{
+      if(s){
+        const me=s;
+        s=null,
+        me.stop().catch(()=>{
+            
+          }),
+        me.dispose()
+      }for(const me of u.values())me.canvas.remove();
+      if(u.clear(),
+        h?.dispose(),
+        h=null,
+        f?.dispose(),
+        f=null,
+        m=0,
+        a){
+        for(const{
+            session:me
+          }of a)me.stop().catch(()=>{
+            
+          }),
+        me.dispose();
+        a=null
+      }d=!1,
+      g&&(g.rig.renderer.domElement.remove(),
+        g.rig.dispose(),
+        g=null);
+      for(const me of[...S])me.dispose()
+    }
+  }
+}async function gqr(t){
+  const e=await t.beginOfflineHub(t.cameraIds);
+  try{
+    return await dEr({
+        cameras:e.cameras,
+        fromS:e.fromS,
+        runS:e.runS,
+        fps:Qne,
+        step:t.step,
+        encoderFor:gKt,
+        onProgress:t.onProgress
+      })
+  }finally{
+    e.settle()
+  }
+}const bqr=.028,yqr=4500223,vqr=16763972;
+function xqr(t,
+  e){
+  const{
+    a:n
+  }=t,
+  r=new Ci;
+  r.renderOrder=1,
+  t.scene.add(r),
+  t.planningAids.push(()=>[r]);
+  const s=new Ku(bqr,
+    12,
+    8),
+  a=new tl({
+      color:yqr,
+      depthTest:!1
+    }),
+  o=new tl({
+      color:vqr,
+      depthTest:!1
+    });
+  let l=[];
+  const c=new Map;
+  let d=null;
+  function u(){
+    for(const m of c.values())r.remove(m);
+    c.clear(),
+    t.rigJointPickables.length=0,
+    d=null
+  }function h(m){
+    u();
+    for(const g of e.majorJointsOf(m)){
+      const b=new Vt(s,
+        a);
+      b.userData.rigJoint=g.name,
+      b.userData.rigObjectId=m,
+      r.add(b),
+      c.set(g.name,
+        b),
+      t.rigJointPickables.push(b)
+    }d=c.size>0?m:null
+  }function f(){
+    const m=n.selectedSegment.peek();
+    if(!m)return!1;
+    const g=n.show.peek().tracks.find(y=>y.id===m.trackId)?.items.find(y=>y.id===m.itemId);
+    if(g?.kind!=="rig-transform")return!1;
+    const b=n.performanceTimeS.peek()-g.startS;
+    return b>=0&&b<=g.durationS
+  }return{
+    selectedJoints:()=>l,
+    setSelectedJoints:m=>{
+      l=m
+    },
+    tick:()=>{
+      const m=n.rigPoseObjectId.peek();
+      if(!m||!f()){
+        r.visible=!1,
+        (d!==null||c.size>0)&&u(),
+        l=[];
+        return
+      }r.visible=!0,
+      d!==m&&h(m);
+      for(const[g,
+          b]of c){
+        const y=e.boneOf(m,
+          g);
+        y&&(y.getWorldPosition(b.position),
+          b.material=l.includes(g)?o:a)
+      }
+    }
+  }
+}const Bot={
+  type:"change"
+},bBe={
+  type:"start"
+},bKt={
+  type:"end"
+},uQ=new PR,Hot=new r2,wqr=Math.cos(70*m_.DEG2RAD),Ed=new Ge,rm=2*Math.PI,po={
+  NONE:-1,
+  ROTATE:0,
+  DOLLY:1,
+  PAN:2,
+  TOUCH_ROTATE:3,
+  TOUCH_PAN:4,
+  TOUCH_DOLLY_PAN:5,
+  TOUCH_DOLLY_ROTATE:6
+},jye=1e-6;
+class _qr extends xDe{
+  constructor(e,
+    n=null){
+    super(e,
+      n),
+    this.state=po.NONE,
+    this.target=new Ge,
+    this.cursor=new Ge,
+    this.minDistance=0,
+    this.maxDistance=1/0,
+    this.minZoom=0,
+    this.maxZoom=1/0,
+    this.minTargetRadius=0,
+    this.maxTargetRadius=1/0,
+    this.minPolarAngle=0,
+    this.maxPolarAngle=Math.PI,
+    this.minAzimuthAngle=-1/0,
+    this.maxAzimuthAngle=1/0,
+    this.enableDamping=!1,
+    this.dampingFactor=.05,
+    this.enableZoom=!0,
+    this.zoomSpeed=1,
+    this.enableRotate=!0,
+    this.rotateSpeed=1,
+    this.keyRotateSpeed=1,
+    this.enablePan=!0,
+    this.panSpeed=1,
+    this.screenSpacePanning=!0,
+    this.keyPanSpeed=7,
+    this.zoomToCursor=!1,
+    this.autoRotate=!1,
+    this.autoRotateSpeed=2,
+    this.keys={
+      LEFT:"ArrowLeft",
+      UP:"ArrowUp",
+      RIGHT:"ArrowRight",
+      BOTTOM:"ArrowDown"
+    },
+    this.mouseButtons={
+      LEFT:wm.ROTATE,
+      MIDDLE:wm.DOLLY,
+      RIGHT:wm.PAN
+    },
+    this.touches={
+      ONE:P8.ROTATE,
+      TWO:P8.DOLLY_PAN
+    },
+    this.target0=this.target.clone(),
+    this.position0=this.object.position.clone(),
+    this.zoom0=this.object.zoom,
+    this._domElementKeyEvents=null,
+    this._lastPosition=new Ge,
+    this._lastQuaternion=new qn,
+    this._lastTargetPosition=new Ge,
+    this._quat=new qn().setFromUnitVectors(e.up,
+      new Ge(0,
+        1,
+        0)),
+    this._quatInverse=this._quat.clone().invert(),
+    this._spherical=new XEe,
+    this._sphericalDelta=new XEe,
+    this._scale=1,
+    this._panOffset=new Ge,
+    this._rotateStart=new On,
+    this._rotateEnd=new On,
+    this._rotateDelta=new On,
+    this._panStart=new On,
+    this._panEnd=new On,
+    this._panDelta=new On,
+    this._dollyStart=new On,
+    this._dollyEnd=new On,
+    this._dollyDelta=new On,
+    this._dollyDirection=new Ge,
+    this._mouse=new On,
+    this._performCursorZoom=!1,
+    this._pointers=[],
+    this._pointerPositions={
+      
+    },
+    this._controlActive=!1,
+    this._onPointerMove=Sqr.bind(this),
+    this._onPointerDown=kqr.bind(this),
+    this._onPointerUp=Tqr.bind(this),
+    this._onContextMenu=Nqr.bind(this),
+    this._onMouseWheel=Eqr.bind(this),
+    this._onKeyDown=jqr.bind(this),
+    this._onTouchStart=Iqr.bind(this),
+    this._onTouchMove=Mqr.bind(this),
+    this._onMouseDown=Aqr.bind(this),
+    this._onMouseMove=Cqr.bind(this),
+    this._interceptControlDown=Pqr.bind(this),
+    this._interceptControlUp=Rqr.bind(this),
+    this.domElement!==null&&this.connect(this.domElement),
+    this.update()
+  }connect(e){
+    super.connect(e),
+    this.domElement.addEventListener("pointerdown",
+      this._onPointerDown),
+    this.domElement.addEventListener("pointercancel",
+      this._onPointerUp),
+    this.domElement.addEventListener("contextmenu",
+      this._onContextMenu),
+    this.domElement.addEventListener("wheel",
+      this._onMouseWheel,
+      {
+        passive:!1
+      }),
+    this.domElement.getRootNode().addEventListener("keydown",
+      this._interceptControlDown,
+      {
+        passive:!0,
+        capture:!0
+      }),
+    this.domElement.style.touchAction="none"
+  }disconnect(){
+    this.domElement.removeEventListener("pointerdown",
+      this._onPointerDown),
+    this.domElement.ownerDocument.removeEventListener("pointermove",
+      this._onPointerMove),
+    this.domElement.ownerDocument.removeEventListener("pointerup",
+      this._onPointerUp),
+    this.domElement.removeEventListener("pointercancel",
+      this._onPointerUp),
+    this.domElement.removeEventListener("wheel",
+      this._onMouseWheel),
+    this.domElement.removeEventListener("contextmenu",
+      this._onContextMenu),
+    this.stopListenToKeyEvents(),
+    this.domElement.getRootNode().removeEventListener("keydown",
+      this._interceptControlDown,
+      {
+        capture:!0
+      }),
+    this.domElement.style.touchAction="auto"
+  }dispose(){
+    this.disconnect()
+  }getPolarAngle(){
+    return this._spherical.phi
+  }getAzimuthalAngle(){
+    return this._spherical.theta
+  }getDistance(){
+    return this.object.position.distanceTo(this.target)
+  }listenToKeyEvents(e){
+    e.addEventListener("keydown",
+      this._onKeyDown),
+    this._domElementKeyEvents=e
+  }stopListenToKeyEvents(){
+    this._domElementKeyEvents!==null&&(this._domElementKeyEvents.removeEventListener("keydown",
+        this._onKeyDown),
+      this._domElementKeyEvents=null)
+  }saveState(){
+    this.target0.copy(this.target),
+    this.position0.copy(this.object.position),
+    this.zoom0=this.object.zoom
+  }reset(){
+    this.target.copy(this.target0),
+    this.object.position.copy(this.position0),
+    this.object.zoom=this.zoom0,
+    this.object.updateProjectionMatrix(),
+    this.dispatchEvent(Bot),
+    this.update(),
+    this.state=po.NONE
+  }update(e=null){
+    const n=this.object.position;
+    Ed.copy(n).sub(this.target),
+    Ed.applyQuaternion(this._quat),
+    this._spherical.setFromVector3(Ed),
+    this.autoRotate&&this.state===po.NONE&&this._rotateLeft(this._getAutoRotationAngle(e)),
+    this.enableDamping?(this._spherical.theta+=this._sphericalDelta.theta*this.dampingFactor,
+      this._spherical.phi+=this._sphericalDelta.phi*this.dampingFactor):(this._spherical.theta+=this._sphericalDelta.theta,
+      this._spherical.phi+=this._sphericalDelta.phi);
+    let r=this.minAzimuthAngle,
+    s=this.maxAzimuthAngle;
+    isFinite(r)&&isFinite(s)&&(r<-Math.PI?r+=rm:r>Math.PI&&(r-=rm),
+      s<-Math.PI?s+=rm:s>Math.PI&&(s-=rm),
+      r<=s?this._spherical.theta=Math.max(r,
+        Math.min(s,
+          this._spherical.theta)):this._spherical.theta=this._spherical.theta>(r+s)/2?Math.max(r,
+        this._spherical.theta):Math.min(s,
+        this._spherical.theta)),
+    this._spherical.phi=Math.max(this.minPolarAngle,
+      Math.min(this.maxPolarAngle,
+        this._spherical.phi)),
+    this._spherical.makeSafe(),
+    this.enableDamping===!0?this.target.addScaledVector(this._panOffset,
+      this.dampingFactor):this.target.add(this._panOffset),
+    this.target.sub(this.cursor),
+    this.target.clampLength(this.minTargetRadius,
+      this.maxTargetRadius),
+    this.target.add(this.cursor);
+    let a=!1;
+    if(this.zoomToCursor&&this._performCursorZoom||this.object.isOrthographicCamera)this._spherical.radius=this._clampDistance(this._spherical.radius);
+    else{
+      const o=this._spherical.radius;
+      this._spherical.radius=this._clampDistance(this._spherical.radius*this._scale),
+      a=o!=this._spherical.radius
+    }if(Ed.setFromSpherical(this._spherical),
+      Ed.applyQuaternion(this._quatInverse),
+      n.copy(this.target).add(Ed),
+      this.object.lookAt(this.target),
+      this.enableDamping===!0?(this._sphericalDelta.theta*=1-this.dampingFactor,
+        this._sphericalDelta.phi*=1-this.dampingFactor,
+        this._panOffset.multiplyScalar(1-this.dampingFactor)):(this._sphericalDelta.set(0,
+          0,
+          0),
+        this._panOffset.set(0,
+          0,
+          0)),
+      this.zoomToCursor&&this._performCursorZoom){
+      let o=null;
+      if(this.object.isPerspectiveCamera){
+        const l=Ed.length();
+        o=this._clampDistance(l*this._scale);
+        const c=l-o;
+        this.object.position.addScaledVector(this._dollyDirection,
+          c),
+        this.object.updateMatrixWorld(),
+        a=!!c
+      }else if(this.object.isOrthographicCamera){
+        const l=new Ge(this._mouse.x,
+          this._mouse.y,
+          0);
+        l.unproject(this.object);
+        const c=this.object.zoom;
+        this.object.zoom=Math.max(this.minZoom,
+          Math.min(this.maxZoom,
+            this.object.zoom/this._scale)),
+        this.object.updateProjectionMatrix(),
+        a=c!==this.object.zoom;
+        const d=new Ge(this._mouse.x,
+          this._mouse.y,
+          0);
+        d.unproject(this.object),
+        this.object.position.sub(d).add(l),
+        this.object.updateMatrixWorld(),
+        o=Ed.length()
+      }else console.warn("WARNING: OrbitControls.js encountered an unknown camera type - zoom to cursor disabled."),
+      this.zoomToCursor=!1;
+      o!==null&&(this.screenSpacePanning?this.target.set(0,
+          0,
+          -1).transformDirection(this.object.matrix).multiplyScalar(o).add(this.object.position):(uQ.origin.copy(this.object.position),
+          uQ.direction.set(0,
+            0,
+            -1).transformDirection(this.object.matrix),
+          Math.abs(this.object.up.dot(uQ.direction))<wqr?this.object.lookAt(this.target):(Hot.setFromNormalAndCoplanarPoint(this.object.up,
+              this.target),
+            uQ.intersectPlane(Hot,
+              this.target))))
+    }else if(this.object.isOrthographicCamera){
+      const o=this.object.zoom;
+      this.object.zoom=Math.max(this.minZoom,
+        Math.min(this.maxZoom,
+          this.object.zoom/this._scale)),
+      o!==this.object.zoom&&(this.object.updateProjectionMatrix(),
+        a=!0)
+    }return this._scale=1,
+    this._performCursorZoom=!1,
+    a||this._lastPosition.distanceToSquared(this.object.position)>jye||8*(1-this._lastQuaternion.dot(this.object.quaternion))>jye||this._lastTargetPosition.distanceToSquared(this.target)>jye?(this.dispatchEvent(Bot),
+      this._lastPosition.copy(this.object.position),
+      this._lastQuaternion.copy(this.object.quaternion),
+      this._lastTargetPosition.copy(this.target),
+      !0):!1
+  }_getAutoRotationAngle(e){
+    return e!==null?rm/60*this.autoRotateSpeed*e:rm/60/60*this.autoRotateSpeed
+  }_getZoomScale(e){
+    const n=Math.abs(e*.01);
+    return Math.pow(.95,
+      this.zoomSpeed*n)
+  }_rotateLeft(e){
+    this._sphericalDelta.theta-=e
+  }_rotateUp(e){
+    this._sphericalDelta.phi-=e
+  }_panLeft(e,
+    n){
+    Ed.setFromMatrixColumn(n,
+      0),
+    Ed.multiplyScalar(-e),
+    this._panOffset.add(Ed)
+  }_panUp(e,
+    n){
+    this.screenSpacePanning===!0?Ed.setFromMatrixColumn(n,
+      1):(Ed.setFromMatrixColumn(n,
+        0),
+      Ed.crossVectors(this.object.up,
+        Ed)),
+    Ed.multiplyScalar(e),
+    this._panOffset.add(Ed)
+  }_pan(e,
+    n){
+    const r=this.domElement;
+    if(this.object.isPerspectiveCamera){
+      const s=this.object.position;
+      Ed.copy(s).sub(this.target);
+      let a=Ed.length();
+      a*=Math.tan(this.object.fov/2*Math.PI/180),
+      this._panLeft(2*e*a/r.clientHeight,
+        this.object.matrix),
+      this._panUp(2*n*a/r.clientHeight,
+        this.object.matrix)
+    }else this.object.isOrthographicCamera?(this._panLeft(e*(this.object.right-this.object.left)/this.object.zoom/r.clientWidth,
+        this.object.matrix),
+      this._panUp(n*(this.object.top-this.object.bottom)/this.object.zoom/r.clientHeight,
+        this.object.matrix)):(console.warn("WARNING: OrbitControls.js encountered an unknown camera type - pan disabled."),
+      this.enablePan=!1)
+  }_dollyOut(e){
+    this.object.isPerspectiveCamera||this.object.isOrthographicCamera?this._scale/=e:(console.warn("WARNING: OrbitControls.js encountered an unknown camera type - dolly/zoom disabled."),
+      this.enableZoom=!1)
+  }_dollyIn(e){
+    this.object.isPerspectiveCamera||this.object.isOrthographicCamera?this._scale*=e:(console.warn("WARNING: OrbitControls.js encountered an unknown camera type - dolly/zoom disabled."),
+      this.enableZoom=!1)
+  }_updateZoomParameters(e,
+    n){
+    if(!this.zoomToCursor)return;
+    this._performCursorZoom=!0;
+    const r=this.domElement.getBoundingClientRect(),
+    s=e-r.left,
+    a=n-r.top,
+    o=r.width,
+    l=r.height;
+    this._mouse.x=s/o*2-1,
+    this._mouse.y=-(a/l)*2+1,
+    this._dollyDirection.set(this._mouse.x,
+      this._mouse.y,
+      1).unproject(this.object).sub(this.object.position).normalize()
+  }_clampDistance(e){
+    return Math.max(this.minDistance,
+      Math.min(this.maxDistance,
+        e))
+  }_handleMouseDownRotate(e){
+    this._rotateStart.set(e.clientX,
+      e.clientY)
+  }_handleMouseDownDolly(e){
+    this._updateZoomParameters(e.clientX,
+      e.clientX),
+    this._dollyStart.set(e.clientX,
+      e.clientY)
+  }_handleMouseDownPan(e){
+    this._panStart.set(e.clientX,
+      e.clientY)
+  }_handleMouseMoveRotate(e){
+    this._rotateEnd.set(e.clientX,
+      e.clientY),
+    this._rotateDelta.subVectors(this._rotateEnd,
+      this._rotateStart).multiplyScalar(this.rotateSpeed);
+    const n=this.domElement;
+    this._rotateLeft(rm*this._rotateDelta.x/n.clientHeight),
+    this._rotateUp(rm*this._rotateDelta.y/n.clientHeight),
+    this._rotateStart.copy(this._rotateEnd),
+    this.update()
+  }_handleMouseMoveDolly(e){
+    this._dollyEnd.set(e.clientX,
+      e.clientY),
+    this._dollyDelta.subVectors(this._dollyEnd,
+      this._dollyStart),
+    this._dollyDelta.y>0?this._dollyOut(this._getZoomScale(this._dollyDelta.y)):this._dollyDelta.y<0&&this._dollyIn(this._getZoomScale(this._dollyDelta.y)),
+    this._dollyStart.copy(this._dollyEnd),
+    this.update()
+  }_handleMouseMovePan(e){
+    this._panEnd.set(e.clientX,
+      e.clientY),
+    this._panDelta.subVectors(this._panEnd,
+      this._panStart).multiplyScalar(this.panSpeed),
+    this._pan(this._panDelta.x,
+      this._panDelta.y),
+    this._panStart.copy(this._panEnd),
+    this.update()
+  }_handleMouseWheel(e){
+    this._updateZoomParameters(e.clientX,
+      e.clientY),
+    e.deltaY<0?this._dollyIn(this._getZoomScale(e.deltaY)):e.deltaY>0&&this._dollyOut(this._getZoomScale(e.deltaY)),
+    this.update()
+  }_handleKeyDown(e){
+    let n=!1;
+    switch(e.code){
+      case this.keys.UP:e.ctrlKey||e.metaKey||e.shiftKey?this.enableRotate&&this._rotateUp(rm*this.keyRotateSpeed/this.domElement.clientHeight):this.enablePan&&this._pan(0,
+        this.keyPanSpeed),
+      n=!0;
+      break;
+      case this.keys.BOTTOM:e.ctrlKey||e.metaKey||e.shiftKey?this.enableRotate&&this._rotateUp(-rm*this.keyRotateSpeed/this.domElement.clientHeight):this.enablePan&&this._pan(0,
+        -this.keyPanSpeed),
+      n=!0;
+      break;
+      case this.keys.LEFT:e.ctrlKey||e.metaKey||e.shiftKey?this.enableRotate&&this._rotateLeft(rm*this.keyRotateSpeed/this.domElement.clientHeight):this.enablePan&&this._pan(this.keyPanSpeed,
+        0),
+      n=!0;
+      break;
+      case this.keys.RIGHT:e.ctrlKey||e.metaKey||e.shiftKey?this.enableRotate&&this._rotateLeft(-rm*this.keyRotateSpeed/this.domElement.clientHeight):this.enablePan&&this._pan(-this.keyPanSpeed,
+        0),
+      n=!0;
+      break
+    }n&&(e.preventDefault(),
+      this.update())
+  }_handleTouchStartRotate(e){
+    if(this._pointers.length===1)this._rotateStart.set(e.pageX,
+      e.pageY);
+    else{
+      const n=this._getSecondPointerPosition(e),
+      r=.5*(e.pageX+n.x),
+      s=.5*(e.pageY+n.y);
+      this._rotateStart.set(r,
+        s)
+    }
+  }_handleTouchStartPan(e){
+    if(this._pointers.length===1)this._panStart.set(e.pageX,
+      e.pageY);
+    else{
+      const n=this._getSecondPointerPosition(e),
+      r=.5*(e.pageX+n.x),
+      s=.5*(e.pageY+n.y);
+      this._panStart.set(r,
+        s)
+    }
+  }_handleTouchStartDolly(e){
+    const n=this._getSecondPointerPosition(e),
+    r=e.pageX-n.x,
+    s=e.pageY-n.y,
+    a=Math.sqrt(r*r+s*s);
+    this._dollyStart.set(0,
+      a)
+  }_handleTouchStartDollyPan(e){
+    this.enableZoom&&this._handleTouchStartDolly(e),
+    this.enablePan&&this._handleTouchStartPan(e)
+  }_handleTouchStartDollyRotate(e){
+    this.enableZoom&&this._handleTouchStartDolly(e),
+    this.enableRotate&&this._handleTouchStartRotate(e)
+  }_handleTouchMoveRotate(e){
+    if(this._pointers.length==1)this._rotateEnd.set(e.pageX,
+      e.pageY);
+    else{
+      const r=this._getSecondPointerPosition(e),
+      s=.5*(e.pageX+r.x),
+      a=.5*(e.pageY+r.y);
+      this._rotateEnd.set(s,
+        a)
+    }this._rotateDelta.subVectors(this._rotateEnd,
+      this._rotateStart).multiplyScalar(this.rotateSpeed);
+    const n=this.domElement;
+    this._rotateLeft(rm*this._rotateDelta.x/n.clientHeight),
+    this._rotateUp(rm*this._rotateDelta.y/n.clientHeight),
+    this._rotateStart.copy(this._rotateEnd)
+  }_handleTouchMovePan(e){
+    if(this._pointers.length===1)this._panEnd.set(e.pageX,
+      e.pageY);
+    else{
+      const n=this._getSecondPointerPosition(e),
+      r=.5*(e.pageX+n.x),
+      s=.5*(e.pageY+n.y);
+      this._panEnd.set(r,
+        s)
+    }this._panDelta.subVectors(this._panEnd,
+      this._panStart).multiplyScalar(this.panSpeed),
+    this._pan(this._panDelta.x,
+      this._panDelta.y),
+    this._panStart.copy(this._panEnd)
+  }_handleTouchMoveDolly(e){
+    const n=this._getSecondPointerPosition(e),
+    r=e.pageX-n.x,
+    s=e.pageY-n.y,
+    a=Math.sqrt(r*r+s*s);
+    this._dollyEnd.set(0,
+      a),
+    this._dollyDelta.set(0,
+      Math.pow(this._dollyEnd.y/this._dollyStart.y,
+        this.zoomSpeed)),
+    this._dollyOut(this._dollyDelta.y),
+    this._dollyStart.copy(this._dollyEnd);
+    const o=(e.pageX+n.x)*.5,
+    l=(e.pageY+n.y)*.5;
+    this._updateZoomParameters(o,
+      l)
+  }_handleTouchMoveDollyPan(e){
+    this.enableZoom&&this._handleTouchMoveDolly(e),
+    this.enablePan&&this._handleTouchMovePan(e)
+  }_handleTouchMoveDollyRotate(e){
+    this.enableZoom&&this._handleTouchMoveDolly(e),
+    this.enableRotate&&this._handleTouchMoveRotate(e)
+  }_addPointer(e){
+    this._pointers.push(e.pointerId)
+  }_removePointer(e){
+    delete this._pointerPositions[e.pointerId];
+    for(let n=0;
+      n<this._pointers.length;
+      n++)if(this._pointers[n]==e.pointerId){
+      this._pointers.splice(n,
+        1);
+      return
+    }
+  }_isTrackingPointer(e){
+    for(let n=0;
+      n<this._pointers.length;
+      n++)if(this._pointers[n]==e.pointerId)return!0;
+    return!1
+  }_trackPointer(e){
+    let n=this._pointerPositions[e.pointerId];
+    n===void 0&&(n=new On,
+      this._pointerPositions[e.pointerId]=n),
+    n.set(e.pageX,
+      e.pageY)
+  }_getSecondPointerPosition(e){
+    const n=e.pointerId===this._pointers[0]?this._pointers[1]:this._pointers[0];
+    return this._pointerPositions[n]
+  }_customWheelEvent(e){
+    const n=e.deltaMode,
+    r={
+      clientX:e.clientX,
+      clientY:e.clientY,
+      deltaY:e.deltaY
+    };
+    switch(n){
+      case 1:r.deltaY*=16;
+      break;
+      case 2:r.deltaY*=100;
+      break
+    }return e.ctrlKey&&!this._controlActive&&(r.deltaY*=10),
+    r
+  }
+}function kqr(t){
+  this.enabled!==!1&&(this._pointers.length===0&&(this.domElement.setPointerCapture(t.pointerId),
+      this.domElement.ownerDocument.addEventListener("pointermove",
+        this._onPointerMove),
+      this.domElement.ownerDocument.addEventListener("pointerup",
+        this._onPointerUp)),
+    !this._isTrackingPointer(t)&&(this._addPointer(t),
+      t.pointerType==="touch"?this._onTouchStart(t):this._onMouseDown(t)))
+}function Sqr(t){
+  this.enabled!==!1&&(t.pointerType==="touch"?this._onTouchMove(t):this._onMouseMove(t))
+}function Tqr(t){
+  switch(this._removePointer(t),
+    this._pointers.length){
+    case 0:this.domElement.releasePointerCapture(t.pointerId),
+    this.domElement.ownerDocument.removeEventListener("pointermove",
+      this._onPointerMove),
+    this.domElement.ownerDocument.removeEventListener("pointerup",
+      this._onPointerUp),
+    this.dispatchEvent(bKt),
+    this.state=po.NONE;
+    break;
+    case 1:const e=this._pointers[0],
+    n=this._pointerPositions[e];
+    this._onTouchStart({
+        pointerId:e,
+        pageX:n.x,
+        pageY:n.y
+      });
+    break
+  }
+}function Aqr(t){
+  let e;
+  switch(t.button){
+    case 0:e=this.mouseButtons.LEFT;
+    break;
+    case 1:e=this.mouseButtons.MIDDLE;
+    break;
+    case 2:e=this.mouseButtons.RIGHT;
+    break;
+    default:e=-1
+  }switch(e){
+    case wm.DOLLY:if(this.enableZoom===!1)return;
+    this._handleMouseDownDolly(t),
+    this.state=po.DOLLY;
+    break;
+    case wm.ROTATE:if(t.ctrlKey||t.metaKey||t.shiftKey){
+      if(this.enablePan===!1)return;
+      this._handleMouseDownPan(t),
+      this.state=po.PAN
+    }else{
+      if(this.enableRotate===!1)return;
+      this._handleMouseDownRotate(t),
+      this.state=po.ROTATE
+    }break;
+    case wm.PAN:if(t.ctrlKey||t.metaKey||t.shiftKey){
+      if(this.enableRotate===!1)return;
+      this._handleMouseDownRotate(t),
+      this.state=po.ROTATE
+    }else{
+      if(this.enablePan===!1)return;
+      this._handleMouseDownPan(t),
+      this.state=po.PAN
+    }break;
+    default:this.state=po.NONE
+  }this.state!==po.NONE&&this.dispatchEvent(bBe)
+}function Cqr(t){
+  switch(this.state){
+    case po.ROTATE:if(this.enableRotate===!1)return;
+    this._handleMouseMoveRotate(t);
+    break;
+    case po.DOLLY:if(this.enableZoom===!1)return;
+    this._handleMouseMoveDolly(t);
+    break;
+    case po.PAN:if(this.enablePan===!1)return;
+    this._handleMouseMovePan(t);
+    break
+  }
+}function Eqr(t){
+  this.enabled===!1||this.enableZoom===!1||this.state!==po.NONE||(t.preventDefault(),
+    this.dispatchEvent(bBe),
+    this._handleMouseWheel(this._customWheelEvent(t)),
+    this.dispatchEvent(bKt))
+}function jqr(t){
+  this.enabled!==!1&&this._handleKeyDown(t)
+}function Iqr(t){
+  switch(this._trackPointer(t),
+    this._pointers.length){
+    case 1:switch(this.touches.ONE){
+      case P8.ROTATE:if(this.enableRotate===!1)return;
+      this._handleTouchStartRotate(t),
+      this.state=po.TOUCH_ROTATE;
+      break;
+      case P8.PAN:if(this.enablePan===!1)return;
+      this._handleTouchStartPan(t),
+      this.state=po.TOUCH_PAN;
+      break;
+      default:this.state=po.NONE
+    }break;
+    case 2:switch(this.touches.TWO){
+      case P8.DOLLY_PAN:if(this.enableZoom===!1&&this.enablePan===!1)return;
+      this._handleTouchStartDollyPan(t),
+      this.state=po.TOUCH_DOLLY_PAN;
+      break;
+      case P8.DOLLY_ROTATE:if(this.enableZoom===!1&&this.enableRotate===!1)return;
+      this._handleTouchStartDollyRotate(t),
+      this.state=po.TOUCH_DOLLY_ROTATE;
+      break;
+      default:this.state=po.NONE
+    }break;
+    default:this.state=po.NONE
+  }this.state!==po.NONE&&this.dispatchEvent(bBe)
+}function Mqr(t){
+  switch(this._trackPointer(t),
+    this.state){
+    case po.TOUCH_ROTATE:if(this.enableRotate===!1)return;
+    this._handleTouchMoveRotate(t),
+    this.update();
+    break;
+    case po.TOUCH_PAN:if(this.enablePan===!1)return;
+    this._handleTouchMovePan(t),
+    this.update();
+    break;
+    case po.TOUCH_DOLLY_PAN:if(this.enableZoom===!1&&this.enablePan===!1)return;
+    this._handleTouchMoveDollyPan(t),
+    this.update();
+    break;
+    case po.TOUCH_DOLLY_ROTATE:if(this.enableZoom===!1&&this.enableRotate===!1)return;
+    this._handleTouchMoveDollyRotate(t),
+    this.update();
+    break;
+    default:this.state=po.NONE
+  }
+}function Nqr(t){
+  this.enabled!==!1&&t.preventDefault()
+}function Pqr(t){
+  t.key==="Control"&&(this._controlActive=!0,
+    this.domElement.getRootNode().addEventListener("keyup",
+      this._interceptControlUp,
+      {
+        passive:!0,
+        capture:!0
+      }))
+}function Rqr(t){
+  t.key==="Control"&&(this._controlActive=!1,
+    this.domElement.getRootNode().removeEventListener("keyup",
+      this._interceptControlUp,
+      {
+        passive:!0,
+        capture:!0
+      }))
+}const Fqr=3072,Oqr=.05,Lqr=.75;
+function Dqr(t){
+  const{
+    scene:e,
+    camera:n,
+    renderer:r,
+    meshById:s
+  }=t,
+  {
+    floor:a,
+    sun:o,
+    applyDaylight:l
+  }=wOr(e,
+    {
+      shadowMapPx:Math.min(Fqr,
+        r.capabilities.maxTextureSize)
+    }),
+  c=new _qr(n,
+    r.domElement);
+  c.target.set(0,
+    1,
+    0),
+  c.enableDamping=!0,
+  c.rotateSpeed=Lqr,
+  c.mouseButtons={
+    LEFT:wm.ROTATE,
+    MIDDLE:wm.PAN,
+    RIGHT:null
+  },
+  c.enableZoom=!1;
+  function d(){
+    const g=[a];
+    for(const b of s.values()){
+      const y=b.userData.kind;
+      y==="camera"||y==="target"||y==="spotlight"||y==="humanoid"||y==="simple_figure"||y==="group"||g.push(b)
+    }return g
+  }const u=new Ge,
+  h=new On;
+  let f=!1;
+  c.addEventListener("start",
+    ()=>{
+      f=!0
+    }),
+  c.addEventListener("end",
+    ()=>{
+      f=!1
+    });
+  const m=()=>{
+    r.getDrawingBufferSize(h);
+    const g=h.y/2*n.projectionMatrix.elements[5]/Math.max(1e-6,
+      n.position.distanceTo(c.target)),
+    b=n.position.distanceTo(u)*g;
+    if(u.copy(n.position),
+      f||b===0||b>=Oqr)return;
+    const y=n.position.clone(),
+    v=c.target.clone();
+    c.enableDamping=!1,
+    c.update(),
+    c.enableDamping=!0,
+    n.position.copy(y),
+    c.target.copy(v),
+    c.update()
+  };
+  return{
+    orbit:c,
+    sun:o,
+    applyDaylight:l,
+    floor:a,
+    walkableSurfaces:d,
+    tick:()=>{
+      c.enabled&&(c.update(),
+        m())
+    },
+    dispose:()=>c.dispose()
+  }
+}const yKt="stage-finish",Bqr=11;
+function $ot(t){
+  try{
+    const e=t?.getItem(yKt);
+    if(!e)return null;
+    const{
+      enabled:n,
+      source:r
+    }=JSON.parse(e);
+    return typeof n!="boolean"||r!=="auto"&&r!=="manual"?null:{
+      enabled:n,
+      source:r
+    }
+  }catch{
+    return null
+  }
+}function Hqr(t,
+  e){
+  try{
+    t?.setItem(yKt,
+      JSON.stringify(e))
+  }catch{
+    
+  }
+}const $qr=1920*1080,Vqr=320*200,Uqr=t=>t>=Vqr,zqr=t=>t.costMs*Math.max(1,
+  $qr/t.pixels)<=Bqr,Wqr=5,Gqr=2;
+function qqr(t){
+  const e=t.now??(()=>performance.now()),
+  n=l=>{
+    const c=e();
+    return l(),
+    t.finishGpu(),
+    e()-c
+  };
+  for(let l=0;
+    l<Gqr;
+    l++)n(t.drawPlain),
+  n(t.drawFinished);
+  const r=[],
+  s=[];
+  for(let l=0;
+    l<Wqr;
+    l++)r.push(n(t.drawPlain)),
+  s.push(n(t.drawFinished));
+  const a=l=>l.sort((c,
+      d)=>c-d)[l.length>>1],
+  o=a(r);
+  return{
+    costMs:Math.max(0,
+      a(s)-o),
+    plainMs:o,
+    pixels:t.pixels
+  }
+}const Zqr=30,Kqr=300;
+function Xqr(){
+  let t=0,
+  e=Zqr,
+  n=0;
+  return{
+    frame:()=>++t>=e,
+    report:r=>zqr(r)?!0:++n>=2?!1:(e=t+Kqr,
+      null)
+  }
+}const Yqr=1e3,Iye=250,Qqr=50;
+function Jqr(){
+  const t=new Uint32Array(Iye+1);
+  let e=0,
+  n=0;
+  const r=s=>{
+    const a=Math.ceil(s*e);
+    let o=0;
+    for(let l=0;
+      l<t.length;
+      l++)if(o+=t[l],
+      o>=a)return l;
+    return Iye
+  };
+  return{
+    add:s=>{
+      !(s>0)||s>Yqr||(t[Math.min(Iye,
+            Math.round(s))]++,
+        e++,
+        s>Qqr&&n++)
+    },
+    summary:()=>e===0?null:{
+      frames:e,
+      p50Ms:r(.5),
+      p95Ms:r(.95),
+      slowShare:Math.round(n/e*1e3)/1e3
+    }
+  }
+}const eZr=16777215,tZr=1,nZr=30,Mye={
+  x:0,
+  y:.42,
+  z:5.1
+},Vot=.17,rZr=.085,Uot=12,sZr=.68,aZr=1,iZr=.82,oZr=12;
+function lZr(t){
+  const

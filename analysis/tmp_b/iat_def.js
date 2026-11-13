@@ -1,0 +1,1 @@
+iat(t,e){const n=t==="default"?wm.PAN:wm.ROTATE,r=t==="default"?wm.ROTATE:wm.PAN;return{LEFT:e?r:n,MIDDLE:wm.PAN,RIGHT:t==="default"?wm.ROTATE:null}}const T9r="_backdrop_1guus_3",A9r="_closing_1guus_18",C9r

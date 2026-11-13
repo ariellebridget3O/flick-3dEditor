@@ -1,0 +1,5 @@
+node open on the canvas. In a scene node the controls are fewer: select a camera to see its shot, drag the picture (or the chevrons) to tune its aim, Add camera, Height, Lens, Draw direction to draw a move for whatever is selected, Rehearse, Record, and Open in 3D Stage. The navigation, shortcuts and panels below are the Stage page's.
+
+NAVIGATION (viewport): two control modes, chosen in Preferences (the gear on the left rail). Default: drag the ground to move, right-drag or a two-finger scroll orbits, wheel or pinch zooms, and WASD moves at any time, with Q/E down/up and Shift for faster. Unreal/Unity: left-drag orbits, middle-drag pans, wheel zooms, and holding the RIGHT mouse button flies with WASD and Q/E.
+
+SELECT & TRANSFORM: click an object to select its whole group, click again for the part, Alt-click for the part straight away, Cmd/Ctrl-click for multi-select. Move, rotate and scale are on the toolbar beside the selection, and on keys Z, X, C (W, E, R in Unreal/Unity mode), Dele

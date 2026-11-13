@@ -1,0 +1,186 @@
+[
+ {
+  "id": "a_tpose",
+  "durationS": 0.167
+ },
+ {
+  "id": "crouch_fwd",
+  "durationS": 2.0
+ },
+ {
+  "id": "crouch_idle",
+  "durationS": 2.917
+ },
+ {
+  "id": "dance",
+  "durationS": 1.0
+ },
+ {
+  "id": "death01",
+  "durationS": 2.375
+ },
+ {
+  "id": "driving",
+  "durationS": 1.667
+ },
+ {
+  "id": "fixing_kneeling",
+  "durationS": 5.167
+ },
+ {
+  "id": "hit_chest",
+  "durationS": 0.333
+ },
+ {
+  "id": "hit_head",
+  "durationS": 0.417
+ },
+ {
+  "id": "idle",
+  "durationS": 2.5
+ },
+ {
+  "id": "idle_talking",
+  "durationS": 2.917
+ },
+ {
+  "id": "idle_torch",
+  "durationS": 1.25
+ },
+ {
+  "id": "interact",
+  "durationS": 2.0
+ },
+ {
+  "id": "jog_fwd",
+  "durationS": 0.917
+ },
+ {
+  "id": "jump",
+  "durationS": 2.5
+ },
+ {
+  "id": "jump_land",
+  "durationS": 1.25
+ },
+ {
+  "id": "jump_start",
+  "durationS": 1.333
+ },
+ {
+  "id": "pickup_table",
+  "durationS": 0.833
+ },
+ {
+  "id": "pistol_aim_down",
+  "durationS": 0.167
+ },
+ {
+  "id": "pistol_aim_neutral",
+  "durationS": 0.167
+ },
+ {
+  "id": "pistol_aim_up",
+  "durationS": 0.167
+ },
+ {
+  "id": "pistol_idle",
+  "durationS": 1.667
+ },
+ {
+  "id": "pistol_reload",
+  "durationS": 1.667
+ },
+ {
+  "id": "pistol_shoot",
+  "durationS": 0.625
+ },
+ {
+  "id": "punch_cross",
+  "durationS": 1.0
+ },
+ {
+  "id": "punch_enter",
+  "durationS": 0.833
+ },
+ {
+  "id": "punch_jab",
+  "durationS": 0.833
+ },
+ {
+  "id": "push",
+  "durationS": 2.667
+ },
+ {
+  "id": "roll",
+  "durationS": 1.458
+ },
+ {
+  "id": "roll_rm",
+  "durationS": 1.458
+ },
+ {
+  "id": "sitting_enter",
+  "durationS": 1.292
+ },
+ {
+  "id": "sitting_exit",
+  "durationS": 1.0
+ },
+ {
+  "id": "sitting_idle",
+  "durationS": 1.667
+ },
+ {
+  "id": "sitting_talking",
+  "durationS": 2.917
+ },
+ {
+  "id": "spell_simple_enter",
+  "durationS": 0.5
+ },
+ {
+  "id": "spell_simple_exit",
+  "durationS": 0.417
+ },
+ {
+  "id": "spell_simple_idle",
+  "durationS": 2.083
+ },
+ {
+  "id": "spell_simple_shoot",
+  "durationS": 0.5
+ },
+ {
+  "id": "sprint",
+  "durationS": 0.667
+ },
+ {
+  "id": "swim_fwd",
+  "durationS": 1.333
+ },
+ {
+  "id": "swim_idle",
+  "durationS": 3.333
+ },
+ {
+  "id": "sword_attack",
+  "durationS": 1.5
+ },
+ {
+  "id": "sword_attack_rm",
+  "durationS": 1.5
+ },
+ {
+  "id": "sword_idle",
+  "durationS": 1.667
+ },
+ {
+  "id": "walk",
+  "durationS": 1.333
+ },
+ {
+  "id": "walk_formal",
+  "durationS": 1.333
+ }
+]

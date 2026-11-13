@@ -1,0 +1,191 @@
+     42 ARIA     "Notifications
+   2501 ARIA     "Keep
+   2680 ARIA     "Editor
+   2707 BTN      Story
+   2768 BTN      Canvas
+   2830 BTN      3D Stage
+   2934 BTN      Video Editor
+   3157 ARIA     Notifications
+   3924 BTN      Share
+   4182 ARIA     "Open
+   5611 ARIA     "Add
+   5974 BTN      Scene 1
+   6076 ARIA     "Send
+   6474 ARIA     "Duplicate
+   6877 ARIA     "Delete
+   7289 BTN      Scene 2
+   7391 ARIA     "Send
+   7789 ARIA     "Duplicate
+   8192 ARIA     "Delete
+   8623 BTN      Palace Stone Terrace
+   8738 ARIA     "Send
+   9136 ARIA     "Duplicate
+   9539 ARIA     "Delete
+  11899 BTN      Scene
+  12008 BTN      Cameras
+  12310 BTN      3D
+  12416 BTN      2D
+  12606 ARIA     "Show
+  19718 ARIA     Add
+  20280 ARIA     "Lasso
+  21595 ARIA     Assets
+  23288 ARIA     Preferences
+  25124 ARIA     "Controls
+  26720 ARIA     "Drag
+  27352 ARIA     "Lock
+  27760 ARIA     "Screenshot
+  29476 ARIA     "Record
+  30137 ARIA     "Film
+  31066 ARIA     "Hide
+  31813 ARIA     "Search
+  31932 TAB      Move
+  32054 TAB      Animate
+  32160 TAB      Camera
+  32357 SECTION  Perform
+  32654 ARIA     "Select
+  33900 TILE     Play
+  34151 ARIA     "Select
+  35078 TILE     Rig Transform
+  35145 SECTION  Clips
+  35358 ARIA     "Select
+  35962 TILE     Crouch Fwd
+  36158 ARIA     "Select
+  36762 TILE     Crouch Idle
+  36990 ARIA     "Select
+  37594 TILE     Dance
+  37785 ARIA     "Select
+  38389 TILE     Death01
+  38582 ARIA     "Select
+  39186 TILE     Driving
+  39379 ARIA     "Select
+  39983 TILE     Fixing Kneeling
+  40184 ARIA     "Select
+  40788 TILE     Hit Chest
+  40983 ARIA     "Select
+  41587 TILE     Hit Head
+  41781 ARIA     "Select
+  42385 TILE     Idle
+  42575 ARIA     "Select
+  43179 TILE     Idle Talking
+  43377 ARIA     "Select
+  43981 TILE     Idle Torch
+  44177 ARIA     "Select
+  44781 TILE     Interact
+  44975 ARIA     "Select
+  45579 TILE     Jog Fwd
+  45772 ARIA     "Select
+  46376 TILE     Jump
+  46566 ARIA     "Select
+  47170 TILE     Jump Land
+  47365 ARIA     "Select
+  47969 TILE     Jump Start
+  48165 ARIA     "Select
+  48769 TILE     Pickup Table
+  48967 ARIA     "Select
+  49571 TILE     Pistol Aim Down
+  49772 ARIA     "Select
+  50376 TILE     Pistol Aim Neutral
+  50580 ARIA     "Select
+  51184 TILE     Pistol Aim Up
+  51383 ARIA     "Select
+  51987 TILE     Pistol Idle
+  52184 ARIA     "Select
+  52788 TILE     Pistol Reload
+  52987 ARIA     "Select
+  53591 TILE     Pistol Shoot
+  53789 ARIA     "Select
+  54393 TILE     Punch Cross
+  54590 ARIA     "Select
+  55194 TILE     Punch Enter
+  55391 ARIA     "Select
+  55995 TILE     Punch Jab
+  56190 ARIA     "Select
+  56794 TILE     Push
+  56984 ARIA     "Select
+  57588 TILE     Roll
+  57778 ARIA     "Select
+  58382 TILE     Roll Rm
+  58575 ARIA     "Select
+  59179 TILE     Sitting Enter
+  59378 ARIA     "Select
+  59982 TILE     Sitting Exit
+  60180 ARIA     "Select
+  60784 TILE     Sitting Idle
+  60982 ARIA     "Select
+  61586 TILE     Sitting Talking
+  61787 ARIA     "Select
+  62391 TILE     Spell Simple Enter
+  62595 ARIA     "Select
+  63199 TILE     Spell Simple Exit
+  63402 ARIA     "Select
+  64006 TILE     Spell Simple Idle
+  64209 ARIA     "Select
+  64813 TILE     Spell Simple Shoot
+  65017 ARIA     "Select
+  65621 TILE     Sprint
+  65813 ARIA     "Select
+  66417 TILE     Swim Fwd
+  66611 ARIA     "Select
+  67215 TILE     Swim Idle
+  67410 ARIA     "Select
+  68014 TILE     Sword Attack
+  68212 ARIA     "Select
+  68816 TILE     Sword Attack Rm
+  69017 ARIA     "Select
+  69621 TILE     Sword Idle
+  69817 ARIA     "Select
+  70421 TILE     Walk
+  70611 ARIA     "Select
+  71215 TILE     Walk Formal
+  71660 LBL      Name
+  71817 LBL      Position
+  72721 LBL      Rotation
+  75856 ARIA     "Hide
+  76375 TAB      Add Component
+  76506 TAB      My Component
+  76943 ARIA     "Search
+  77854 ARIA     "Delete
+  78868 ARIA     "Delete
+  79340 ARIA     "Expand
+  80564 ARIA     "Delete
+  81036 ARIA     "Expand
+  82274 ARIA     "Delete
+  82746 ARIA     "Expand
+  83980 ARIA     "Delete
+  84452 ARIA     "Expand
+  85703 ARIA     "Delete
+  86175 ARIA     "Expand
+  87423 ARIA     "Delete
+  87895 ARIA     "Expand
+  89129 ARIA     "Delete
+  89601 ARIA     "Expand
+  90841 ARIA     "Delete
+  91313 ARIA     "Expand
+  92560 ARIA     "Delete
+  93631 ARIA     "Delete
+  94706 ARIA     "Delete
+  95787 ARIA     "Delete
+  96863 ARIA     "Delete
+  97941 ARIA     "Delete
+  99018 ARIA     "Delete
+  99869 ARIA     "Snap
+ 100890 ARIA     "Take
+ 103707 ARIA     "Add
+ 105681 ARIA     "Collapse
+ 106218 ARIA     "Open
+ 106581 ARIA     "New
+ 106925 ARIA     History
+ 107489 ARIA     "Chat
+ 107905 ARIA     Context
+ 108131 ARIA     "User
+ 108803 ARIA     "Assistant
+ 109223 ARIA     "Build
+ 109900 ARIA     Expand
+ 110421 ARIA     "Assistant
+ 111603 ARIA     "Suggested
+ 112709 ARIA     "Context
+ 114826 ARIA     "Attach
+ 115527 ARIA     "Reference
+ 116249 ARIA     "Agent
+ 116927 ARIA     "Approval
+ 117461 ARIA     "Record
