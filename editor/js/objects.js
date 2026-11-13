@@ -127,6 +127,7 @@ export class ObjectManager {
         break;
       }
       case 'prop': {
+        g.userData.propKey = obj.propKey;
         this._loadProp(g, obj);
         break;
       }
@@ -255,12 +256,16 @@ export class ObjectManager {
   _loadProp(group, obj) {
     const cat = this.propCatalog[obj.propKey];
     if (!cat) return;
-    if (cat.dims && cat.scale === undefined && /primitive/.test(cat.category)) {
-      // 13 procedural prims — stand-in box from dims
-      const m = new THREE.Mesh(new THREE.BoxGeometry(...cat.dims),
+    if (C.PROCEDURAL_PROPS.includes(obj.propKey)) {
+      // 13 GLB-less procedural props (per prop_manifest diff) — dims-based stand-ins [A:F21]
+      const m = new THREE.Mesh(new THREE.BoxGeometry(...(cat.dims ?? [1, 1, 1])),
         new THREE.MeshStandardMaterial({ color: 0xe2e0dc, roughness: .9 }));
+      m.position.y = 0;
       m.castShadow = m.receiveShadow = true;
-      group.add(m);
+      const wrapper = new THREE.Group();
+      wrapper.add(m);
+      wrapper.rotation.y = (cat.yawDeg ?? 0) * Math.PI / 180;
+      group.add(wrapper);
       return;
     }
     const url = C.PROP_GLB_DIR + cat.category + '/' + obj.propKey + '.glb';

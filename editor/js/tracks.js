@@ -379,31 +379,34 @@ export function evalCameraObject({ base, out, items, timeS, aspect, resolvers })
 }
 
 // ---------- object item application (Q) for non-camera, non-rig kinds ----------
+// Accepts a LAYOUT track (items = {item, startS, endS}) like evalCharacterTrack.
 const AXES = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
 export function evalObjectItems(track, timeS, foldMode, resolvers) { // Q
   // returns {mode:'base'|'walk'|'fold', position?, rotationQuat?, scale?}
   const T = new THREE.Vector3(), E = new THREE.Euler(), A = new THREE.Quaternion(), S = new THREE.Vector3(1, 1, 1);
   let mode = 'base';
   const q = new THREE.Quaternion();
-  for (const it of track.items) {
+  for (const u of track.items) {
+    const it = u.item;
+    const endS = u.endS ?? (it.startS + itemDuration(it));
     if (it.kind === 'play' && !foldMode) {
       if (it.samples.length === 0) continue;
-      if (timeS < it.startS) break;
+      if (timeS < u.startS) break;
       mode = 'walk';
-      if (timeS < it.startS + itemDuration(it)) break;
+      if (timeS < endS) break;
       continue;
     }
     if (it.kind === 'path') {
       if (it.anchors.length < 2) continue;
-      if (timeS < it.startS) break;
+      if (timeS < u.startS) break;
       mode = foldMode ? 'fold' : 'walk';
-      if (timeS < it.startS + itemDuration(it)) break;
+      if (timeS < endS) break;
       continue;
     }
     if (it.kind === 'rig-transform' || it.kind === 'clip') continue;
-    if (timeS < it.startS) break;
+    if (timeS < u.startS) break;
     mode = 'fold';
-    const t = Math.min(timeS - it.startS, it.durationS);
+    const t = Math.min(timeS - u.startS, it.durationS);
     if (it.kind === 'rotate') {
       q.setFromAxisAngle(AXES[it.axis] ?? AXES.y, it.degPerS * t * Math.PI / 180);
       A.multiply(q);
@@ -423,7 +426,7 @@ export function evalObjectItems(track, timeS, foldMode, resolvers) { // Q
         T.set(...s.position); E.set(...s.rotation); A.setFromEuler(E); S.set(...(s.scale ?? [1, 1, 1]));
       }
     }
-    if (timeS < it.startS + itemDuration(it)) break;
+    if (timeS < endS) break;
   }
   return { mode, position: T, quaternion: A, scale: S };
 }

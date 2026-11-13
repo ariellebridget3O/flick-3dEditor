@@ -162,6 +162,7 @@ function buildLightPopover(app) {
   function set(az, elv) {
     app.light = normalizeLight({ azimuthDeg: az, elevationDeg: elv, nightLights: app.light.nightLights });
     app.shadowFit.force();
+    app.markAutosave?.();
     render();
   }
   let dragging = false;

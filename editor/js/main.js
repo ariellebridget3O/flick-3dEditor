@@ -81,7 +81,11 @@ export class App {
       gltfLoader: new GLTFLoader(),
       propCatalog: this.propCatalog,
       planningAids: this.planningAids,
-      onRigReady: (id, rig) => { this.shadowFit.force(); },
+      onRigReady: (id, rig) => {
+        const obj = this.objects.get(id);
+        rig.playClip(obj?.animation?.clip ?? 'idle', obj?.animation?.playing ? undefined : 0); // $Nr: idle@0 at rest
+        this.shadowFit.force();
+      },
     });
     // share its map
     this._wireMeshMap();
@@ -111,9 +115,10 @@ export class App {
     this._ro = new ResizeObserver(() => this._resize());
     this._ro.observe(container);
 
-    // store subscriptions → resync
-    this.objects.subscribe(() => this._syncObjects());
-    this.show.subscribe(() => { this._layoutDirty = true; this.pathEditor.onShowChanged(); });
+    // store subscriptions → resync + autosave
+    this.objects.subscribe(() => { this._syncObjects(); this.markAutosave(); });
+    this.show.subscribe(() => { this._layoutDirty = true; this.pathEditor.onShowChanged(); this.markAutosave(); });
+    this.page.subscribe(() => this.markAutosave());
   }
 
   _wireMeshMap() {
@@ -163,6 +168,24 @@ export class App {
       recordAspect: this.page.recordAspect,
       light: this.light,
     });
+  }
+
+  // ---- autosave (debounced ≥1s, QuotaExceeded-safe [A:F15]) ----
+  markAutosave() {
+    clearTimeout(this._autosaveT);
+    this._autosaveT = setTimeout(() => {
+      try {
+        localStorage.setItem('flick3dEditor.autosave', JSON.stringify(this.currentSceneJSON()));
+        localStorage.setItem('flick3dEditor.aspect', this.page.recordAspect);
+      } catch (e) { /* quota — keep last-good */ }
+    }, 1000);
+  }
+  restoreAutosave() {
+    try {
+      const raw = localStorage.getItem('flick3dEditor.autosave');
+      if (!raw) return false;
+      return this.loadSceneData(JSON.parse(raw));
+    } catch (e) { return false; }
   }
 
   // ================= object sync =================
@@ -347,10 +370,11 @@ export class App {
 
   _figureHeadRotation(track, timeS, obj, split) {
     // Kae: keyed headRotation from transform items (latest key at t); subject look wins when sinceS >= item.startS
-    let keyed = null, keyStartS = -Infinity;
-    if (track) for (const it of track.items) {
-      if (it.kind !== 'transform' || timeS < it.startS) continue;
-      const t = Math.min(timeS - it.startS, it.durationS);
+    let keyed = null;
+    if (track) for (const u of track.items) {
+      const it = u.item;
+      if (it.kind !== 'transform' || timeS < u.startS) continue;
+      const t = Math.min(timeS - u.startS, it.durationS);
       const keys = it.keys ?? [];
       let v = null;
       if (keys.length) {
@@ -361,15 +385,18 @@ export class App {
           break;
         }
       }
-      if (v) { keyed = v; keyStartS = it.startS; }
+      if (v) keyed = v;
     }
     if (split) return [split.headPitchRad ?? 0, split.headYawRad, 0];
     return keyed ?? obj.headRotation ?? [0, 0, 0];
   }
 
   _groundY(x, fromY, z) {
-    const ray = new THREE.Ray(new THREE.Vector3(x, fromY, z), new THREE.Vector3(0, -1, 0));
-    const hits = ray.intersectObjects(this.walkableSurfaces(), false);
+    this._groundRC = this._groundRC || new THREE.Raycaster();
+    this._groundRC.ray.origin.set(x, fromY, z);
+    this._groundRC.ray.direction.set(0, -1, 0);
+    this._groundRC.near = 0; this._groundRC.far = Infinity;
+    const hits = this._groundRC.intersectObjects(this.walkableSurfaces(), false);
     return hits[0]?.point?.y ?? null;
   }
 

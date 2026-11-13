@@ -115,6 +115,8 @@
         const data = await (await fetch(p.get('scene'))).json();
         await app.loadSceneData(data);
       } catch (e) { console.warn('sample load failed', e); }
+    } else if (!p.get('noAutosave')) {
+      app.restoreAutosave();   // resume last session
     }
   </script>
 </body>

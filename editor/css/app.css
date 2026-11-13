@@ -114,7 +114,7 @@ button.small { padding: 2px 8px; font-size: 12px; }
 .insp-actions button { font-size: 12px; padding: 5px 4px; }
 
 /* hierarchy */
-.hierarchy { max-height: 220px; overflow-y: auto; }
+.hierarchy { max-height: 180px; overflow-y: auto; flex: 1; min-height: 60px; }
 .hier-row { display: flex; align-items: center; gap: 7px; padding: 3px 6px; border-radius: 5px; cursor: pointer; color: var(--text-dim); }
 .hier-row:hover { background: var(--panel2); }
 .hier-row.sel { background: #2b3140; color: var(--text); }
@@ -149,7 +149,7 @@ button.small { padding: 2px 8px; font-size: 12px; }
 .light-nums input { width: 60px; background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 5px; padding: 3px 5px; font: inherit; }
 
 /* timeline */
-.timeline { background: var(--panel); border-top: 1px solid var(--border); max-height: 230px; display: flex; flex-direction: column; }
+.timeline { background: var(--panel); border-top: 1px solid var(--border); height: 200px; max-height: 32vh; display: flex; flex-direction: column; flex: none; }
 .tl-header { display: flex; align-items: center; gap: 10px; padding: 7px 12px; }
 .tl-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-dim); }
 .time-badge { font-variant-numeric: tabular-nums; color: var(--text); background: var(--panel2); padding: 2px 8px; border-radius: 6px; }

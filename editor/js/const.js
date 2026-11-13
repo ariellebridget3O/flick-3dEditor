@@ -218,6 +218,9 @@ export const C = {
   PROP_GLB_DIR: 'assets/props/',
   PLAN_PX_PER_M: 34,         // Uhe
   PLAN_MARGIN_PX: 48,        // TLr
+  // the 13 GLB-less procedural props (diff of prop_catalog 1439 vs prop_manifest 1426)
+  PROCEDURAL_PROPS: ['chair', 'table', 'mountain', 'rock', 'tree', 'capsule', 'plane', 'pyramid',
+    'doorway', 'pillar', 'stairs', 'wall', 'wall_corner'],
 };
 
 // Derived figure constants (sA = jP/RIr etc.)
