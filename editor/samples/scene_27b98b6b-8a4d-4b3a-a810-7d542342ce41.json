@@ -1,0 +1,185 @@
+{
+ "row": {
+  "scene_id": "27b98b6b-8a4d-4b3a-a810-7d542342ce41",
+  "name": "Scene 1",
+  "created_at": "2026-11-11T04:34:45.689577+00:00",
+  "updated_at": "2026-11-11T04:50:16.324+00:00",
+  "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a"
+ },
+ "scene": {
+  "v": 10,
+  "show": {
+   "name": "Show 1",
+   "tracks": [
+    {
+     "id": "283e2292-ebce-4843-8c84-77218e1a0aa3",
+     "items": [
+      {
+       "id": "1f253a70-0974-484a-9e71-c6cc0018045a",
+       "kind": "cam-move",
+       "move": "orbit",
+       "startS": 0,
+       "angleDeg": 360,
+       "direction": "ccw",
+       "durationS": 5,
+       "subjectId": "8ed00268-2709-40c1-865d-c7f5307b5e9f",
+       "distanceScale": 1,
+       "heightDeltaUnits": 0
+      }
+     ],
+     "characterId": "ff46ae76-c56a-417b-8f51-7dfe5996803a"
+    }
+   ]
+  },
+  "light": {
+   "azimuthDeg": 128.66,
+   "elevationDeg": 57.38
+  },
+  "objects": {
+   "02e7729d-915f-44ed-913e-00c573acb9ff": {
+    "kind": "prop",
+    "name": "Props Chest",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "propKey": "dungeon_props_chest",
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1bc36311-dbd8-4f70-a90c-e3b0abd826ee": {
+    "kind": "prop",
+    "name": "Doorway",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "propKey": "doorway",
+    "position": [
+     3,
+     0,
+     0
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "278396bf-1933-490c-84d9-c36a9a7fbbde": {
+    "kind": "humanoid",
+    "name": "Human 1",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     -2.903453113132648,
+     0.39126547626204533,
+     1.7826693675165444
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ],
+    "animation": {
+     "clip": "idle",
+     "playing": false
+    }
+   },
+   "7e216572-9a5c-4611-b524-3faaa51e08be": {
+    "kind": "prop",
+    "name": "Stairs",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "propKey": "stairs",
+    "position": [
+     -3,
+     0,
+     1.5
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8ed00268-2709-40c1-865d-c7f5307b5e9f": {
+    "kind": "simple_figure",
+    "name": "Figure 1",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     -3.0380734655955934,
+     0.4009974896923345,
+     1.2719252905175105
+    ],
+    "rotation": [
+     3.141592653589793,
+     -0.5146763264269042,
+     3.141592653589793
+    ]
+   },
+   "eb7b9e3e-555e-42fe-bc86-0b62711bb0e7": {
+    "kind": "prop",
+    "name": "Wall corner",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "propKey": "wall_corner",
+    "position": [
+     -5.524268883887283,
+     0,
+     1.5
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ff46ae76-c56a-417b-8f51-7dfe5996803a": {
+    "kind": "camera",
+    "name": "Camera 1",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "shake": "off",
+    "position": [
+     -0.8428234048542343,
+     1.6756546446789802,
+     0.6750296044944708
+    ],
+    "rotation": [
+     -0.15110615513310752,
+     -0.23054255388762476,
+     -0.03477981662490714
+    ],
+    "focalLengthMm": 35
+   }
+  },
+  "recordAspect": "16:9"
+ }
+}

@@ -1,0 +1,77 @@
+[
+ {
+  "id": "2ba69760-b483-4812-a4b1-3ae707953443",
+  "user_id": "d9ecfd88-fc0e-4224-952a-d766b9b2413e",
+  "url": "https://cdn.flick.art/d9ecfd88-fc0e-4224-952a-d766b9b2413e/uploads/images/2026/11/2026-11-11T04-36-29_480a885a-a3a5-4679-8e22-39078d489fd5.png",
+  "media_type": "image",
+  "created_at": "2026-11-11T04:36:32.2144+00:00",
+  "metadata": {
+   "width": 1920,
+   "height": 1080,
+   "r2_key": "d9ecfd88-fc0e-4224-952a-d766b9b2413e/uploads/images/2026/11/2026-11-11T04-36-29_480a885a-a3a5-4679-8e22-39078d489fd5.png",
+   "node_id": "23cdaca6-972b-419d-b7d1-5f8b4459649b",
+   "batch_id": "3b13f09c-f09a-4c29-964e-c46343ca7c44",
+   "duration": null,
+   "filename": "stage_image.png",
+   "file_size": 2835593,
+   "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a",
+   "upload_source": "presigned_url"
+  },
+  "source": "upload_in_canvas",
+  "normalization_status": "ready",
+  "normalization_error": null,
+  "normalization_started_at": null,
+  "normalized_at": null,
+  "original_r2_key": null
+ },
+ {
+  "id": "29e1cbea-2492-4654-8bf0-9c3e231ff4fe",
+  "user_id": "d9ecfd88-fc0e-4224-952a-d766b9b2413e",
+  "url": "https://cdn.flick.art/d9ecfd88-fc0e-4224-952a-d766b9b2413e/uploads/videos/2026/11/2026-11-11T04-36-40_b2131083-b65d-469c-b1cf-c6a7444f875f.mp4",
+  "media_type": "video",
+  "created_at": "2026-11-11T04:36:41.824574+00:00",
+  "metadata": {
+   "width": 1920,
+   "height": 1080,
+   "r2_key": "d9ecfd88-fc0e-4224-952a-d766b9b2413e/uploads/videos/2026/11/2026-11-11T04-36-40_b2131083-b65d-469c-b1cf-c6a7444f875f.mp4",
+   "node_id": "6bd77005-9102-43b1-881d-a4b9b0ded3ee",
+   "batch_id": "cf03f257-2750-40bf-9bd6-6623c05cb385",
+   "duration": 4.0,
+   "filename": "stage_video.mp4",
+   "file_size": 868536,
+   "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a",
+   "upload_source": "presigned_url"
+  },
+  "source": "upload_in_canvas",
+  "normalization_status": "ready",
+  "normalization_error": null,
+  "normalization_started_at": "2026-11-11T04:36:44.415285+00:00",
+  "normalized_at": "2026-11-11T04:36:48.253038+00:00",
+  "original_r2_key": null
+ },
+ {
+  "id": "e9e98cd0-1947-4c9b-94c7-c54348e47309",
+  "user_id": "d9ecfd88-fc0e-4224-952a-d766b9b2413e",
+  "url": "https://cdn.flick.art/d9ecfd88-fc0e-4224-952a-d766b9b2413e/uploads/images/2026/11/2026-11-11T05-00-02_efd14a04-c85d-4783-8ef5-78943bb87513.png",
+  "media_type": "image",
+  "created_at": "2026-11-11T05:00:08.114563+00:00",
+  "metadata": {
+   "width": 2832,
+   "height": 1560,
+   "r2_key": "d9ecfd88-fc0e-4224-952a-d766b9b2413e/uploads/images/2026/11/2026-11-11T05-00-02_efd14a04-c85d-4783-8ef5-78943bb87513.png",
+   "node_id": "6b3a2866-840e-42a9-8369-2b43faa6e55e",
+   "batch_id": "ec6cf872-4189-4ca0-beba-64bdc843d98b",
+   "duration": null,
+   "filename": "Screenshot 2026-11-10 at 8.59.21\u202fPM.png",
+   "file_size": 4164873,
+   "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a",
+   "upload_source": "presigned_url"
+  },
+  "source": "upload_in_canvas",
+  "normalization_status": "ready",
+  "normalization_error": null,
+  "normalization_started_at": null,
+  "normalized_at": null,
+  "original_r2_key": null
+ }
+]

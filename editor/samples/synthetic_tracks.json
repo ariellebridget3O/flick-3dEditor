@@ -1,0 +1,169 @@
+{
+ "v": 10,
+ "recordAspect": "16:9",
+ "light": {
+  "azimuthDeg": 128.66,
+  "elevationDeg": 57.38
+ },
+ "objects": {
+  "4eaa4636-a024-4fed-8c04-abd23258db7a": {
+   "kind": "humanoid",
+   "name": "Walker",
+   "position": [
+    0,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "animation": {
+    "clip": "idle",
+    "playing": false
+   }
+  },
+  "4d7fe6da-fd4d-4b7c-8ba7-e754d0473e8f": {
+   "kind": "camera",
+   "name": "OrbitCam",
+   "position": [
+    6,
+    3,
+    6
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "focalLengthMm": 35,
+   "shake": "off"
+  },
+  "0d10d2ed-a833-440d-8bee-004e36032962": {
+   "kind": "cube",
+   "name": "Podium",
+   "position": [
+    0,
+    0.5,
+    0
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    2,
+    1,
+    2
+   ]
+  }
+ },
+ "show": {
+  "name": "Synthetic",
+  "tracks": [
+   {
+    "id": "1704eb7d-4d2b-42c4-820f-4dd6c2c6aa85",
+    "characterId": "4eaa4636-a024-4fed-8c04-abd23258db7a",
+    "items": [
+     {
+      "id": "74e4f3ef-a946-4ead-8d3e-9df1df9de722",
+      "kind": "path",
+      "startS": 0,
+      "anchors": [
+       {
+        "pos": [
+         0,
+         0,
+         0
+        ],
+        "in": [
+         0,
+         0,
+         0
+        ],
+        "out": [
+         2.0,
+         0,
+         0.5
+        ]
+       },
+       {
+        "pos": [
+         5,
+         0,
+         1.5
+        ],
+        "in": [
+         -1.5,
+         0,
+         -0.4
+        ],
+        "out": [
+         1.5,
+         0,
+         0.4
+        ]
+       },
+       {
+        "pos": [
+         8,
+         0,
+         3
+        ],
+        "in": [
+         -2.0,
+         0,
+         -0.5
+        ],
+        "out": [
+         0,
+         0,
+         0
+        ]
+       }
+      ],
+      "speedUnitsPerS": 1.4,
+      "gait": "walk",
+      "aim": "travel"
+     },
+     {
+      "id": "d7ebec7f-387f-4b1c-a662-8b0731bea0d4",
+      "kind": "clip",
+      "startS": 10,
+      "durationS": 5,
+      "clip": "dance"
+     }
+    ]
+   },
+   {
+    "id": "72d23533-54a2-4d40-87e1-7a3f53064282",
+    "characterId": "4d7fe6da-fd4d-4b7c-8ba7-e754d0473e8f",
+    "items": [
+     {
+      "id": "11004eea-b532-4d1e-ac7a-9b8e046ef08c",
+      "kind": "cam-move",
+      "startS": 0,
+      "durationS": 8,
+      "move": "orbit",
+      "direction": "ccw",
+      "angleDeg": 360,
+      "heightDeltaUnits": 0,
+      "distanceScale": 1
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flick 3D Stage — offline editor</title>
+  <link rel="stylesheet" href="css/app.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./js/vendor/three.module.js",
+      "three/addons/": "./js/vendor/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <div class="topbar">
+      <div class="brand">3D Stage</div>
+      <input id="sceneName" class="scene-name" value="Scene 1" spellcheck="false"/>
+      <div class="spacer"></div>
+      <button id="btnOpen" class="ghost">Open…</button>
+      <button id="btnSave" class="ghost">Save</button>
+      <input type="file" id="fileInput" accept=".json" hidden/>
+    </div>
+    <div class="stage-header">
+      <button id="btnLight" class="light-btn">☀ Light</button>
+      <div class="spacer"></div>
+      <button id="btnPlay" class="primary">▶ Rehearse</button>
+      <div class="seg" id="viewSwitch">
+        <button data-v="editor" class="on">Scene</button>
+        <button data-v="cameras">Cameras</button>
+      </div>
+      <div class="seg" id="modeSwitch">
+        <button data-m="default" class="on">Default</button>
+        <button data-m="unreal">Unreal</button>
+      </div>
+    </div>
+    <div class="workspace">
+      <div class="viewport-area">
+        <div id="viewport" data-testid="stage-canvas-host"></div>
+        <div id="frameGuide" class="frame-guide" style="display:none"></div>
+        <div id="editToolbar" class="edit-toolbar" style="display:none">
+          <button data-tool="translate" title="Move (Z)">✥</button>
+          <button data-tool="rotate" title="Rotate (X)">⟳</button>
+          <button data-tool="scale" title="Scale (C)">⤢</button>
+          <span class="tb-div"></span>
+          <button data-tool="delete" title="Delete">🗑</button>
+        </div>
+        <div id="toast" class="toast" style="display:none"></div>
+        <div id="camPills" class="cam-pills"></div>
+        <div id="camFooter" class="cam-footer" style="display:none">
+          <label>Height <input type="range" id="heightSlider" min="0.2" max="12" step="0.1"/> <span id="heightVal"></span></label>
+          <label>Lens <input type="range" id="lensSlider" min="0" max="1000" step="1"/> <span id="lensVal"></span></label>
+        </div>
+      </div>
+      <div class="right-dock">
+        <div class="dock-panel" id="inspector">
+          <div class="dock-title">Properties</div>
+          <div id="inspectorBody" class="dock-body"><div class="hint">Select an object</div></div>
+        </div>
+        <div class="dock-panel">
+          <div class="dock-title">Add</div>
+          <div class="dock-body add-grid">
+            <button data-add="humanoid">Human</button>
+            <button data-add="simple_figure">Figure</button>
+            <button data-add="camera">Camera</button>
+            <button data-add="target">Target</button>
+            <button data-add="spotlight">Spotlight</button>
+            <button data-add="cube">Cube</button>
+            <button data-add="sphere">Sphere</button>
+            <button data-add="cylinder">Cylinder</button>
+            <button data-add="group">Group</button>
+            <button data-add="prop" id="btnPropPicker">Props…</button>
+          </div>
+        </div>
+        <div class="dock-panel">
+          <div class="dock-title">Objects</div>
+          <div id="hierarchy" class="dock-body hierarchy"></div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline" id="timeline">
+      <div class="tl-header">
+        <span class="tl-title">Show</span>
+        <button id="btnAddTrack" class="ghost small">+ Track</button>
+        <span class="spacer"></span>
+        <span id="timeBadge" class="time-badge">0.00</span>
+      </div>
+      <div class="tl-body" id="tlBody">
+        <div class="tl-ruler" id="tlRuler"></div>
+        <div class="tl-lanes" id="tlLanes"></div>
+      </div>
+      <div class="tl-inspector" id="segInspector" style="display:none"></div>
+    </div>
+    <div id="propPicker" class="modal" style="display:none">
+      <div class="modal-box">
+        <div class="modal-head">Props <button id="propClose" class="ghost small">✕</button></div>
+        <input id="propSearch" class="prop-search" placeholder="Search props…"/>
+        <div id="propCats" class="prop-cats"></div>
+        <div id="propList" class="prop-list"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { boot } from './js/main.js';
+    import { buildUI } from './js/ui.js';
+    const app = await boot(document.getElementById('viewport'));
+    buildUI(app);
+    window.__app = app;   // test hook
+    const p = new URLSearchParams(location.search);
+    if (p.get('scene')) {
+      try {
+        const data = await (await fetch(p.get('scene'))).json();
+        await app.loadSceneData(data);
+      } catch (e) { console.warn('sample load failed', e); }
+    }
+  </script>
+</body>
+</html>

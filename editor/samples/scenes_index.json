@@ -1,0 +1,23 @@
+[
+ {
+  "scene_id": "27b98b6b-8a4d-4b3a-a810-7d542342ce41",
+  "name": "Scene 1",
+  "created_at": "2026-11-11T04:34:45.689577+00:00",
+  "updated_at": "2026-11-11T04:50:16.324+00:00",
+  "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a"
+ },
+ {
+  "scene_id": "d9139e87-1a51-44fb-9875-08f00600f517",
+  "name": "Scene 2",
+  "created_at": "2026-11-11T04:55:02.8378+00:00",
+  "updated_at": "2026-11-11T04:55:02.8378+00:00",
+  "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a"
+ },
+ {
+  "scene_id": "6e381996-1f51-4f88-b248-69c665bd0d94",
+  "name": "Palace Stone Terrace",
+  "created_at": "2026-11-11T05:01:03.509797+00:00",
+  "updated_at": "2026-11-11T05:10:13.563+00:00",
+  "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a"
+ }
+]

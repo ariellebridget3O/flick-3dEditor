@@ -216,3 +216,16 @@ function sOr(lamp=new Group) {  // spotlight object construction
 ## Selection-related constants seen @~5,438,900 (to chase in UX extraction)
 `fOr=Set("humanoid","simple_figure")` (shadow casters?), `dOr=30, uOr=.163, Oat=16, hOr=1.15, pOr=4, mOr=1.5, gOr=1/.15, bOr=.3, Lat=.1`
 `kOr/Bat`: snap-to-grid basis alignment. `TOr`: 4096 Float64 buffer + dirty flag (plan canvas path? drag recorder?).
+
+## CORRECTION (verified in live browser round-trip)
+The hex comments in the first version of this doc (and the prior audit's full-day hexes
+0xdfdcf0/0xe8b890/0xe7c39b/0xd0d1d2/0xffd69e) were WRONG conversions. The DECIMALS from the
+bundle are the byte-exact ground truth. Correct hexes:
+- DFr full-day: zenith 0xDFE5F0, horizon 0xE8EBF0, fillSky 0xE6EBFB, fillGround 0xD0D1DA, sunColor 0xFFF7EE
+- HY stops (zenith): 0x05070F, 0x0D1630, 0x1C2748, 0x3A4A78, 0x93A9CC, 0xD6DFEC, (32°=full-day)
+- HY stops (horizon): 0x0B1120, 0x28365E, 0x8A6F8C, 0xE0987C, 0xF7CDA6, 0xF2E5D6, 0xE8EBF0
+- HY stops (fillSky): 0x3F4F80, 0x5168AD, 0x737CB4, 0x8F92C4, 0xCFC6DE, 0xDDE0EE, 0xE6EBFB
+- HY stops (fillGround): 0x12161F, 0x1D2233, 0x35303F, 0x5F4C54, 0xB89A84, 0xCABFB2, 0xD0D1DA
+- HY stops (sunColor): 0xB4C8F5, 0xA9BDEC, 0xFF8A54, 0xFF8A54, 0xFFA964, 0xFFDCB4, 0xFFF7EE
+- floor lOr 0xD4D5D9, glow emissive cOr 0xFFC98A, lamp nOr 0x2C2D30, beam YFr 0xFFE3A3, dusk Aat 0xFF8A54
+Browser-verified at default light (128.66°/57.38°): sky zenith #dfe5f0, horizon #e8ebf0, hemi 1.7, sun 2.15.

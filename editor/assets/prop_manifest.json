@@ -1,0 +1,7132 @@
+{
+"animals_betta_fish": {
+"path": "assets/props/animals/animals_betta_fish.glb",
+"size": 92504,
+"status": "ok"
+},
+"animals_brown_bear": {
+"path": "assets/props/animals/animals_brown_bear.glb",
+"size": 84684,
+"status": "ok"
+},
+"animals_cat": {
+"path": "assets/props/animals/animals_cat.glb",
+"size": 89968,
+"status": "ok"
+},
+"animals_cat_2": {
+"path": "assets/props/animals/animals_cat_2.glb",
+"size": 90280,
+"status": "ok"
+},
+"animals_cow": {
+"path": "assets/props/animals/animals_cow.glb",
+"size": 90948,
+"status": "ok"
+},
+"animals_dolphin": {
+"path": "assets/props/animals/animals_dolphin.glb",
+"size": 90700,
+"status": "ok"
+},
+"animals_elephant": {
+"path": "assets/props/animals/animals_elephant.glb",
+"size": 90372,
+"status": "ok"
+},
+"animals_giraffe": {
+"path": "assets/props/animals/animals_giraffe.glb",
+"size": 92092,
+"status": "ok"
+},
+"animals_horse": {
+"path": "assets/props/animals/animals_horse.glb",
+"size": 89604,
+"status": "ok"
+},
+"animals_kangaroo": {
+"path": "assets/props/animals/animals_kangaroo.glb",
+"size": 89904,
+"status": "ok"
+},
+"animals_lion": {
+"path": "assets/props/animals/animals_lion.glb",
+"size": 91248,
+"status": "ok"
+},
+"animals_mallard_duck": {
+"path": "assets/props/animals/animals_mallard_duck.glb",
+"size": 91236,
+"status": "ok"
+},
+"animals_panda": {
+"path": "assets/props/animals/animals_panda.glb",
+"size": 90736,
+"status": "ok"
+},
+"animals_penguin": {
+"path": "assets/props/animals/animals_penguin.glb",
+"size": 88912,
+"status": "ok"
+},
+"animals_pig": {
+"path": "assets/props/animals/animals_pig.glb",
+"size": 91552,
+"status": "ok"
+},
+"animals_pigeon": {
+"path": "assets/props/animals/animals_pigeon.glb",
+"size": 89724,
+"status": "ok"
+},
+"animals_rabbit": {
+"path": "assets/props/animals/animals_rabbit.glb",
+"size": 86964,
+"status": "ok"
+},
+"animals_sheep": {
+"path": "assets/props/animals/animals_sheep.glb",
+"size": 89556,
+"status": "ok"
+},
+"animals_tiger": {
+"path": "assets/props/animals/animals_tiger.glb",
+"size": 92064,
+"status": "ok"
+},
+"animals_whale": {
+"path": "assets/props/animals/animals_whale.glb",
+"size": 89808,
+"status": "ok"
+},
+"boats_boat": {
+"path": "assets/props/vehicles/boats_boat.glb",
+"size": 10640,
+"status": "ok"
+},
+"boats_boat_wsail": {
+"path": "assets/props/vehicles/boats_boat_wsail.glb",
+"size": 54056,
+"status": "ok"
+},
+"boats_cruise_ship": {
+"path": "assets/props/vehicles/boats_cruise_ship.glb",
+"size": 55140,
+"status": "ok"
+},
+"boats_lifeboat": {
+"path": "assets/props/vehicles/boats_lifeboat.glb",
+"size": 33488,
+"status": "ok"
+},
+"boats_sail_ship": {
+"path": "assets/props/vehicles/boats_sail_ship.glb",
+"size": 183472,
+"status": "ok"
+},
+"boats_viking_boat": {
+"path": "assets/props/vehicles/boats_viking_boat.glb",
+"size": 89100,
+"status": "ok"
+},
+"buildings_1_story": {
+"path": "assets/props/structures/buildings_1_story.glb",
+"size": 172304,
+"status": "ok"
+},
+"buildings_1_story_base": {
+"path": "assets/props/structures/buildings_1_story_base.glb",
+"size": 135124,
+"status": "ok"
+},
+"buildings_1_story_gable_roof": {
+"path": "assets/props/structures/buildings_1_story_gable_roof.glb",
+"size": 110972,
+"status": "ok"
+},
+"buildings_1_story_gable_roof_base": {
+"path": "assets/props/structures/buildings_1_story_gable_roof_base.glb",
+"size": 83800,
+"status": "ok"
+},
+"buildings_1_story_gable_roof_mat": {
+"path": "assets/props/structures/buildings_1_story_gable_roof_mat.glb",
+"size": 117864,
+"status": "ok"
+},
+"buildings_1_story_mat": {
+"path": "assets/props/structures/buildings_1_story_mat.glb",
+"size": 178920,
+"status": "ok"
+},
+"buildings_1_story_round_roof": {
+"path": "assets/props/structures/buildings_1_story_round_roof.glb",
+"size": 157240,
+"status": "ok"
+},
+"buildings_1_story_round_roof_base": {
+"path": "assets/props/structures/buildings_1_story_round_roof_base.glb",
+"size": 145644,
+"status": "ok"
+},
+"buildings_1_story_round_roof_mat": {
+"path": "assets/props/structures/buildings_1_story_round_roof_mat.glb",
+"size": 161200,
+"status": "ok"
+},
+"buildings_1_story_sign": {
+"path": "assets/props/structures/buildings_1_story_sign.glb",
+"size": 160640,
+"status": "ok"
+},
+"buildings_1_story_sign_base": {
+"path": "assets/props/structures/buildings_1_story_sign_base.glb",
+"size": 142328,
+"status": "ok"
+},
+"buildings_1_story_sign_mat": {
+"path": "assets/props/structures/buildings_1_story_sign_mat.glb",
+"size": 168360,
+"status": "ok"
+},
+"buildings_2_story": {
+"path": "assets/props/structures/buildings_2_story.glb",
+"size": 218572,
+"status": "ok"
+},
+"buildings_2_story_2": {
+"path": "assets/props/structures/buildings_2_story_2.glb",
+"size": 246636,
+"status": "ok"
+},
+"buildings_2_story_2_mat": {
+"path": "assets/props/structures/buildings_2_story_2_mat.glb",
+"size": 254268,
+"status": "ok"
+},
+"buildings_2_story_balcony": {
+"path": "assets/props/structures/buildings_2_story_balcony.glb",
+"size": 255568,
+"status": "ok"
+},
+"buildings_2_story_balcony_mat": {
+"path": "assets/props/structures/buildings_2_story_balcony_mat.glb",
+"size": 263408,
+"status": "ok"
+},
+"buildings_2_story_base": {
+"path": "assets/props/structures/buildings_2_story_base.glb",
+"size": 195392,
+"status": "ok"
+},
+"buildings_2_story_center": {
+"path": "assets/props/structures/buildings_2_story_center.glb",
+"size": 196540,
+"status": "ok"
+},
+"buildings_2_story_center_base": {
+"path": "assets/props/structures/buildings_2_story_center_base.glb",
+"size": 124824,
+"status": "ok"
+},
+"buildings_2_story_center_mat": {
+"path": "assets/props/structures/buildings_2_story_center_mat.glb",
+"size": 202440,
+"status": "ok"
+},
+"buildings_2_story_columns": {
+"path": "assets/props/structures/buildings_2_story_columns.glb",
+"size": 224404,
+"status": "ok"
+},
+"buildings_2_story_columns_base": {
+"path": "assets/props/structures/buildings_2_story_columns_base.glb",
+"size": 163796,
+"status": "ok"
+},
+"buildings_2_story_columns_mat": {
+"path": "assets/props/structures/buildings_2_story_columns_mat.glb",
+"size": 232216,
+"status": "ok"
+},
+"buildings_2_story_double": {
+"path": "assets/props/structures/buildings_2_story_double.glb",
+"size": 247152,
+"status": "ok"
+},
+"buildings_2_story_double_mat": {
+"path": "assets/props/structures/buildings_2_story_double_mat.glb",
+"size": 253064,
+"status": "ok"
+},
+"buildings_2_story_gable_roof": {
+"path": "assets/props/structures/buildings_2_story_gable_roof.glb",
+"size": 194920,
+"status": "ok"
+},
+"buildings_2_story_gable_roof_base": {
+"path": "assets/props/structures/buildings_2_story_gable_roof_base.glb",
+"size": 153004,
+"status": "ok"
+},
+"buildings_2_story_gable_roof_mat": {
+"path": "assets/props/structures/buildings_2_story_gable_roof_mat.glb",
+"size": 202808,
+"status": "ok"
+},
+"buildings_2_story_mat": {
+"path": "assets/props/structures/buildings_2_story_mat.glb",
+"size": 226168,
+"status": "ok"
+},
+"buildings_2_story_round_roof": {
+"path": "assets/props/structures/buildings_2_story_round_roof.glb",
+"size": 182564,
+"status": "ok"
+},
+"buildings_2_story_round_roof_base": {
+"path": "assets/props/structures/buildings_2_story_round_roof_base.glb",
+"size": 180732,
+"status": "ok"
+},
+"buildings_2_story_round_roof_mat": {
+"path": "assets/props/structures/buildings_2_story_round_roof_mat.glb",
+"size": 186528,
+"status": "ok"
+},
+"buildings_2_story_sidehouse": {
+"path": "assets/props/structures/buildings_2_story_sidehouse.glb",
+"size": 342856,
+"status": "ok"
+},
+"buildings_2_story_sidehouse_base": {
+"path": "assets/props/structures/buildings_2_story_sidehouse_base.glb",
+"size": 229096,
+"status": "ok"
+},
+"buildings_2_story_sidehouse_mat": {
+"path": "assets/props/structures/buildings_2_story_sidehouse_mat.glb",
+"size": 350832,
+"status": "ok"
+},
+"buildings_2_story_sign": {
+"path": "assets/props/structures/buildings_2_story_sign.glb",
+"size": 217068,
+"status": "ok"
+},
+"buildings_2_story_sign_base": {
+"path": "assets/props/structures/buildings_2_story_sign_base.glb",
+"size": 182512,
+"status": "ok"
+},
+"buildings_2_story_sign_mat": {
+"path": "assets/props/structures/buildings_2_story_sign_mat.glb",
+"size": 222856,
+"status": "ok"
+},
+"buildings_2_story_slim": {
+"path": "assets/props/structures/buildings_2_story_slim.glb",
+"size": 177180,
+"status": "ok"
+},
+"buildings_2_story_slim_base": {
+"path": "assets/props/structures/buildings_2_story_slim_base.glb",
+"size": 148464,
+"status": "ok"
+},
+"buildings_2_story_slim_mat": {
+"path": "assets/props/structures/buildings_2_story_slim_mat.glb",
+"size": 183984,
+"status": "ok"
+},
+"buildings_2_story_stairs": {
+"path": "assets/props/structures/buildings_2_story_stairs.glb",
+"size": 246356,
+"status": "ok"
+},
+"buildings_2_story_stairs_mat": {
+"path": "assets/props/structures/buildings_2_story_stairs_mat.glb",
+"size": 254180,
+"status": "ok"
+},
+"buildings_2_story_wide": {
+"path": "assets/props/structures/buildings_2_story_wide.glb",
+"size": 291932,
+"status": "ok"
+},
+"buildings_2_story_wide_2_doors": {
+"path": "assets/props/structures/buildings_2_story_wide_2_doors.glb",
+"size": 455180,
+"status": "ok"
+},
+"buildings_2_story_wide_2_doors_base": {
+"path": "assets/props/structures/buildings_2_story_wide_2_doors_base.glb",
+"size": 218464,
+"status": "ok"
+},
+"buildings_2_story_wide_2_doors_mat": {
+"path": "assets/props/structures/buildings_2_story_wide_2_doors_mat.glb",
+"size": 461204,
+"status": "ok"
+},
+"buildings_2_story_wide_base": {
+"path": "assets/props/structures/buildings_2_story_wide_base.glb",
+"size": 155672,
+"status": "ok"
+},
+"buildings_2_story_wide_mat": {
+"path": "assets/props/structures/buildings_2_story_wide_mat.glb",
+"size": 297792,
+"status": "ok"
+},
+"buildings_3_story_balcony": {
+"path": "assets/props/structures/buildings_3_story_balcony.glb",
+"size": 305460,
+"status": "ok"
+},
+"buildings_3_story_balcony_mat": {
+"path": "assets/props/structures/buildings_3_story_balcony_mat.glb",
+"size": 313316,
+"status": "ok"
+},
+"buildings_3_story_base": {
+"path": "assets/props/structures/buildings_3_story_base.glb",
+"size": 155048,
+"status": "ok"
+},
+"buildings_3_story_slim": {
+"path": "assets/props/structures/buildings_3_story_slim.glb",
+"size": 225568,
+"status": "ok"
+},
+"buildings_3_story_slim_base": {
+"path": "assets/props/structures/buildings_3_story_slim_base.glb",
+"size": 192704,
+"status": "ok"
+},
+"buildings_3_story_slim_mat": {
+"path": "assets/props/structures/buildings_3_story_slim_mat.glb",
+"size": 232372,
+"status": "ok"
+},
+"buildings_3_story_small": {
+"path": "assets/props/structures/buildings_3_story_small.glb",
+"size": 195548,
+"status": "ok"
+},
+"buildings_3_story_small_mat": {
+"path": "assets/props/structures/buildings_3_story_small_mat.glb",
+"size": 202416,
+"status": "ok"
+},
+"buildings_4_story": {
+"path": "assets/props/structures/buildings_4_story.glb",
+"size": 407712,
+"status": "ok"
+},
+"buildings_4_story_center": {
+"path": "assets/props/structures/buildings_4_story_center.glb",
+"size": 377144,
+"status": "ok"
+},
+"buildings_4_story_center_base": {
+"path": "assets/props/structures/buildings_4_story_center_base.glb",
+"size": 226272,
+"status": "ok"
+},
+"buildings_4_story_center_mat": {
+"path": "assets/props/structures/buildings_4_story_center_mat.glb",
+"size": 383048,
+"status": "ok"
+},
+"buildings_4_story_mat": {
+"path": "assets/props/structures/buildings_4_story_mat.glb",
+"size": 413452,
+"status": "ok"
+},
+"buildings_4_story_wide_2_doors": {
+"path": "assets/props/structures/buildings_4_story_wide_2_doors.glb",
+"size": 773888,
+"status": "ok"
+},
+"buildings_4_story_wide_2_doors_base": {
+"path": "assets/props/structures/buildings_4_story_wide_2_doors_base.glb",
+"size": 338808,
+"status": "ok"
+},
+"buildings_4_story_wide_2_doors_mat": {
+"path": "assets/props/structures/buildings_4_story_wide_2_doors_mat.glb",
+"size": 780916,
+"status": "ok"
+},
+"buildings_4_story_wide_2_doors_roof": {
+"path": "assets/props/structures/buildings_4_story_wide_2_doors_roof.glb",
+"size": 712240,
+"status": "ok"
+},
+"buildings_4_story_wide_2_doors_roof_mat": {
+"path": "assets/props/structures/buildings_4_story_wide_2_doors_roof_mat.glb",
+"size": 717384,
+"status": "ok"
+},
+"buildings_6_story_stack": {
+"path": "assets/props/structures/buildings_6_story_stack.glb",
+"size": 356464,
+"status": "ok"
+},
+"buildings_6_story_stack_mat": {
+"path": "assets/props/structures/buildings_6_story_stack_mat.glb",
+"size": 364256,
+"status": "ok"
+},
+"buildings_ac_unit": {
+"path": "assets/props/structures/buildings_ac_unit.glb",
+"size": 4268,
+"status": "ok"
+},
+"buildings_ac_unitx4": {
+"path": "assets/props/structures/buildings_ac_unitx4.glb",
+"size": 13216,
+"status": "ok"
+},
+"buildings_balcony": {
+"path": "assets/props/structures/buildings_balcony.glb",
+"size": 13636,
+"status": "ok"
+},
+"buildings_bricks_half": {
+"path": "assets/props/structures/buildings_bricks_half.glb",
+"size": 2036,
+"status": "ok"
+},
+"buildings_bricks_large": {
+"path": "assets/props/structures/buildings_bricks_large.glb",
+"size": 18292,
+"status": "ok"
+},
+"buildings_bricks_left_straight": {
+"path": "assets/props/structures/buildings_bricks_left_straight.glb",
+"size": 7696,
+"status": "ok"
+},
+"buildings_bricks_right_straight": {
+"path": "assets/props/structures/buildings_bricks_right_straight.glb",
+"size": 8544,
+"status": "ok"
+},
+"buildings_bricks_single": {
+"path": "assets/props/structures/buildings_bricks_single.glb",
+"size": 2048,
+"status": "ok"
+},
+"buildings_bricks_small": {
+"path": "assets/props/structures/buildings_bricks_small.glb",
+"size": 5548,
+"status": "ok"
+},
+"buildings_casino_sign": {
+"path": "assets/props/structures/buildings_casino_sign.glb",
+"size": 36676,
+"status": "ok"
+},
+"buildings_door1": {
+"path": "assets/props/structures/buildings_door1.glb",
+"size": 9596,
+"status": "ok"
+},
+"buildings_door2": {
+"path": "assets/props/structures/buildings_door2.glb",
+"size": 14436,
+"status": "ok"
+},
+"buildings_door3": {
+"path": "assets/props/structures/buildings_door3.glb",
+"size": 11788,
+"status": "ok"
+},
+"buildings_door4": {
+"path": "assets/props/structures/buildings_door4.glb",
+"size": 8768,
+"status": "ok"
+},
+"buildings_door5": {
+"path": "assets/props/structures/buildings_door5.glb",
+"size": 9624,
+"status": "ok"
+},
+"buildings_door_double": {
+"path": "assets/props/structures/buildings_door_double.glb",
+"size": 19080,
+"status": "ok"
+},
+"buildings_door_window": {
+"path": "assets/props/structures/buildings_door_window.glb",
+"size": 20252,
+"status": "ok"
+},
+"buildings_door_window2": {
+"path": "assets/props/structures/buildings_door_window2.glb",
+"size": 8428,
+"status": "ok"
+},
+"buildings_pipe_l": {
+"path": "assets/props/structures/buildings_pipe_l.glb",
+"size": 8096,
+"status": "ok"
+},
+"buildings_pipe_straight": {
+"path": "assets/props/structures/buildings_pipe_straight.glb",
+"size": 5564,
+"status": "ok"
+},
+"buildings_pipe_straight_short": {
+"path": "assets/props/structures/buildings_pipe_straight_short.glb",
+"size": 5540,
+"status": "ok"
+},
+"buildings_sign_bakery": {
+"path": "assets/props/structures/buildings_sign_bakery.glb",
+"size": 63476,
+"status": "ok"
+},
+"buildings_sign_barbershop": {
+"path": "assets/props/structures/buildings_sign_barbershop.glb",
+"size": 58476,
+"status": "ok"
+},
+"buildings_sign_bookshop": {
+"path": "assets/props/structures/buildings_sign_bookshop.glb",
+"size": 91168,
+"status": "ok"
+},
+"buildings_sign_hardware": {
+"path": "assets/props/structures/buildings_sign_hardware.glb",
+"size": 58992,
+"status": "ok"
+},
+"buildings_sign_pharmacy": {
+"path": "assets/props/structures/buildings_sign_pharmacy.glb",
+"size": 43612,
+"status": "ok"
+},
+"buildings_staircase": {
+"path": "assets/props/structures/buildings_staircase.glb",
+"size": 3420,
+"status": "ok"
+},
+"buildings_stairs_roof": {
+"path": "assets/props/structures/buildings_stairs_roof.glb",
+"size": 8500,
+"status": "ok"
+},
+"buildings_window": {
+"path": "assets/props/structures/buildings_window.glb",
+"size": 7812,
+"status": "ok"
+},
+"buildings_window_double": {
+"path": "assets/props/structures/buildings_window_double.glb",
+"size": 10284,
+"status": "ok"
+},
+"buildings_window_double_roof": {
+"path": "assets/props/structures/buildings_window_double_roof.glb",
+"size": 13664,
+"status": "ok"
+},
+"buildings_window_roof": {
+"path": "assets/props/structures/buildings_window_roof.glb",
+"size": 11192,
+"status": "ok"
+},
+"cars_cop": {
+"path": "assets/props/vehicles/cars_cop.glb",
+"size": 179028,
+"status": "ok"
+},
+"cars_normal_car1": {
+"path": "assets/props/vehicles/cars_normal_car1.glb",
+"size": 163488,
+"status": "ok"
+},
+"cars_normal_car2": {
+"path": "assets/props/vehicles/cars_normal_car2.glb",
+"size": 173016,
+"status": "ok"
+},
+"cars_sports_car": {
+"path": "assets/props/vehicles/cars_sports_car.glb",
+"size": 170040,
+"status": "ok"
+},
+"cars_sports_car2": {
+"path": "assets/props/vehicles/cars_sports_car2.glb",
+"size": 173916,
+"status": "ok"
+},
+"cars_suv": {
+"path": "assets/props/vehicles/cars_suv.glb",
+"size": 180400,
+"status": "ok"
+},
+"cars_taxi": {
+"path": "assets/props/vehicles/cars_taxi.glb",
+"size": 179836,
+"status": "ok"
+},
+"dungeon_column_1": {
+"path": "assets/props/structures/dungeon_column_1.glb",
+"size": 5216,
+"status": "ok"
+},
+"dungeon_column_2": {
+"path": "assets/props/structures/dungeon_column_2.glb",
+"size": 10216,
+"status": "ok"
+},
+"dungeon_column_3": {
+"path": "assets/props/structures/dungeon_column_3.glb",
+"size": 36740,
+"status": "ok"
+},
+"dungeon_column_slim": {
+"path": "assets/props/structures/dungeon_column_slim.glb",
+"size": 14504,
+"status": "ok"
+},
+"dungeon_details_arrow": {
+"path": "assets/props/weapons/dungeon_details_arrow.glb",
+"size": 3380,
+"status": "ok"
+},
+"dungeon_details_arrow_2": {
+"path": "assets/props/weapons/dungeon_details_arrow_2.glb",
+"size": 3380,
+"status": "ok"
+},
+"dungeon_details_basic_1": {
+"path": "assets/props/structures/dungeon_details_basic_1.glb",
+"size": 6932,
+"status": "ok"
+},
+"dungeon_details_basic_2": {
+"path": "assets/props/structures/dungeon_details_basic_2.glb",
+"size": 9476,
+"status": "ok"
+},
+"dungeon_details_basic_3": {
+"path": "assets/props/structures/dungeon_details_basic_3.glb",
+"size": 3872,
+"status": "ok"
+},
+"dungeon_details_basic_4": {
+"path": "assets/props/structures/dungeon_details_basic_4.glb",
+"size": 7892,
+"status": "ok"
+},
+"dungeon_details_cylinder": {
+"path": "assets/props/structures/dungeon_details_cylinder.glb",
+"size": 15680,
+"status": "ok"
+},
+"dungeon_details_cylinder_long": {
+"path": "assets/props/structures/dungeon_details_cylinder_long.glb",
+"size": 15724,
+"status": "ok"
+},
+"dungeon_details_dots": {
+"path": "assets/props/structures/dungeon_details_dots.glb",
+"size": 12912,
+"status": "ok"
+},
+"dungeon_details_hexagon": {
+"path": "assets/props/structures/dungeon_details_hexagon.glb",
+"size": 3868,
+"status": "ok"
+},
+"dungeon_details_output": {
+"path": "assets/props/structures/dungeon_details_output.glb",
+"size": 13360,
+"status": "ok"
+},
+"dungeon_details_output_small": {
+"path": "assets/props/structures/dungeon_details_output_small.glb",
+"size": 6920,
+"status": "ok"
+},
+"dungeon_details_pipes_long": {
+"path": "assets/props/structures/dungeon_details_pipes_long.glb",
+"size": 25792,
+"status": "ok"
+},
+"dungeon_details_pipes_medium": {
+"path": "assets/props/structures/dungeon_details_pipes_medium.glb",
+"size": 25828,
+"status": "ok"
+},
+"dungeon_details_pipes_small": {
+"path": "assets/props/structures/dungeon_details_pipes_small.glb",
+"size": 18764,
+"status": "ok"
+},
+"dungeon_details_plate_details": {
+"path": "assets/props/structures/dungeon_details_plate_details.glb",
+"size": 17552,
+"status": "ok"
+},
+"dungeon_details_plate_large": {
+"path": "assets/props/structures/dungeon_details_plate_large.glb",
+"size": 14596,
+"status": "ok"
+},
+"dungeon_details_plate_long": {
+"path": "assets/props/structures/dungeon_details_plate_long.glb",
+"size": 14572,
+"status": "ok"
+},
+"dungeon_details_plate_small": {
+"path": "assets/props/structures/dungeon_details_plate_small.glb",
+"size": 12324,
+"status": "ok"
+},
+"dungeon_details_triangles": {
+"path": "assets/props/structures/dungeon_details_triangles.glb",
+"size": 2684,
+"status": "ok"
+},
+"dungeon_details_vent_1": {
+"path": "assets/props/structures/dungeon_details_vent_1.glb",
+"size": 10764,
+"status": "ok"
+},
+"dungeon_details_vent_2": {
+"path": "assets/props/structures/dungeon_details_vent_2.glb",
+"size": 9536,
+"status": "ok"
+},
+"dungeon_details_vent_3": {
+"path": "assets/props/structures/dungeon_details_vent_3.glb",
+"size": 22384,
+"status": "ok"
+},
+"dungeon_details_vent_4": {
+"path": "assets/props/structures/dungeon_details_vent_4.glb",
+"size": 34492,
+"status": "ok"
+},
+"dungeon_details_vent_5": {
+"path": "assets/props/structures/dungeon_details_vent_5.glb",
+"size": 34496,
+"status": "ok"
+},
+"dungeon_details_x": {
+"path": "assets/props/structures/dungeon_details_x.glb",
+"size": 3188,
+"status": "ok"
+},
+"dungeon_door_double": {
+"path": "assets/props/structures/dungeon_door_double.glb",
+"size": 90172,
+"status": "ok"
+},
+"dungeon_door_double_long_wall_side_a": {
+"path": "assets/props/structures/dungeon_door_double_long_wall_side_a.glb",
+"size": 17228,
+"status": "ok"
+},
+"dungeon_door_double_wall_side_a": {
+"path": "assets/props/structures/dungeon_door_double_wall_side_a.glb",
+"size": 17168,
+"status": "ok"
+},
+"dungeon_door_double_wall_side_b": {
+"path": "assets/props/structures/dungeon_door_double_wall_side_b.glb",
+"size": 12156,
+"status": "ok"
+},
+"dungeon_door_single": {
+"path": "assets/props/structures/dungeon_door_single.glb",
+"size": 59420,
+"status": "ok"
+},
+"dungeon_door_single_long_wall_side_a": {
+"path": "assets/props/structures/dungeon_door_single_long_wall_side_a.glb",
+"size": 17396,
+"status": "ok"
+},
+"dungeon_door_single_wall_side_a": {
+"path": "assets/props/structures/dungeon_door_single_wall_side_a.glb",
+"size": 17336,
+"status": "ok"
+},
+"dungeon_door_single_wall_side_b": {
+"path": "assets/props/structures/dungeon_door_single_wall_side_b.glb",
+"size": 12320,
+"status": "ok"
+},
+"dungeon_floor_tile_basic": {
+"path": "assets/props/structures/dungeon_floor_tile_basic.glb",
+"size": 19084,
+"status": "ok"
+},
+"dungeon_floor_tile_basic2": {
+"path": "assets/props/structures/dungeon_floor_tile_basic2.glb",
+"size": 28352,
+"status": "ok"
+},
+"dungeon_floor_tile_corner": {
+"path": "assets/props/structures/dungeon_floor_tile_corner.glb",
+"size": 19956,
+"status": "ok"
+},
+"dungeon_floor_tile_double_hallway": {
+"path": "assets/props/structures/dungeon_floor_tile_double_hallway.glb",
+"size": 25652,
+"status": "ok"
+},
+"dungeon_floor_tile_empty": {
+"path": "assets/props/structures/dungeon_floor_tile_empty.glb",
+"size": 5080,
+"status": "ok"
+},
+"dungeon_floor_tile_inner_corner": {
+"path": "assets/props/structures/dungeon_floor_tile_inner_corner.glb",
+"size": 13428,
+"status": "ok"
+},
+"dungeon_floor_tile_side": {
+"path": "assets/props/structures/dungeon_floor_tile_side.glb",
+"size": 14944,
+"status": "ok"
+},
+"dungeon_long_window_wall_side_a": {
+"path": "assets/props/structures/dungeon_long_window_wall_side_a.glb",
+"size": 19828,
+"status": "ok"
+},
+"dungeon_long_window_wall_side_b": {
+"path": "assets/props/structures/dungeon_long_window_wall_side_b.glb",
+"size": 18964,
+"status": "ok"
+},
+"dungeon_pipes": {
+"path": "assets/props/structures/dungeon_pipes.glb",
+"size": 14196,
+"status": "ok"
+},
+"dungeon_props_base": {
+"path": "assets/props/structures/dungeon_props_base.glb",
+"size": 30440,
+"status": "ok"
+},
+"dungeon_props_capsule": {
+"path": "assets/props/structures/dungeon_props_capsule.glb",
+"size": 68956,
+"status": "ok"
+},
+"dungeon_props_chest": {
+"path": "assets/props/others/dungeon_props_chest.glb",
+"size": 241012,
+"status": "ok"
+},
+"dungeon_props_computer": {
+"path": "assets/props/structures/dungeon_props_computer.glb",
+"size": 40028,
+"status": "ok"
+},
+"dungeon_props_computer_small": {
+"path": "assets/props/structures/dungeon_props_computer_small.glb",
+"size": 40144,
+"status": "ok"
+},
+"dungeon_props_container_full": {
+"path": "assets/props/structures/dungeon_props_container_full.glb",
+"size": 245388,
+"status": "ok"
+},
+"dungeon_props_crate": {
+"path": "assets/props/others/dungeon_props_crate.glb",
+"size": 141884,
+"status": "ok"
+},
+"dungeon_props_crate_long": {
+"path": "assets/props/others/dungeon_props_crate_long.glb",
+"size": 154640,
+"status": "ok"
+},
+"dungeon_props_laser": {
+"path": "assets/props/structures/dungeon_props_laser.glb",
+"size": 81888,
+"status": "ok"
+},
+"dungeon_props_pod": {
+"path": "assets/props/structures/dungeon_props_pod.glb",
+"size": 118604,
+"status": "ok"
+},
+"dungeon_props_shelf": {
+"path": "assets/props/structures/dungeon_props_shelf.glb",
+"size": 20396,
+"status": "ok"
+},
+"dungeon_props_shelf_tall": {
+"path": "assets/props/structures/dungeon_props_shelf_tall.glb",
+"size": 28372,
+"status": "ok"
+},
+"dungeon_props_statue": {
+"path": "assets/props/structures/dungeon_props_statue.glb",
+"size": 61592,
+"status": "ok"
+},
+"dungeon_props_teleporter_1": {
+"path": "assets/props/structures/dungeon_props_teleporter_1.glb",
+"size": 37708,
+"status": "ok"
+},
+"dungeon_props_teleporter_2": {
+"path": "assets/props/structures/dungeon_props_teleporter_2.glb",
+"size": 51344,
+"status": "ok"
+},
+"dungeon_props_vessel": {
+"path": "assets/props/structures/dungeon_props_vessel.glb",
+"size": 20200,
+"status": "ok"
+},
+"dungeon_props_vessel_short": {
+"path": "assets/props/structures/dungeon_props_vessel_short.glb",
+"size": 16336,
+"status": "ok"
+},
+"dungeon_props_vessel_tall": {
+"path": "assets/props/structures/dungeon_props_vessel_tall.glb",
+"size": 19780,
+"status": "ok"
+},
+"dungeon_roof_tile_corner_pipes": {
+"path": "assets/props/structures/dungeon_roof_tile_corner_pipes.glb",
+"size": 28636,
+"status": "ok"
+},
+"dungeon_roof_tile_details": {
+"path": "assets/props/structures/dungeon_roof_tile_details.glb",
+"size": 39672,
+"status": "ok"
+},
+"dungeon_roof_tile_empty": {
+"path": "assets/props/structures/dungeon_roof_tile_empty.glb",
+"size": 5072,
+"status": "ok"
+},
+"dungeon_roof_tile_inner_corner_pipes": {
+"path": "assets/props/structures/dungeon_roof_tile_inner_corner_pipes.glb",
+"size": 28708,
+"status": "ok"
+},
+"dungeon_roof_tile_orange_vent": {
+"path": "assets/props/structures/dungeon_roof_tile_orange_vent.glb",
+"size": 15528,
+"status": "ok"
+},
+"dungeon_roof_tile_pipes1": {
+"path": "assets/props/structures/dungeon_roof_tile_pipes1.glb",
+"size": 23432,
+"status": "ok"
+},
+"dungeon_roof_tile_pipes2": {
+"path": "assets/props/structures/dungeon_roof_tile_pipes2.glb",
+"size": 48784,
+"status": "ok"
+},
+"dungeon_roof_tile_plate": {
+"path": "assets/props/structures/dungeon_roof_tile_plate.glb",
+"size": 21860,
+"status": "ok"
+},
+"dungeon_roof_tile_plate2": {
+"path": "assets/props/structures/dungeon_roof_tile_plate2.glb",
+"size": 23196,
+"status": "ok"
+},
+"dungeon_roof_tile_sides_pipes": {
+"path": "assets/props/structures/dungeon_roof_tile_sides_pipes.glb",
+"size": 19328,
+"status": "ok"
+},
+"dungeon_roof_tile_small_vents": {
+"path": "assets/props/structures/dungeon_roof_tile_small_vents.glb",
+"size": 22128,
+"status": "ok"
+},
+"dungeon_roof_tile_vents": {
+"path": "assets/props/structures/dungeon_roof_tile_vents.glb",
+"size": 65204,
+"status": "ok"
+},
+"dungeon_small_windows_wall_side_a": {
+"path": "assets/props/structures/dungeon_small_windows_wall_side_a.glb",
+"size": 38560,
+"status": "ok"
+},
+"dungeon_small_windows_wall_side_b": {
+"path": "assets/props/structures/dungeon_small_windows_wall_side_b.glb",
+"size": 35848,
+"status": "ok"
+},
+"dungeon_staircase": {
+"path": "assets/props/structures/dungeon_staircase.glb",
+"size": 19532,
+"status": "ok"
+},
+"dungeon_three_windows_wall_side_a": {
+"path": "assets/props/structures/dungeon_three_windows_wall_side_a.glb",
+"size": 38560,
+"status": "ok"
+},
+"dungeon_three_windows_wall_side_b": {
+"path": "assets/props/structures/dungeon_three_windows_wall_side_b.glb",
+"size": 35848,
+"status": "ok"
+},
+"dungeon_wall_1": {
+"path": "assets/props/structures/dungeon_wall_1.glb",
+"size": 59836,
+"status": "ok"
+},
+"dungeon_wall_2": {
+"path": "assets/props/structures/dungeon_wall_2.glb",
+"size": 95960,
+"status": "ok"
+},
+"dungeon_wall_3": {
+"path": "assets/props/structures/dungeon_wall_3.glb",
+"size": 58528,
+"status": "ok"
+},
+"dungeon_wall_4": {
+"path": "assets/props/structures/dungeon_wall_4.glb",
+"size": 69772,
+"status": "ok"
+},
+"dungeon_wall_5": {
+"path": "assets/props/structures/dungeon_wall_5.glb",
+"size": 64592,
+"status": "ok"
+},
+"dungeon_wall_empty": {
+"path": "assets/props/structures/dungeon_wall_empty.glb",
+"size": 15444,
+"status": "ok"
+},
+"dungeon_window_wall_side_a": {
+"path": "assets/props/structures/dungeon_window_wall_side_a.glb",
+"size": 19756,
+"status": "ok"
+},
+"dungeon_window_wall_side_b": {
+"path": "assets/props/structures/dungeon_window_wall_side_b.glb",
+"size": 18892,
+"status": "ok"
+},
+"furniture_bathroom_cabinet": {
+"path": "assets/props/furniture/furniture_bathroom_cabinet.glb",
+"size": 7216,
+"status": "ok"
+},
+"furniture_bathroom_cabinet_drawer": {
+"path": "assets/props/furniture/furniture_bathroom_cabinet_drawer.glb",
+"size": 34744,
+"status": "ok"
+},
+"furniture_bathroom_mirror": {
+"path": "assets/props/furniture/furniture_bathroom_mirror.glb",
+"size": 6792,
+"status": "ok"
+},
+"furniture_bathroom_sink": {
+"path": "assets/props/furniture/furniture_bathroom_sink.glb",
+"size": 22536,
+"status": "ok"
+},
+"furniture_bathroom_sink_square": {
+"path": "assets/props/furniture/furniture_bathroom_sink_square.glb",
+"size": 15108,
+"status": "ok"
+},
+"furniture_bathtub": {
+"path": "assets/props/furniture/furniture_bathtub.glb",
+"size": 35500,
+"status": "ok"
+},
+"furniture_bear": {
+"path": "assets/props/furniture/furniture_bear.glb",
+"size": 11884,
+"status": "ok"
+},
+"furniture_bed_bunk": {
+"path": "assets/props/furniture/furniture_bed_bunk.glb",
+"size": 40784,
+"status": "ok"
+},
+"furniture_bed_double": {
+"path": "assets/props/furniture/furniture_bed_double.glb",
+"size": 23368,
+"status": "ok"
+},
+"furniture_bed_single": {
+"path": "assets/props/furniture/furniture_bed_single.glb",
+"size": 18636,
+"status": "ok"
+},
+"furniture_bench": {
+"path": "assets/props/furniture/furniture_bench.glb",
+"size": 10756,
+"status": "ok"
+},
+"furniture_bench_cushion": {
+"path": "assets/props/furniture/furniture_bench_cushion.glb",
+"size": 12500,
+"status": "ok"
+},
+"furniture_bench_cushion_low": {
+"path": "assets/props/furniture/furniture_bench_cushion_low.glb",
+"size": 10268,
+"status": "ok"
+},
+"furniture_bookcase_closed": {
+"path": "assets/props/furniture/furniture_bookcase_closed.glb",
+"size": 23132,
+"status": "ok"
+},
+"furniture_bookcase_closed_doors": {
+"path": "assets/props/furniture/furniture_bookcase_closed_doors.glb",
+"size": 22644,
+"status": "ok"
+},
+"furniture_bookcase_closed_wide": {
+"path": "assets/props/furniture/furniture_bookcase_closed_wide.glb",
+"size": 23140,
+"status": "ok"
+},
+"furniture_bookcase_open": {
+"path": "assets/props/furniture/furniture_bookcase_open.glb",
+"size": 18020,
+"status": "ok"
+},
+"furniture_bookcase_open_low": {
+"path": "assets/props/furniture/furniture_bookcase_open_low.glb",
+"size": 11520,
+"status": "ok"
+},
+"furniture_books": {
+"path": "assets/props/furniture/furniture_books.glb",
+"size": 6864,
+"status": "ok"
+},
+"furniture_cabinet_bed": {
+"path": "assets/props/furniture/furniture_cabinet_bed.glb",
+"size": 7496,
+"status": "ok"
+},
+"furniture_cabinet_bed_drawer": {
+"path": "assets/props/furniture/furniture_cabinet_bed_drawer.glb",
+"size": 16088,
+"status": "ok"
+},
+"furniture_cabinet_bed_drawer_table": {
+"path": "assets/props/furniture/furniture_cabinet_bed_drawer_table.glb",
+"size": 12200,
+"status": "ok"
+},
+"furniture_cabinet_television": {
+"path": "assets/props/furniture/furniture_cabinet_television.glb",
+"size": 10524,
+"status": "ok"
+},
+"furniture_cabinet_television_doors": {
+"path": "assets/props/furniture/furniture_cabinet_television_doors.glb",
+"size": 16876,
+"status": "ok"
+},
+"furniture_cardboard_box_closed": {
+"path": "assets/props/furniture/furniture_cardboard_box_closed.glb",
+"size": 5400,
+"status": "ok"
+},
+"furniture_cardboard_box_open": {
+"path": "assets/props/furniture/furniture_cardboard_box_open.glb",
+"size": 5404,
+"status": "ok"
+},
+"furniture_ceiling_fan": {
+"path": "assets/props/furniture/furniture_ceiling_fan.glb",
+"size": 15284,
+"status": "ok"
+},
+"furniture_chair": {
+"path": "assets/props/furniture/furniture_chair.glb",
+"size": 10756,
+"status": "ok"
+},
+"furniture_chair_cushion": {
+"path": "assets/props/furniture/furniture_chair_cushion.glb",
+"size": 12588,
+"status": "ok"
+},
+"furniture_chair_desk": {
+"path": "assets/props/furniture/furniture_chair_desk.glb",
+"size": 39016,
+"status": "ok"
+},
+"furniture_chair_modern_cushion": {
+"path": "assets/props/furniture/furniture_chair_modern_cushion.glb",
+"size": 7376,
+"status": "ok"
+},
+"furniture_chair_modern_frame_cushion": {
+"path": "assets/props/furniture/furniture_chair_modern_frame_cushion.glb",
+"size": 18592,
+"status": "ok"
+},
+"furniture_chair_rounded": {
+"path": "assets/props/furniture/furniture_chair_rounded.glb",
+"size": 17156,
+"status": "ok"
+},
+"furniture_coat_rack": {
+"path": "assets/props/furniture/furniture_coat_rack.glb",
+"size": 9948,
+"status": "ok"
+},
+"furniture_coat_rack_standing": {
+"path": "assets/props/furniture/furniture_coat_rack_standing.glb",
+"size": 13288,
+"status": "ok"
+},
+"furniture_computer_keyboard": {
+"path": "assets/props/furniture/furniture_computer_keyboard.glb",
+"size": 3476,
+"status": "ok"
+},
+"furniture_computer_mouse": {
+"path": "assets/props/furniture/furniture_computer_mouse.glb",
+"size": 5868,
+"status": "ok"
+},
+"furniture_computer_screen": {
+"path": "assets/props/furniture/furniture_computer_screen.glb",
+"size": 6404,
+"status": "ok"
+},
+"furniture_desk": {
+"path": "assets/props/furniture/furniture_desk.glb",
+"size": 15048,
+"status": "ok"
+},
+"furniture_desk_corner": {
+"path": "assets/props/furniture/furniture_desk_corner.glb",
+"size": 17984,
+"status": "ok"
+},
+"furniture_doorway": {
+"path": "assets/props/structures/furniture_doorway.glb",
+"size": 14532,
+"status": "ok"
+},
+"furniture_doorway_front": {
+"path": "assets/props/structures/furniture_doorway_front.glb",
+"size": 13016,
+"status": "ok"
+},
+"furniture_doorway_open": {
+"path": "assets/props/structures/furniture_doorway_open.glb",
+"size": 3256,
+"status": "ok"
+},
+"furniture_dryer": {
+"path": "assets/props/furniture/furniture_dryer.glb",
+"size": 17760,
+"status": "ok"
+},
+"furniture_floor_corner": {
+"path": "assets/props/structures/furniture_floor_corner.glb",
+"size": 2524,
+"status": "ok"
+},
+"furniture_floor_corner_round": {
+"path": "assets/props/structures/furniture_floor_corner_round.glb",
+"size": 5168,
+"status": "ok"
+},
+"furniture_floor_full": {
+"path": "assets/props/structures/furniture_floor_full.glb",
+"size": 2260,
+"status": "ok"
+},
+"furniture_floor_half": {
+"path": "assets/props/structures/furniture_floor_half.glb",
+"size": 2264,
+"status": "ok"
+},
+"furniture_hood_large": {
+"path": "assets/props/furniture/furniture_hood_large.glb",
+"size": 4652,
+"status": "ok"
+},
+"furniture_hood_modern": {
+"path": "assets/props/furniture/furniture_hood_modern.glb",
+"size": 3968,
+"status": "ok"
+},
+"furniture_kitchen_bar": {
+"path": "assets/props/furniture/furniture_kitchen_bar.glb",
+"size": 6004,
+"status": "ok"
+},
+"furniture_kitchen_bar_end": {
+"path": "assets/props/furniture/furniture_kitchen_bar_end.glb",
+"size": 11084,
+"status": "ok"
+},
+"furniture_kitchen_blender": {
+"path": "assets/props/furniture/furniture_kitchen_blender.glb",
+"size": 18728,
+"status": "ok"
+},
+"furniture_kitchen_cabinet": {
+"path": "assets/props/furniture/furniture_kitchen_cabinet.glb",
+"size": 10444,
+"status": "ok"
+},
+"furniture_kitchen_cabinet_corner_inner": {
+"path": "assets/props/furniture/furniture_kitchen_cabinet_corner_inner.glb",
+"size": 5184,
+"status": "ok"
+},
+"furniture_kitchen_cabinet_corner_round": {
+"path": "assets/props/furniture/furniture_kitchen_cabinet_corner_round.glb",
+"size": 13656,
+"status": "ok"
+},
+"furniture_kitchen_cabinet_drawer": {
+"path": "assets/props/furniture/furniture_kitchen_cabinet_drawer.glb",
+"size": 15384,
+"status": "ok"
+},
+"furniture_kitchen_cabinet_upper": {
+"path": "assets/props/furniture/furniture_kitchen_cabinet_upper.glb",
+"size": 8168,
+"status": "ok"
+},
+"furniture_kitchen_cabinet_upper_corner": {
+"path": "assets/props/furniture/furniture_kitchen_cabinet_upper_corner.glb",
+"size": 13712,
+"status": "ok"
+},
+"furniture_kitchen_cabinet_upper_double": {
+"path": "assets/props/furniture/furniture_kitchen_cabinet_upper_double.glb",
+"size": 18184,
+"status": "ok"
+},
+"furniture_kitchen_cabinet_upper_low": {
+"path": "assets/props/furniture/furniture_kitchen_cabinet_upper_low.glb",
+"size": 7216,
+"status": "ok"
+},
+"furniture_kitchen_coffee_machine": {
+"path": "assets/props/furniture/furniture_kitchen_coffee_machine.glb",
+"size": 13332,
+"status": "ok"
+},
+"furniture_kitchen_fridge": {
+"path": "assets/props/furniture/furniture_kitchen_fridge.glb",
+"size": 20116,
+"status": "ok"
+},
+"furniture_kitchen_fridge_built_in": {
+"path": "assets/props/furniture/furniture_kitchen_fridge_built_in.glb",
+"size": 22616,
+"status": "ok"
+},
+"furniture_kitchen_fridge_large": {
+"path": "assets/props/furniture/furniture_kitchen_fridge_large.glb",
+"size": 30632,
+"status": "ok"
+},
+"furniture_kitchen_fridge_small": {
+"path": "assets/props/furniture/furniture_kitchen_fridge_small.glb",
+"size": 12988,
+"status": "ok"
+},
+"furniture_kitchen_microwave": {
+"path": "assets/props/furniture/furniture_kitchen_microwave.glb",
+"size": 11248,
+"status": "ok"
+},
+"furniture_kitchen_sink": {
+"path": "assets/props/furniture/furniture_kitchen_sink.glb",
+"size": 23480,
+"status": "ok"
+},
+"furniture_kitchen_stove": {
+"path": "assets/props/furniture/furniture_kitchen_stove.glb",
+"size": 54324,
+"status": "ok"
+},
+"furniture_kitchen_stove_electric": {
+"path": "assets/props/furniture/furniture_kitchen_stove_electric.glb",
+"size": 18604,
+"status": "ok"
+},
+"furniture_lamp_round_floor": {
+"path": "assets/props/furniture/furniture_lamp_round_floor.glb",
+"size": 6600,
+"status": "ok"
+},
+"furniture_lamp_round_table": {
+"path": "assets/props/furniture/furniture_lamp_round_table.glb",
+"size": 6604,
+"status": "ok"
+},
+"furniture_lamp_square_ceiling": {
+"path": "assets/props/furniture/furniture_lamp_square_ceiling.glb",
+"size": 5628,
+"status": "ok"
+},
+"furniture_lamp_square_floor": {
+"path": "assets/props/furniture/furniture_lamp_square_floor.glb",
+"size": 5624,
+"status": "ok"
+},
+"furniture_lamp_square_table": {
+"path": "assets/props/furniture/furniture_lamp_square_table.glb",
+"size": 5624,
+"status": "ok"
+},
+"furniture_lamp_wall": {
+"path": "assets/props/structures/furniture_lamp_wall.glb",
+"size": 4828,
+"status": "ok"
+},
+"furniture_laptop": {
+"path": "assets/props/furniture/furniture_laptop.glb",
+"size": 5540,
+"status": "ok"
+},
+"furniture_lounge_chair": {
+"path": "assets/props/furniture/furniture_lounge_chair.glb",
+"size": 9648,
+"status": "ok"
+},
+"furniture_lounge_chair_relax": {
+"path": "assets/props/furniture/furniture_lounge_chair_relax.glb",
+"size": 13904,
+"status": "ok"
+},
+"furniture_lounge_design_chair": {
+"path": "assets/props/furniture/furniture_lounge_design_chair.glb",
+"size": 9136,
+"status": "ok"
+},
+"furniture_lounge_design_sofa": {
+"path": "assets/props/furniture/furniture_lounge_design_sofa.glb",
+"size": 9128,
+"status": "ok"
+},
+"furniture_lounge_design_sofa_corner": {
+"path": "assets/props/furniture/furniture_lounge_design_sofa_corner.glb",
+"size": 13744,
+"status": "ok"
+},
+"furniture_lounge_sofa": {
+"path": "assets/props/furniture/furniture_lounge_sofa.glb",
+"size": 9644,
+"status": "ok"
+},
+"furniture_lounge_sofa_corner": {
+"path": "assets/props/furniture/furniture_lounge_sofa_corner.glb",
+"size": 13412,
+"status": "ok"
+},
+"furniture_lounge_sofa_long": {
+"path": "assets/props/furniture/furniture_lounge_sofa_long.glb",
+"size": 13112,
+"status": "ok"
+},
+"furniture_lounge_sofa_ottoman": {
+"path": "assets/props/furniture/furniture_lounge_sofa_ottoman.glb",
+"size": 6960,
+"status": "ok"
+},
+"furniture_paneling": {
+"path": "assets/props/structures/furniture_paneling.glb",
+"size": 3960,
+"status": "ok"
+},
+"furniture_pillow": {
+"path": "assets/props/furniture/furniture_pillow.glb",
+"size": 5044,
+"status": "ok"
+},
+"furniture_pillow_blue": {
+"path": "assets/props/furniture/furniture_pillow_blue.glb",
+"size": 5056,
+"status": "ok"
+},
+"furniture_pillow_blue_long": {
+"path": "assets/props/furniture/furniture_pillow_blue_long.glb",
+"size": 5088,
+"status": "ok"
+},
+"furniture_pillow_long": {
+"path": "assets/props/furniture/furniture_pillow_long.glb",
+"size": 5072,
+"status": "ok"
+},
+"furniture_plant_small1": {
+"path": "assets/props/furniture/furniture_plant_small1.glb",
+"size": 8224,
+"status": "ok"
+},
+"furniture_plant_small2": {
+"path": "assets/props/furniture/furniture_plant_small2.glb",
+"size": 12996,
+"status": "ok"
+},
+"furniture_plant_small3": {
+"path": "assets/props/furniture/furniture_plant_small3.glb",
+"size": 8424,
+"status": "ok"
+},
+"furniture_potted_plant": {
+"path": "assets/props/furniture/furniture_potted_plant.glb",
+"size": 7576,
+"status": "ok"
+},
+"furniture_radio": {
+"path": "assets/props/furniture/furniture_radio.glb",
+"size": 25020,
+"status": "ok"
+},
+"furniture_rug_doormat": {
+"path": "assets/props/furniture/furniture_rug_doormat.glb",
+"size": 13812,
+"status": "ok"
+},
+"furniture_rug_rectangle": {
+"path": "assets/props/furniture/furniture_rug_rectangle.glb",
+"size": 3188,
+"status": "ok"
+},
+"furniture_rug_round": {
+"path": "assets/props/furniture/furniture_rug_round.glb",
+"size": 10164,
+"status": "ok"
+},
+"furniture_rug_rounded": {
+"path": "assets/props/furniture/furniture_rug_rounded.glb",
+"size": 10876,
+"status": "ok"
+},
+"furniture_rug_square": {
+"path": "assets/props/furniture/furniture_rug_square.glb",
+"size": 3180,
+"status": "ok"
+},
+"furniture_shower": {
+"path": "assets/props/furniture/furniture_shower.glb",
+"size": 52020,
+"status": "ok"
+},
+"furniture_shower_round": {
+"path": "assets/props/furniture/furniture_shower_round.glb",
+"size": 72048,
+"status": "ok"
+},
+"furniture_side_table": {
+"path": "assets/props/furniture/furniture_side_table.glb",
+"size": 8800,
+"status": "ok"
+},
+"furniture_side_table_drawers": {
+"path": "assets/props/furniture/furniture_side_table_drawers.glb",
+"size": 19072,
+"status": "ok"
+},
+"furniture_speaker": {
+"path": "assets/props/furniture/furniture_speaker.glb",
+"size": 15744,
+"status": "ok"
+},
+"furniture_speaker_small": {
+"path": "assets/props/furniture/furniture_speaker_small.glb",
+"size": 15244,
+"status": "ok"
+},
+"furniture_stairs": {
+"path": "assets/props/structures/furniture_stairs.glb",
+"size": 21616,
+"status": "ok"
+},
+"furniture_stairs_corner": {
+"path": "assets/props/structures/furniture_stairs_corner.glb",
+"size": 21576,
+"status": "ok"
+},
+"furniture_stairs_open": {
+"path": "assets/props/structures/furniture_stairs_open.glb",
+"size": 39924,
+"status": "ok"
+},
+"furniture_stairs_open_single": {
+"path": "assets/props/structures/furniture_stairs_open_single.glb",
+"size": 24600,
+"status": "ok"
+},
+"furniture_stool_bar": {
+"path": "assets/props/furniture/furniture_stool_bar.glb",
+"size": 11816,
+"status": "ok"
+},
+"furniture_stool_bar_square": {
+"path": "assets/props/furniture/furniture_stool_bar_square.glb",
+"size": 9784,
+"status": "ok"
+},
+"furniture_table": {
+"path": "assets/props/furniture/furniture_table.glb",
+"size": 8196,
+"status": "ok"
+},
+"furniture_table_cloth": {
+"path": "assets/props/furniture/furniture_table_cloth.glb",
+"size": 9920,
+"status": "ok"
+},
+"furniture_table_coffee": {
+"path": "assets/props/furniture/furniture_table_coffee.glb",
+"size": 8256,
+"status": "ok"
+},
+"furniture_table_coffee_glass": {
+"path": "assets/props/furniture/furniture_table_coffee_glass.glb",
+"size": 9428,
+"status": "ok"
+},
+"furniture_table_coffee_glass_square": {
+"path": "assets/props/furniture/furniture_table_coffee_glass_square.glb",
+"size": 9448,
+"status": "ok"
+},
+"furniture_table_coffee_square": {
+"path": "assets/props/furniture/furniture_table_coffee_square.glb",
+"size": 8276,
+"status": "ok"
+},
+"furniture_table_cross": {
+"path": "assets/props/furniture/furniture_table_cross.glb",
+"size": 12140,
+"status": "ok"
+},
+"furniture_table_cross_cloth": {
+"path": "assets/props/furniture/furniture_table_cross_cloth.glb",
+"size": 13852,
+"status": "ok"
+},
+"furniture_table_glass": {
+"path": "assets/props/furniture/furniture_table_glass.glb",
+"size": 9848,
+"status": "ok"
+},
+"furniture_table_round": {
+"path": "assets/props/furniture/furniture_table_round.glb",
+"size": 6444,
+"status": "ok"
+},
+"furniture_television_antenna": {
+"path": "assets/props/furniture/furniture_television_antenna.glb",
+"size": 4500,
+"status": "ok"
+},
+"furniture_television_modern": {
+"path": "assets/props/furniture/furniture_television_modern.glb",
+"size": 6368,
+"status": "ok"
+},
+"furniture_television_vintage": {
+"path": "assets/props/furniture/furniture_television_vintage.glb",
+"size": 19392,
+"status": "ok"
+},
+"furniture_toaster": {
+"path": "assets/props/furniture/furniture_toaster.glb",
+"size": 14924,
+"status": "ok"
+},
+"furniture_toilet": {
+"path": "assets/props/furniture/furniture_toilet.glb",
+"size": 18112,
+"status": "ok"
+},
+"furniture_toilet_square": {
+"path": "assets/props/furniture/furniture_toilet_square.glb",
+"size": 17548,
+"status": "ok"
+},
+"furniture_trashcan": {
+"path": "assets/props/furniture/furniture_trashcan.glb",
+"size": 6452,
+"status": "ok"
+},
+"furniture_wall": {
+"path": "assets/props/structures/furniture_wall.glb",
+"size": 3340,
+"status": "ok"
+},
+"furniture_wall_corner": {
+"path": "assets/props/structures/furniture_wall_corner.glb",
+"size": 4460,
+"status": "ok"
+},
+"furniture_wall_corner_rond": {
+"path": "assets/props/structures/furniture_wall_corner_rond.glb",
+"size": 10448,
+"status": "ok"
+},
+"furniture_wall_doorway": {
+"path": "assets/props/structures/furniture_wall_doorway.glb",
+"size": 6444,
+"status": "ok"
+},
+"furniture_wall_doorway_wide": {
+"path": "assets/props/structures/furniture_wall_doorway_wide.glb",
+"size": 6468,
+"status": "ok"
+},
+"furniture_wall_half": {
+"path": "assets/props/structures/furniture_wall_half.glb",
+"size": 3348,
+"status": "ok"
+},
+"furniture_wall_window": {
+"path": "assets/props/structures/furniture_wall_window.glb",
+"size": 10744,
+"status": "ok"
+},
+"furniture_wall_window_slide": {
+"path": "assets/props/structures/furniture_wall_window_slide.glb",
+"size": 14564,
+"status": "ok"
+},
+"furniture_washer": {
+"path": "assets/props/furniture/furniture_washer.glb",
+"size": 48104,
+"status": "ok"
+},
+"furniture_washer_dryer_stacked": {
+"path": "assets/props/furniture/furniture_washer_dryer_stacked.glb",
+"size": 64060,
+"status": "ok"
+},
+"guns_assault_rifle2_1": {
+"path": "assets/props/guns/guns_assault_rifle2_1.glb",
+"size": 121984,
+"status": "ok"
+},
+"guns_assault_rifle2_2": {
+"path": "assets/props/guns/guns_assault_rifle2_2.glb",
+"size": 108292,
+"status": "ok"
+},
+"guns_assault_rifle2_3": {
+"path": "assets/props/guns/guns_assault_rifle2_3.glb",
+"size": 103132,
+"status": "ok"
+},
+"guns_assault_rifle2_4": {
+"path": "assets/props/guns/guns_assault_rifle2_4.glb",
+"size": 82664,
+"status": "ok"
+},
+"guns_assault_rifle_1": {
+"path": "assets/props/guns/guns_assault_rifle_1.glb",
+"size": 62040,
+"status": "ok"
+},
+"guns_assault_rifle_2": {
+"path": "assets/props/guns/guns_assault_rifle_2.glb",
+"size": 67212,
+"status": "ok"
+},
+"guns_assault_rifle_3": {
+"path": "assets/props/guns/guns_assault_rifle_3.glb",
+"size": 62948,
+"status": "ok"
+},
+"guns_assault_rifle_4": {
+"path": "assets/props/guns/guns_assault_rifle_4.glb",
+"size": 69132,
+"status": "ok"
+},
+"guns_assault_rifle_5": {
+"path": "assets/props/guns/guns_assault_rifle_5.glb",
+"size": 65544,
+"status": "ok"
+},
+"guns_bayonet": {
+"path": "assets/props/guns/guns_bayonet.glb",
+"size": 15404,
+"status": "ok"
+},
+"guns_bayonet_2": {
+"path": "assets/props/guns/guns_bayonet_2.glb",
+"size": 20620,
+"status": "ok"
+},
+"guns_bipod": {
+"path": "assets/props/guns/guns_bipod.glb",
+"size": 26524,
+"status": "ok"
+},
+"guns_bullpup_1": {
+"path": "assets/props/guns/guns_bullpup_1.glb",
+"size": 135976,
+"status": "ok"
+},
+"guns_bullpup_2": {
+"path": "assets/props/guns/guns_bullpup_2.glb",
+"size": 125288,
+"status": "ok"
+},
+"guns_bullpup_3": {
+"path": "assets/props/guns/guns_bullpup_3.glb",
+"size": 113752,
+"status": "ok"
+},
+"guns_flashlight": {
+"path": "assets/props/guns/guns_flashlight.glb",
+"size": 9036,
+"status": "ok"
+},
+"guns_grip": {
+"path": "assets/props/guns/guns_grip.glb",
+"size": 43888,
+"status": "ok"
+},
+"guns_pistol_1": {
+"path": "assets/props/guns/guns_pistol_1.glb",
+"size": 57404,
+"status": "ok"
+},
+"guns_pistol_2": {
+"path": "assets/props/guns/guns_pistol_2.glb",
+"size": 61396,
+"status": "ok"
+},
+"guns_pistol_3": {
+"path": "assets/props/guns/guns_pistol_3.glb",
+"size": 72644,
+"status": "ok"
+},
+"guns_pistol_4": {
+"path": "assets/props/guns/guns_pistol_4.glb",
+"size": 68684,
+"status": "ok"
+},
+"guns_pistol_5": {
+"path": "assets/props/guns/guns_pistol_5.glb",
+"size": 50584,
+"status": "ok"
+},
+"guns_pistol_6": {
+"path": "assets/props/guns/guns_pistol_6.glb",
+"size": 90824,
+"status": "ok"
+},
+"guns_revolver_1": {
+"path": "assets/props/guns/guns_revolver_1.glb",
+"size": 47360,
+"status": "ok"
+},
+"guns_revolver_2": {
+"path": "assets/props/guns/guns_revolver_2.glb",
+"size": 60356,
+"status": "ok"
+},
+"guns_revolver_3": {
+"path": "assets/props/guns/guns_revolver_3.glb",
+"size": 69704,
+"status": "ok"
+},
+"guns_revolver_4": {
+"path": "assets/props/guns/guns_revolver_4.glb",
+"size": 44244,
+"status": "ok"
+},
+"guns_revolver_5": {
+"path": "assets/props/guns/guns_revolver_5.glb",
+"size": 63152,
+"status": "ok"
+},
+"guns_scope_1": {
+"path": "assets/props/guns/guns_scope_1.glb",
+"size": 23252,
+"status": "ok"
+},
+"guns_scope_2": {
+"path": "assets/props/guns/guns_scope_2.glb",
+"size": 27524,
+"status": "ok"
+},
+"guns_scope_3": {
+"path": "assets/props/guns/guns_scope_3.glb",
+"size": 24116,
+"status": "ok"
+},
+"guns_shotgun_1": {
+"path": "assets/props/guns/guns_shotgun_1.glb",
+"size": 60344,
+"status": "ok"
+},
+"guns_shotgun_2": {
+"path": "assets/props/guns/guns_shotgun_2.glb",
+"size": 40812,
+"status": "ok"
+},
+"guns_shotgun_3": {
+"path": "assets/props/guns/guns_shotgun_3.glb",
+"size": 49324,
+"status": "ok"
+},
+"guns_shotgun_4": {
+"path": "assets/props/guns/guns_shotgun_4.glb",
+"size": 36944,
+"status": "ok"
+},
+"guns_shotgun_sawed_off": {
+"path": "assets/props/guns/guns_shotgun_sawed_off.glb",
+"size": 50576,
+"status": "ok"
+},
+"guns_shotgun_short_stock": {
+"path": "assets/props/guns/guns_shotgun_short_stock.glb",
+"size": 73996,
+"status": "ok"
+},
+"guns_silencer_1": {
+"path": "assets/props/guns/guns_silencer_1.glb",
+"size": 13036,
+"status": "ok"
+},
+"guns_silencer_2": {
+"path": "assets/props/guns/guns_silencer_2.glb",
+"size": 32956,
+"status": "ok"
+},
+"guns_silencer_3": {
+"path": "assets/props/guns/guns_silencer_3.glb",
+"size": 38044,
+"status": "ok"
+},
+"guns_silencer_long": {
+"path": "assets/props/guns/guns_silencer_long.glb",
+"size": 13052,
+"status": "ok"
+},
+"guns_silencer_short": {
+"path": "assets/props/guns/guns_silencer_short.glb",
+"size": 13060,
+"status": "ok"
+},
+"guns_sniper_rifle_1": {
+"path": "assets/props/guns/guns_sniper_rifle_1.glb",
+"size": 72068,
+"status": "ok"
+},
+"guns_sniper_rifle_2": {
+"path": "assets/props/guns/guns_sniper_rifle_2.glb",
+"size": 90252,
+"status": "ok"
+},
+"guns_sniper_rifle_3": {
+"path": "assets/props/guns/guns_sniper_rifle_3.glb",
+"size": 86268,
+"status": "ok"
+},
+"guns_sniper_rifle_4": {
+"path": "assets/props/guns/guns_sniper_rifle_4.glb",
+"size": 70540,
+"status": "ok"
+},
+"guns_sniper_rifle_5": {
+"path": "assets/props/guns/guns_sniper_rifle_5.glb",
+"size": 88692,
+"status": "ok"
+},
+"guns_sniper_rifle_6": {
+"path": "assets/props/guns/guns_sniper_rifle_6.glb",
+"size": 71664,
+"status": "ok"
+},
+"guns_stock": {
+"path": "assets/props/guns/guns_stock.glb",
+"size": 7568,
+"status": "ok"
+},
+"guns_submachine_gun_1": {
+"path": "assets/props/guns/guns_submachine_gun_1.glb",
+"size": 56096,
+"status": "ok"
+},
+"guns_submachine_gun_2": {
+"path": "assets/props/guns/guns_submachine_gun_2.glb",
+"size": 63360,
+"status": "ok"
+},
+"guns_submachine_gun_3": {
+"path": "assets/props/guns/guns_submachine_gun_3.glb",
+"size": 77328,
+"status": "ok"
+},
+"guns_submachine_gun_4": {
+"path": "assets/props/guns/guns_submachine_gun_4.glb",
+"size": 49784,
+"status": "ok"
+},
+"guns_submachine_gun_5": {
+"path": "assets/props/guns/guns_submachine_gun_5.glb",
+"size": 68552,
+"status": "ok"
+},
+"guns_tripod": {
+"path": "assets/props/guns/guns_tripod.glb",
+"size": 35624,
+"status": "ok"
+},
+"houses_building1_large": {
+"path": "assets/props/structures/houses_building1_large.glb",
+"size": 1681676,
+"status": "ok"
+},
+"houses_building1_small": {
+"path": "assets/props/structures/houses_building1_small.glb",
+"size": 672912,
+"status": "ok"
+},
+"houses_building2_large": {
+"path": "assets/props/structures/houses_building2_large.glb",
+"size": 570936,
+"status": "ok"
+},
+"houses_building2_small": {
+"path": "assets/props/structures/houses_building2_small.glb",
+"size": 209256,
+"status": "ok"
+},
+"houses_building3_big": {
+"path": "assets/props/structures/houses_building3_big.glb",
+"size": 338876,
+"status": "ok"
+},
+"houses_building3_small": {
+"path": "assets/props/structures/houses_building3_small.glb",
+"size": 272292,
+"status": "ok"
+},
+"houses_building4": {
+"path": "assets/props/structures/houses_building4.glb",
+"size": 376952,
+"status": "ok"
+},
+"houses_house1": {
+"path": "assets/props/structures/houses_house1.glb",
+"size": 1202740,
+"status": "ok"
+},
+"houses_house2": {
+"path": "assets/props/structures/houses_house2.glb",
+"size": 837736,
+"status": "ok"
+},
+"medieval_archery_first_age_level1": {
+"path": "assets/props/structures/medieval_archery_first_age_level1.glb",
+"size": 248936,
+"status": "ok"
+},
+"medieval_archery_first_age_level2": {
+"path": "assets/props/structures/medieval_archery_first_age_level2.glb",
+"size": 317904,
+"status": "ok"
+},
+"medieval_archery_first_age_level3": {
+"path": "assets/props/structures/medieval_archery_first_age_level3.glb",
+"size": 397040,
+"status": "ok"
+},
+"medieval_archery_second_age_level1": {
+"path": "assets/props/structures/medieval_archery_second_age_level1.glb",
+"size": 379192,
+"status": "ok"
+},
+"medieval_archery_second_age_level2": {
+"path": "assets/props/structures/medieval_archery_second_age_level2.glb",
+"size": 440368,
+"status": "ok"
+},
+"medieval_archery_second_age_level3": {
+"path": "assets/props/structures/medieval_archery_second_age_level3.glb",
+"size": 623152,
+"status": "ok"
+},
+"medieval_barracks_first_age_level1": {
+"path": "assets/props/structures/medieval_barracks_first_age_level1.glb",
+"size": 76148,
+"status": "ok"
+},
+"medieval_barracks_first_age_level2": {
+"path": "assets/props/structures/medieval_barracks_first_age_level2.glb",
+"size": 135008,
+"status": "ok"
+},
+"medieval_barracks_first_age_level3": {
+"path": "assets/props/structures/medieval_barracks_first_age_level3.glb",
+"size": 270180,
+"status": "ok"
+},
+"medieval_barracks_second_age_level1": {
+"path": "assets/props/structures/medieval_barracks_second_age_level1.glb",
+"size": 223512,
+"status": "ok"
+},
+"medieval_barracks_second_age_level2": {
+"path": "assets/props/structures/medieval_barracks_second_age_level2.glb",
+"size": 485028,
+"status": "ok"
+},
+"medieval_barracks_second_age_level3": {
+"path": "assets/props/structures/medieval_barracks_second_age_level3.glb",
+"size": 583600,
+"status": "ok"
+},
+"medieval_barrel": {
+"path": "assets/props/others/medieval_barrel.glb",
+"size": 21540,
+"status": "ok"
+},
+"medieval_crate": {
+"path": "assets/props/others/medieval_crate.glb",
+"size": 14264,
+"status": "ok"
+},
+"medieval_crate_big_stack2": {
+"path": "assets/props/others/medieval_crate_big_stack2.glb",
+"size": 26732,
+"status": "ok"
+},
+"medieval_crate_stack1": {
+"path": "assets/props/others/medieval_crate_stack1.glb",
+"size": 26732,
+"status": "ok"
+},
+"medieval_crate_stack2": {
+"path": "assets/props/others/medieval_crate_stack2.glb",
+"size": 26732,
+"status": "ok"
+},
+"medieval_dock_first_age": {
+"path": "assets/props/structures/medieval_dock_first_age.glb",
+"size": 17576,
+"status": "ok"
+},
+"medieval_farm_dirt_level1": {
+"path": "assets/props/structures/medieval_farm_dirt_level1.glb",
+"size": 17288,
+"status": "ok"
+},
+"medieval_farm_dirt_level2": {
+"path": "assets/props/structures/medieval_farm_dirt_level2.glb",
+"size": 123180,
+"status": "ok"
+},
+"medieval_farm_dirt_level3": {
+"path": "assets/props/structures/medieval_farm_dirt_level3.glb",
+"size": 1974576,
+"status": "ok"
+},
+"medieval_farm_first_age_level1": {
+"path": "assets/props/structures/medieval_farm_first_age_level1.glb",
+"size": 7572,
+"status": "ok"
+},
+"medieval_farm_first_age_level1_wheat": {
+"path": "assets/props/nature/medieval_farm_first_age_level1_wheat.glb",
+"size": 363388,
+"status": "ok"
+},
+"medieval_farm_first_age_level2": {
+"path": "assets/props/structures/medieval_farm_first_age_level2.glb",
+"size": 14052,
+"status": "ok"
+},
+"medieval_farm_first_age_level2_wheat": {
+"path": "assets/props/nature/medieval_farm_first_age_level2_wheat.glb",
+"size": 741948,
+"status": "ok"
+},
+"medieval_farm_first_age_level3": {
+"path": "assets/props/structures/medieval_farm_first_age_level3.glb",
+"size": 17292,
+"status": "ok"
+},
+"medieval_farm_first_age_level3_wheat": {
+"path": "assets/props/nature/medieval_farm_first_age_level3_wheat.glb",
+"size": 933048,
+"status": "ok"
+},
+"medieval_farm_second_age_level1": {
+"path": "assets/props/structures/medieval_farm_second_age_level1.glb",
+"size": 124360,
+"status": "ok"
+},
+"medieval_farm_second_age_level1_wheat": {
+"path": "assets/props/nature/medieval_farm_second_age_level1_wheat.glb",
+"size": 273488,
+"status": "ok"
+},
+"medieval_farm_second_age_level2": {
+"path": "assets/props/structures/medieval_farm_second_age_level2.glb",
+"size": 140036,
+"status": "ok"
+},
+"medieval_farm_second_age_level2_wheat": {
+"path": "assets/props/nature/medieval_farm_second_age_level2_wheat.glb",
+"size": 405464,
+"status": "ok"
+},
+"medieval_farm_second_age_level3": {
+"path": "assets/props/structures/medieval_farm_second_age_level3.glb",
+"size": 228836,
+"status": "ok"
+},
+"medieval_farm_second_age_level3_wheat": {
+"path": "assets/props/nature/medieval_farm_second_age_level3_wheat.glb",
+"size": 531820,
+"status": "ok"
+},
+"medieval_houses_first_age_1_level1": {
+"path": "assets/props/structures/medieval_houses_first_age_1_level1.glb",
+"size": 23248,
+"status": "ok"
+},
+"medieval_houses_first_age_1_level2": {
+"path": "assets/props/structures/medieval_houses_first_age_1_level2.glb",
+"size": 35516,
+"status": "ok"
+},
+"medieval_houses_first_age_1_level3": {
+"path": "assets/props/structures/medieval_houses_first_age_1_level3.glb",
+"size": 56900,
+"status": "ok"
+},
+"medieval_houses_first_age_2_level1": {
+"path": "assets/props/structures/medieval_houses_first_age_2_level1.glb",
+"size": 43988,
+"status": "ok"
+},
+"medieval_houses_first_age_2_level2": {
+"path": "assets/props/structures/medieval_houses_first_age_2_level2.glb",
+"size": 57736,
+"status": "ok"
+},
+"medieval_houses_first_age_2_level3": {
+"path": "assets/props/structures/medieval_houses_first_age_2_level3.glb",
+"size": 94536,
+"status": "ok"
+},
+"medieval_houses_first_age_3_level1": {
+"path": "assets/props/structures/medieval_houses_first_age_3_level1.glb",
+"size": 16464,
+"status": "ok"
+},
+"medieval_houses_first_age_3_level2": {
+"path": "assets/props/structures/medieval_houses_first_age_3_level2.glb",
+"size": 35588,
+"status": "ok"
+},
+"medieval_houses_first_age_3_level3": {
+"path": "assets/props/structures/medieval_houses_first_age_3_level3.glb",
+"size": 91760,
+"status": "ok"
+},
+"medieval_houses_second_age_1_level1": {
+"path": "assets/props/structures/medieval_houses_second_age_1_level1.glb",
+"size": 106272,
+"status": "ok"
+},
+"medieval_houses_second_age_1_level2": {
+"path": "assets/props/structures/medieval_houses_second_age_1_level2.glb",
+"size": 155136,
+"status": "ok"
+},
+"medieval_houses_second_age_1_level3": {
+"path": "assets/props/structures/medieval_houses_second_age_1_level3.glb",
+"size": 150156,
+"status": "ok"
+},
+"medieval_houses_second_age_2_level1": {
+"path": "assets/props/structures/medieval_houses_second_age_2_level1.glb",
+"size": 74992,
+"status": "ok"
+},
+"medieval_houses_second_age_2_level2": {
+"path": "assets/props/structures/medieval_houses_second_age_2_level2.glb",
+"size": 178924,
+"status": "ok"
+},
+"medieval_houses_second_age_2_level3": {
+"path": "assets/props/structures/medieval_houses_second_age_2_level3.glb",
+"size": 261056,
+"status": "ok"
+},
+"medieval_houses_second_age_3_level1": {
+"path": "assets/props/structures/medieval_houses_second_age_3_level1.glb",
+"size": 47396,
+"status": "ok"
+},
+"medieval_houses_second_age_3_level2": {
+"path": "assets/props/structures/medieval_houses_second_age_3_level2.glb",
+"size": 111272,
+"status": "ok"
+},
+"medieval_houses_second_age_3_level3": {
+"path": "assets/props/structures/medieval_houses_second_age_3_level3.glb",
+"size": 162308,
+"status": "ok"
+},
+"medieval_logs": {
+"path": "assets/props/nature/medieval_logs.glb",
+"size": 26792,
+"status": "ok"
+},
+"medieval_market_first_age_level1": {
+"path": "assets/props/structures/medieval_market_first_age_level1.glb",
+"size": 140636,
+"status": "ok"
+},
+"medieval_market_first_age_level2": {
+"path": "assets/props/structures/medieval_market_first_age_level2.glb",
+"size": 246816,
+"status": "ok"
+},
+"medieval_market_first_age_level3": {
+"path": "assets/props/structures/medieval_market_first_age_level3.glb",
+"size": 382676,
+"status": "ok"
+},
+"medieval_market_second_age_level1": {
+"path": "assets/props/structures/medieval_market_second_age_level1.glb",
+"size": 341268,
+"status": "ok"
+},
+"medieval_market_second_age_level2": {
+"path": "assets/props/structures/medieval_market_second_age_level2.glb",
+"size": 582832,
+"status": "ok"
+},
+"medieval_market_second_age_level3": {
+"path": "assets/props/structures/medieval_market_second_age_level3.glb",
+"size": 985248,
+"status": "ok"
+},
+"medieval_mine": {
+"path": "assets/props/structures/medieval_mine.glb",
+"size": 139484,
+"status": "ok"
+},
+"medieval_mountain_group_1": {
+"path": "assets/props/structures/medieval_mountain_group_1.glb",
+"size": 153148,
+"status": "ok"
+},
+"medieval_mountain_group_2": {
+"path": "assets/props/structures/medieval_mountain_group_2.glb",
+"size": 57156,
+"status": "ok"
+},
+"medieval_mountain_large_single": {
+"path": "assets/props/structures/medieval_mountain_large_single.glb",
+"size": 45848,
+"status": "ok"
+},
+"medieval_mountain_single": {
+"path": "assets/props/structures/medieval_mountain_single.glb",
+"size": 16408,
+"status": "ok"
+},
+"medieval_port_first_age_level1": {
+"path": "assets/props/structures/medieval_port_first_age_level1.glb",
+"size": 217448,
+"status": "ok"
+},
+"medieval_port_first_age_level2": {
+"path": "assets/props/structures/medieval_port_first_age_level2.glb",
+"size": 298092,
+"status": "ok"
+},
+"medieval_port_first_age_level3": {
+"path": "assets/props/structures/medieval_port_first_age_level3.glb",
+"size": 216668,
+"status": "ok"
+},
+"medieval_port_second_age_level1": {
+"path": "assets/props/structures/medieval_port_second_age_level1.glb",
+"size": 408924,
+"status": "ok"
+},
+"medieval_port_second_age_level2": {
+"path": "assets/props/structures/medieval_port_second_age_level2.glb",
+"size": 469288,
+"status": "ok"
+},
+"medieval_port_second_age_level3": {
+"path": "assets/props/structures/medieval_port_second_age_level3.glb",
+"size": 532932,
+"status": "ok"
+},
+"medieval_resource_gold_1": {
+"path": "assets/props/structures/medieval_resource_gold_1.glb",
+"size": 48252,
+"status": "ok"
+},
+"medieval_resource_gold_2": {
+"path": "assets/props/structures/medieval_resource_gold_2.glb",
+"size": 49924,
+"status": "ok"
+},
+"medieval_resource_gold_3": {
+"path": "assets/props/structures/medieval_resource_gold_3.glb",
+"size": 43656,
+"status": "ok"
+},
+"medieval_resource_pine_tree": {
+"path": "assets/props/nature/medieval_resource_pine_tree.glb",
+"size": 11108,
+"status": "ok"
+},
+"medieval_resource_pine_tree_group": {
+"path": "assets/props/nature/medieval_resource_pine_tree_group.glb",
+"size": 98648,
+"status": "ok"
+},
+"medieval_resource_pine_tree_group_cut": {
+"path": "assets/props/nature/medieval_resource_pine_tree_group_cut.glb",
+"size": 30196,
+"status": "ok"
+},
+"medieval_resource_rock_1": {
+"path": "assets/props/nature/medieval_resource_rock_1.glb",
+"size": 29936,
+"status": "ok"
+},
+"medieval_resource_rock_2": {
+"path": "assets/props/nature/medieval_resource_rock_2.glb",
+"size": 27628,
+"status": "ok"
+},
+"medieval_resource_rock_3": {
+"path": "assets/props/nature/medieval_resource_rock_3.glb",
+"size": 20384,
+"status": "ok"
+},
+"medieval_resource_tree1": {
+"path": "assets/props/nature/medieval_resource_tree1.glb",
+"size": 12228,
+"status": "ok"
+},
+"medieval_resource_tree2": {
+"path": "assets/props/nature/medieval_resource_tree2.glb",
+"size": 9004,
+"status": "ok"
+},
+"medieval_resource_tree_group": {
+"path": "assets/props/nature/medieval_resource_tree_group.glb",
+"size": 91436,
+"status": "ok"
+},
+"medieval_resource_tree_group_cut": {
+"path": "assets/props/nature/medieval_resource_tree_group_cut.glb",
+"size": 24244,
+"status": "ok"
+},
+"medieval_rock": {
+"path": "assets/props/nature/medieval_rock.glb",
+"size": 8416,
+"status": "ok"
+},
+"medieval_rock_group": {
+"path": "assets/props/nature/medieval_rock_group.glb",
+"size": 40120,
+"status": "ok"
+},
+"medieval_storage_first_age_leve3": {
+"path": "assets/props/structures/medieval_storage_first_age_leve3.glb",
+"size": 357080,
+"status": "ok"
+},
+"medieval_storage_first_age_level1": {
+"path": "assets/props/structures/medieval_storage_first_age_level1.glb",
+"size": 199252,
+"status": "ok"
+},
+"medieval_storage_first_age_level2": {
+"path": "assets/props/structures/medieval_storage_first_age_level2.glb",
+"size": 255296,
+"status": "ok"
+},
+"medieval_storage_second_age_level1": {
+"path": "assets/props/structures/medieval_storage_second_age_level1.glb",
+"size": 510836,
+"status": "ok"
+},
+"medieval_storage_second_age_level2": {
+"path": "assets/props/structures/medieval_storage_second_age_level2.glb",
+"size": 548196,
+"status": "ok"
+},
+"medieval_storage_second_age_level3": {
+"path": "assets/props/structures/medieval_storage_second_age_level3.glb",
+"size": 526524,
+"status": "ok"
+},
+"medieval_temple_first_age_level1": {
+"path": "assets/props/structures/medieval_temple_first_age_level1.glb",
+"size": 276400,
+"status": "ok"
+},
+"medieval_temple_first_age_level2": {
+"path": "assets/props/structures/medieval_temple_first_age_level2.glb",
+"size": 339264,
+"status": "ok"
+},
+"medieval_temple_first_age_level3": {
+"path": "assets/props/structures/medieval_temple_first_age_level3.glb",
+"size": 632672,
+"status": "ok"
+},
+"medieval_temple_second_age_level1": {
+"path": "assets/props/structures/medieval_temple_second_age_level1.glb",
+"size": 25404,
+"status": "ok"
+},
+"medieval_temple_second_age_level2": {
+"path": "assets/props/structures/medieval_temple_second_age_level2.glb",
+"size": 124764,
+"status": "ok"
+},
+"medieval_temple_second_age_level3": {
+"path": "assets/props/structures/medieval_temple_second_age_level3.glb",
+"size": 291428,
+"status": "ok"
+},
+"medieval_tower_house_first_age": {
+"path": "assets/props/structures/medieval_tower_house_first_age.glb",
+"size": 118276,
+"status": "ok"
+},
+"medieval_tower_house_second_age": {
+"path": "assets/props/structures/medieval_tower_house_second_age.glb",
+"size": 228736,
+"status": "ok"
+},
+"medieval_town_center_first_age_level1": {
+"path": "assets/props/structures/medieval_town_center_first_age_level1.glb",
+"size": 48372,
+"status": "ok"
+},
+"medieval_town_center_first_age_level2": {
+"path": "assets/props/structures/medieval_town_center_first_age_level2.glb",
+"size": 157548,
+"status": "ok"
+},
+"medieval_town_center_first_age_level3": {
+"path": "assets/props/structures/medieval_town_center_first_age_level3.glb",
+"size": 238840,
+"status": "ok"
+},
+"medieval_town_center_second_age_level1": {
+"path": "assets/props/structures/medieval_town_center_second_age_level1.glb",
+"size": 174084,
+"status": "ok"
+},
+"medieval_town_center_second_age_level2": {
+"path": "assets/props/structures/medieval_town_center_second_age_level2.glb",
+"size": 282420,
+"status": "ok"
+},
+"medieval_town_center_second_age_level3": {
+"path": "assets/props/structures/medieval_town_center_second_age_level3.glb",
+"size": 397340,
+"status": "ok"
+},
+"medieval_wall_first_age": {
+"path": "assets/props/structures/medieval_wall_first_age.glb",
+"size": 17676,
+"status": "ok"
+},
+"medieval_wall_second_age": {
+"path": "assets/props/structures/medieval_wall_second_age.glb",
+"size": 16456,
+"status": "ok"
+},
+"medieval_wall_towers_door_closed_first_age": {
+"path": "assets/props/structures/medieval_wall_towers_door_closed_first_age.glb",
+"size": 89844,
+"status": "ok"
+},
+"medieval_wall_towers_door_closed_second_age": {
+"path": "assets/props/structures/medieval_wall_towers_door_closed_second_age.glb",
+"size": 147040,
+"status": "ok"
+},
+"medieval_wall_towers_door_first_age": {
+"path": "assets/props/structures/medieval_wall_towers_door_first_age.glb",
+"size": 82276,
+"status": "ok"
+},
+"medieval_wall_towers_door_second_age": {
+"path": "assets/props/structures/medieval_wall_towers_door_second_age.glb",
+"size": 133444,
+"status": "ok"
+},
+"medieval_wall_towers_first_age": {
+"path": "assets/props/structures/medieval_wall_towers_first_age.glb",
+"size": 60780,
+"status": "ok"
+},
+"medieval_wall_towers_second_age": {
+"path": "assets/props/structures/medieval_wall_towers_second_age.glb",
+"size": 125112,
+"status": "ok"
+},
+"medieval_watch_tower_first_age_level1": {
+"path": "assets/props/structures/medieval_watch_tower_first_age_level1.glb",
+"size": 37192,
+"status": "ok"
+},
+"medieval_watch_tower_first_age_level2": {
+"path": "assets/props/structures/medieval_watch_tower_first_age_level2.glb",
+"size": 51636,
+"status": "ok"
+},
+"medieval_watch_tower_first_age_level3": {
+"path": "assets/props/structures/medieval_watch_tower_first_age_level3.glb",
+"size": 95320,
+"status": "ok"
+},
+"medieval_watch_tower_second_age_level1": {
+"path": "assets/props/structures/medieval_watch_tower_second_age_level1.glb",
+"size": 215252,
+"status": "ok"
+},
+"medieval_watch_tower_second_age_level2": {
+"path": "assets/props/structures/medieval_watch_tower_second_age_level2.glb",
+"size": 203468,
+"status": "ok"
+},
+"medieval_watch_tower_second_age_level3": {
+"path": "assets/props/structures/medieval_watch_tower_second_age_level3.glb",
+"size": 189116,
+"status": "ok"
+},
+"medieval_windmill_first_age": {
+"path": "assets/props/structures/medieval_windmill_first_age.glb",
+"size": 134784,
+"status": "ok"
+},
+"medieval_windmill_second_age": {
+"path": "assets/props/structures/medieval_windmill_second_age.glb",
+"size": 122936,
+"status": "ok"
+},
+"medieval_wonder_first_age_level1": {
+"path": "assets/props/structures/medieval_wonder_first_age_level1.glb",
+"size": 244336,
+"status": "ok"
+},
+"medieval_wonder_first_age_level2": {
+"path": "assets/props/structures/medieval_wonder_first_age_level2.glb",
+"size": 475592,
+"status": "ok"
+},
+"medieval_wonder_first_age_level3": {
+"path": "assets/props/structures/medieval_wonder_first_age_level3.glb",
+"size": 631976,
+"status": "ok"
+},
+"medieval_wonder_second_age_level1": {
+"path": "assets/props/structures/medieval_wonder_second_age_level1.glb",
+"size": 40936,
+"status": "ok"
+},
+"medieval_wonder_second_age_level2": {
+"path": "assets/props/structures/medieval_wonder_second_age_level2.glb",
+"size": 547600,
+"status": "ok"
+},
+"medieval_wonder_second_age_level3": {
+"path": "assets/props/structures/medieval_wonder_second_age_level3.glb",
+"size": 595692,
+"status": "ok"
+},
+"medieval_wonder_walls_first_age": {
+"path": "assets/props/structures/medieval_wonder_walls_first_age.glb",
+"size": 234332,
+"status": "ok"
+},
+"medieval_wonder_walls_second_age": {
+"path": "assets/props/structures/medieval_wonder_walls_second_age.glb",
+"size": 480212,
+"status": "ok"
+},
+"medievalkit_balcony_cross_corner": {
+"path": "assets/props/structures/medievalkit_balcony_cross_corner.glb",
+"size": 18800,
+"status": "ok"
+},
+"medievalkit_balcony_cross_straight": {
+"path": "assets/props/structures/medievalkit_balcony_cross_straight.glb",
+"size": 9944,
+"status": "ok"
+},
+"medievalkit_balcony_simple_corner": {
+"path": "assets/props/structures/medievalkit_balcony_simple_corner.glb",
+"size": 125132,
+"status": "ok"
+},
+"medievalkit_balcony_simple_straight": {
+"path": "assets/props/structures/medievalkit_balcony_simple_straight.glb",
+"size": 63096,
+"status": "ok"
+},
+"medievalkit_corner_exterior_brick": {
+"path": "assets/props/structures/medievalkit_corner_exterior_brick.glb",
+"size": 97276,
+"status": "ok"
+},
+"medievalkit_corner_exterior_top_down": {
+"path": "assets/props/structures/medievalkit_corner_exterior_top_down.glb",
+"size": 2268,
+"status": "ok"
+},
+"medievalkit_corner_exterior_top_only": {
+"path": "assets/props/structures/medievalkit_corner_exterior_top_only.glb",
+"size": 1708,
+"status": "ok"
+},
+"medievalkit_corner_exterior_wide_brick": {
+"path": "assets/props/structures/medievalkit_corner_exterior_wide_brick.glb",
+"size": 90356,
+"status": "ok"
+},
+"medievalkit_corner_exterior_wide_wood": {
+"path": "assets/props/structures/medievalkit_corner_exterior_wide_wood.glb",
+"size": 2844,
+"status": "ok"
+},
+"medievalkit_corner_exterior_wood": {
+"path": "assets/props/structures/medievalkit_corner_exterior_wood.glb",
+"size": 1924,
+"status": "ok"
+},
+"medievalkit_corner_interior_big": {
+"path": "assets/props/structures/medievalkit_corner_interior_big.glb",
+"size": 2380,
+"status": "ok"
+},
+"medievalkit_corner_interior_small": {
+"path": "assets/props/structures/medievalkit_corner_interior_small.glb",
+"size": 1924,
+"status": "ok"
+},
+"medievalkit_door_1_flat": {
+"path": "assets/props/structures/medievalkit_door_1_flat.glb",
+"size": 27040,
+"status": "ok"
+},
+"medievalkit_door_1_round": {
+"path": "assets/props/structures/medievalkit_door_1_round.glb",
+"size": 35820,
+"status": "ok"
+},
+"medievalkit_door_2_flat": {
+"path": "assets/props/structures/medievalkit_door_2_flat.glb",
+"size": 198344,
+"status": "ok"
+},
+"medievalkit_door_2_round": {
+"path": "assets/props/structures/medievalkit_door_2_round.glb",
+"size": 212560,
+"status": "ok"
+},
+"medievalkit_door_4_flat": {
+"path": "assets/props/structures/medievalkit_door_4_flat.glb",
+"size": 70164,
+"status": "ok"
+},
+"medievalkit_door_4_round": {
+"path": "assets/props/structures/medievalkit_door_4_round.glb",
+"size": 78836,
+"status": "ok"
+},
+"medievalkit_door_8_flat": {
+"path": "assets/props/structures/medievalkit_door_8_flat.glb",
+"size": 58016,
+"status": "ok"
+},
+"medievalkit_door_8_round": {
+"path": "assets/props/structures/medievalkit_door_8_round.glb",
+"size": 70876,
+"status": "ok"
+},
+"medievalkit_door_frame_flat_brick": {
+"path": "assets/props/structures/medievalkit_door_frame_flat_brick.glb",
+"size": 60024,
+"status": "ok"
+},
+"medievalkit_door_frame_flat_wood_dark": {
+"path": "assets/props/structures/medievalkit_door_frame_flat_wood_dark.glb",
+"size": 4884,
+"status": "ok"
+},
+"medievalkit_door_frame_round_brick": {
+"path": "assets/props/structures/medievalkit_door_frame_round_brick.glb",
+"size": 65084,
+"status": "ok"
+},
+"medievalkit_door_frame_round_wood_dark": {
+"path": "assets/props/structures/medievalkit_door_frame_round_wood_dark.glb",
+"size": 14660,
+"status": "ok"
+},
+"medievalkit_floor_brick": {
+"path": "assets/props/structures/medievalkit_floor_brick.glb",
+"size": 1280,
+"status": "ok"
+},
+"medievalkit_floor_red_brick": {
+"path": "assets/props/structures/medievalkit_floor_red_brick.glb",
+"size": 1284,
+"status": "ok"
+},
+"medievalkit_floor_uneven_brick": {
+"path": "assets/props/structures/medievalkit_floor_uneven_brick.glb",
+"size": 1292,
+"status": "ok"
+},
+"medievalkit_floor_wood_dark": {
+"path": "assets/props/structures/medievalkit_floor_wood_dark.glb",
+"size": 3252,
+"status": "ok"
+},
+"medievalkit_floor_wood_dark_half1": {
+"path": "assets/props/structures/medievalkit_floor_wood_dark_half1.glb",
+"size": 3192,
+"status": "ok"
+},
+"medievalkit_floor_wood_dark_half2": {
+"path": "assets/props/structures/medievalkit_floor_wood_dark_half2.glb",
+"size": 3192,
+"status": "ok"
+},
+"medievalkit_floor_wood_dark_half3": {
+"path": "assets/props/structures/medievalkit_floor_wood_dark_half3.glb",
+"size": 2156,
+"status": "ok"
+},
+"medievalkit_floor_wood_dark_overhang_corner": {
+"path": "assets/props/structures/medievalkit_floor_wood_dark_overhang_corner.glb",
+"size": 2184,
+"status": "ok"
+},
+"medievalkit_floor_wood_dark_overhang_corner2": {
+"path": "assets/props/structures/medievalkit_floor_wood_dark_overhang_corner2.glb",
+"size": 2936,
+"status": "ok"
+},
+"medievalkit_floor_wood_light": {
+"path": "assets/props/structures/medievalkit_floor_wood_light.glb",
+"size": 3252,
+"status": "ok"
+},
+"medievalkit_floor_wood_light_overhang_corner": {
+"path": "assets/props/structures/medievalkit_floor_wood_light_overhang_corner.glb",
+"size": 2184,
+"status": "ok"
+},
+"medievalkit_floor_wood_light_overhang_corner2": {
+"path": "assets/props/structures/medievalkit_floor_wood_light_overhang_corner2.glb",
+"size": 2936,
+"status": "ok"
+},
+"medievalkit_hole_cover_90_angle": {
+"path": "assets/props/nature/medievalkit_hole_cover_90_angle.glb",
+"size": 2476,
+"status": "ok"
+},
+"medievalkit_hole_cover_90_half": {
+"path": "assets/props/nature/medievalkit_hole_cover_90_half.glb",
+"size": 2200,
+"status": "ok"
+},
+"medievalkit_hole_cover_90_stairs": {
+"path": "assets/props/nature/medievalkit_hole_cover_90_stairs.glb",
+"size": 2336,
+"status": "ok"
+},
+"medievalkit_hole_cover_straight": {
+"path": "assets/props/nature/medievalkit_hole_cover_straight.glb",
+"size": 1900,
+"status": "ok"
+},
+"medievalkit_hole_cover_straight_half": {
+"path": "assets/props/nature/medievalkit_hole_cover_straight_half.glb",
+"size": 1748,
+"status": "ok"
+},
+"medievalkit_overhang_plaster_corner": {
+"path": "assets/props/structures/medievalkit_overhang_plaster_corner.glb",
+"size": 21484,
+"status": "ok"
+},
+"medievalkit_overhang_plaster_corner_front": {
+"path": "assets/props/structures/medievalkit_overhang_plaster_corner_front.glb",
+"size": 10676,
+"status": "ok"
+},
+"medievalkit_overhang_plaster_long": {
+"path": "assets/props/structures/medievalkit_overhang_plaster_long.glb",
+"size": 13568,
+"status": "ok"
+},
+"medievalkit_overhang_plaster_short": {
+"path": "assets/props/structures/medievalkit_overhang_plaster_short.glb",
+"size": 13708,
+"status": "ok"
+},
+"medievalkit_overhang_roof_incline_plaster": {
+"path": "assets/props/structures/medievalkit_overhang_roof_incline_plaster.glb",
+"size": 4212,
+"status": "ok"
+},
+"medievalkit_overhang_roof_incline_uneven_bricks": {
+"path": "assets/props/structures/medievalkit_overhang_roof_incline_uneven_bricks.glb",
+"size": 4240,
+"status": "ok"
+},
+"medievalkit_overhang_roof_plaster": {
+"path": "assets/props/structures/medievalkit_overhang_roof_plaster.glb",
+"size": 4308,
+"status": "ok"
+},
+"medievalkit_overhang_roof_uneven_bricks": {
+"path": "assets/props/structures/medievalkit_overhang_roof_uneven_bricks.glb",
+"size": 4336,
+"status": "ok"
+},
+"medievalkit_overhang_side_plaster_long_l": {
+"path": "assets/props/structures/medievalkit_overhang_side_plaster_long_l.glb",
+"size": 21668,
+"status": "ok"
+},
+"medievalkit_overhang_side_plaster_long_r": {
+"path": "assets/props/structures/medievalkit_overhang_side_plaster_long_r.glb",
+"size": 21664,
+"status": "ok"
+},
+"medievalkit_overhang_side_plaster_short_l": {
+"path": "assets/props/structures/medievalkit_overhang_side_plaster_short_l.glb",
+"size": 20496,
+"status": "ok"
+},
+"medievalkit_overhang_side_plaster_short_r": {
+"path": "assets/props/structures/medievalkit_overhang_side_plaster_short_r.glb",
+"size": 20492,
+"status": "ok"
+},
+"medievalkit_overhang_side_uneven_brick_long_l": {
+"path": "assets/props/structures/medievalkit_overhang_side_uneven_brick_long_l.glb",
+"size": 20640,
+"status": "ok"
+},
+"medievalkit_overhang_side_uneven_brick_long_r": {
+"path": "assets/props/structures/medievalkit_overhang_side_uneven_brick_long_r.glb",
+"size": 20632,
+"status": "ok"
+},
+"medievalkit_overhang_side_uneven_brick_short_l": {
+"path": "assets/props/structures/medievalkit_overhang_side_uneven_brick_short_l.glb",
+"size": 20608,
+"status": "ok"
+},
+"medievalkit_overhang_side_uneven_brick_short_r": {
+"path": "assets/props/structures/medievalkit_overhang_side_uneven_brick_short_r.glb",
+"size": 20600,
+"status": "ok"
+},
+"medievalkit_overhang_uneven_brick_corner": {
+"path": "assets/props/structures/medievalkit_overhang_uneven_brick_corner.glb",
+"size": 20880,
+"status": "ok"
+},
+"medievalkit_overhang_uneven_brick_corner_front": {
+"path": "assets/props/structures/medievalkit_overhang_uneven_brick_corner_front.glb",
+"size": 6040,
+"status": "ok"
+},
+"medievalkit_overhang_uneven_brick_long": {
+"path": "assets/props/structures/medievalkit_overhang_uneven_brick_long.glb",
+"size": 13620,
+"status": "ok"
+},
+"medievalkit_overhang_uneven_brick_short": {
+"path": "assets/props/structures/medievalkit_overhang_uneven_brick_short.glb",
+"size": 13764,
+"status": "ok"
+},
+"medievalkit_prop_brick1": {
+"path": "assets/props/structures/medievalkit_prop_brick1.glb",
+"size": 4344,
+"status": "ok"
+},
+"medievalkit_prop_brick2": {
+"path": "assets/props/structures/medievalkit_prop_brick2.glb",
+"size": 4104,
+"status": "ok"
+},
+"medievalkit_prop_brick3": {
+"path": "assets/props/structures/medievalkit_prop_brick3.glb",
+"size": 4968,
+"status": "ok"
+},
+"medievalkit_prop_brick4": {
+"path": "assets/props/structures/medievalkit_prop_brick4.glb",
+"size": 4964,
+"status": "ok"
+},
+"medievalkit_prop_chimney": {
+"path": "assets/props/structures/medievalkit_prop_chimney.glb",
+"size": 22244,
+"status": "ok"
+},
+"medievalkit_prop_chimney2": {
+"path": "assets/props/structures/medievalkit_prop_chimney2.glb",
+"size": 5764,
+"status": "ok"
+},
+"medievalkit_prop_crate": {
+"path": "assets/props/others/medievalkit_prop_crate.glb",
+"size": 17180,
+"status": "ok"
+},
+"medievalkit_prop_exterior_border_corner": {
+"path": "assets/props/structures/medievalkit_prop_exterior_border_corner.glb",
+"size": 2268,
+"status": "ok"
+},
+"medievalkit_prop_exterior_border_straight1": {
+"path": "assets/props/structures/medievalkit_prop_exterior_border_straight1.glb",
+"size": 2044,
+"status": "ok"
+},
+"medievalkit_prop_exterior_border_straight2": {
+"path": "assets/props/structures/medievalkit_prop_exterior_border_straight2.glb",
+"size": 2044,
+"status": "ok"
+},
+"medievalkit_prop_metal_fence_ornament": {
+"path": "assets/props/structures/medievalkit_prop_metal_fence_ornament.glb",
+"size": 151936,
+"status": "ok"
+},
+"medievalkit_prop_metal_fence_simple": {
+"path": "assets/props/structures/medievalkit_prop_metal_fence_simple.glb",
+"size": 104532,
+"status": "ok"
+},
+"medievalkit_prop_support": {
+"path": "assets/props/structures/medievalkit_prop_support.glb",
+"size": 2192,
+"status": "ok"
+},
+"medievalkit_prop_vine1": {
+"path": "assets/props/structures/medievalkit_prop_vine1.glb",
+"size": 6772,
+"status": "ok"
+},
+"medievalkit_prop_vine2": {
+"path": "assets/props/structures/medievalkit_prop_vine2.glb",
+"size": 4280,
+"status": "ok"
+},
+"medievalkit_prop_vine4": {
+"path": "assets/props/structures/medievalkit_prop_vine4.glb",
+"size": 3332,
+"status": "ok"
+},
+"medievalkit_prop_vine5": {
+"path": "assets/props/structures/medievalkit_prop_vine5.glb",
+"size": 7816,
+"status": "ok"
+},
+"medievalkit_prop_vine6": {
+"path": "assets/props/structures/medievalkit_prop_vine6.glb",
+"size": 7572,
+"status": "ok"
+},
+"medievalkit_prop_vine9": {
+"path": "assets/props/structures/medievalkit_prop_vine9.glb",
+"size": 3756,
+"status": "ok"
+},
+"medievalkit_prop_wagon": {
+"path": "assets/props/structures/medievalkit_prop_wagon.glb",
+"size": 104456,
+"status": "ok"
+},
+"medievalkit_prop_wooden_fence_extension1": {
+"path": "assets/props/structures/medievalkit_prop_wooden_fence_extension1.glb",
+"size": 3332,
+"status": "ok"
+},
+"medievalkit_prop_wooden_fence_extension2": {
+"path": "assets/props/structures/medievalkit_prop_wooden_fence_extension2.glb",
+"size": 3052,
+"status": "ok"
+},
+"medievalkit_prop_wooden_fence_single": {
+"path": "assets/props/structures/medievalkit_prop_wooden_fence_single.glb",
+"size": 3888,
+"status": "ok"
+},
+"medievalkit_roof_2x4_round_tile": {
+"path": "assets/props/structures/medievalkit_roof_2x4_round_tile.glb",
+"size": 62344,
+"status": "ok"
+},
+"medievalkit_roof_dormer_round_tile": {
+"path": "assets/props/structures/medievalkit_roof_dormer_round_tile.glb",
+"size": 64836,
+"status": "ok"
+},
+"medievalkit_roof_front_brick2": {
+"path": "assets/props/structures/medievalkit_roof_front_brick2.glb",
+"size": 6980,
+"status": "ok"
+},
+"medievalkit_roof_front_brick4": {
+"path": "assets/props/structures/medievalkit_roof_front_brick4.glb",
+"size": 15064,
+"status": "ok"
+},
+"medievalkit_roof_front_brick4_half_l": {
+"path": "assets/props/structures/medievalkit_roof_front_brick4_half_l.glb",
+"size": 9604,
+"status": "ok"
+},
+"medievalkit_roof_front_brick4_half_r": {
+"path": "assets/props/structures/medievalkit_roof_front_brick4_half_r.glb",
+"size": 10024,
+"status": "ok"
+},
+"medievalkit_roof_front_brick6": {
+"path": "assets/props/structures/medievalkit_roof_front_brick6.glb",
+"size": 20512,
+"status": "ok"
+},
+"medievalkit_roof_front_brick6_half_l": {
+"path": "assets/props/structures/medievalkit_roof_front_brick6_half_l.glb",
+"size": 12760,
+"status": "ok"
+},
+"medievalkit_roof_front_brick6_half_r": {
+"path": "assets/props/structures/medievalkit_roof_front_brick6_half_r.glb",
+"size": 12760,
+"status": "ok"
+},
+"medievalkit_roof_front_brick8": {
+"path": "assets/props/structures/medievalkit_roof_front_brick8.glb",
+"size": 23548,
+"status": "ok"
+},
+"medievalkit_roof_front_brick8_half_l": {
+"path": "assets/props/structures/medievalkit_roof_front_brick8_half_l.glb",
+"size": 14280,
+"status": "ok"
+},
+"medievalkit_roof_front_brick8_half_r": {
+"path": "assets/props/structures/medievalkit_roof_front_brick8_half_r.glb",
+"size": 14280,
+"status": "ok"
+},
+"medievalkit_roof_front_supports": {
+"path": "assets/props/structures/medievalkit_roof_front_supports.glb",
+"size": 5288,
+"status": "ok"
+},
+"medievalkit_roof_log": {
+"path": "assets/props/nature/medievalkit_roof_log.glb",
+"size": 7684,
+"status": "ok"
+},
+"medievalkit_roof_modular_round_tiles": {
+"path": "assets/props/structures/medievalkit_roof_modular_round_tiles.glb",
+"size": 8400,
+"status": "ok"
+},
+"medievalkit_roof_round_tile_2x1": {
+"path": "assets/props/structures/medievalkit_roof_round_tile_2x1.glb",
+"size": 40468,
+"status": "ok"
+},
+"medievalkit_roof_round_tile_2x1_long": {
+"path": "assets/props/structures/medievalkit_roof_round_tile_2x1_long.glb",
+"size": 41924,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_4x4": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_4x4.glb",
+"size": 109176,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_4x6": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_4x6.glb",
+"size": 131840,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_4x8": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_4x8.glb",
+"size": 159336,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_6x10": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_6x10.glb",
+"size": 212120,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_6x12": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_6x12.glb",
+"size": 231472,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_6x14": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_6x14.glb",
+"size": 254708,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_6x4": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_6x4.glb",
+"size": 116352,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_6x6": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_6x6.glb",
+"size": 169464,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_6x8": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_6x8.glb",
+"size": 189732,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_8x10": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_8x10.glb",
+"size": 227760,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_8x12": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_8x12.glb",
+"size": 320296,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_8x14": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_8x14.glb",
+"size": 265104,
+"status": "ok"
+},
+"medievalkit_roof_round_tiles_8x8": {
+"path": "assets/props/structures/medievalkit_roof_round_tiles_8x8.glb",
+"size": 197324,
+"status": "ok"
+},
+"medievalkit_roof_support2": {
+"path": "assets/props/structures/medievalkit_roof_support2.glb",
+"size": 5552,
+"status": "ok"
+},
+"medievalkit_roof_tower_round_tiles": {
+"path": "assets/props/structures/medievalkit_roof_tower_round_tiles.glb",
+"size": 206904,
+"status": "ok"
+},
+"medievalkit_roof_wooden_2x1": {
+"path": "assets/props/structures/medievalkit_roof_wooden_2x1.glb",
+"size": 21092,
+"status": "ok"
+},
+"medievalkit_roof_wooden_2x1_center": {
+"path": "assets/props/structures/medievalkit_roof_wooden_2x1_center.glb",
+"size": 6408,
+"status": "ok"
+},
+"medievalkit_roof_wooden_2x1_center_mirror": {
+"path": "assets/props/structures/medievalkit_roof_wooden_2x1_center_mirror.glb",
+"size": 6416,
+"status": "ok"
+},
+"medievalkit_roof_wooden_2x1_corner": {
+"path": "assets/props/structures/medievalkit_roof_wooden_2x1_corner.glb",
+"size": 8864,
+"status": "ok"
+},
+"medievalkit_roof_wooden_2x1_l": {
+"path": "assets/props/structures/medievalkit_roof_wooden_2x1_l.glb",
+"size": 15400,
+"status": "ok"
+},
+"medievalkit_roof_wooden_2x1_middle": {
+"path": "assets/props/structures/medievalkit_roof_wooden_2x1_middle.glb",
+"size": 3192,
+"status": "ok"
+},
+"medievalkit_roof_wooden_2x1_r": {
+"path": "assets/props/structures/medievalkit_roof_wooden_2x1_r.glb",
+"size": 15400,
+"status": "ok"
+},
+"medievalkit_stair_interior_rails": {
+"path": "assets/props/structures/medievalkit_stair_interior_rails.glb",
+"size": 136440,
+"status": "ok"
+},
+"medievalkit_stair_interior_simple": {
+"path": "assets/props/structures/medievalkit_stair_interior_simple.glb",
+"size": 15648,
+"status": "ok"
+},
+"medievalkit_stair_interior_solid": {
+"path": "assets/props/structures/medievalkit_stair_interior_solid.glb",
+"size": 22320,
+"status": "ok"
+},
+"medievalkit_stair_interior_solid_extended": {
+"path": "assets/props/structures/medievalkit_stair_interior_solid_extended.glb",
+"size": 26460,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_no_first_step": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_no_first_step.glb",
+"size": 5256,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_platform": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_platform.glb",
+"size": 3920,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_platform45": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_platform45.glb",
+"size": 4836,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_platform45_clean": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_platform45_clean.glb",
+"size": 4140,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_platform_u": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_platform_u.glb",
+"size": 5152,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_side_platform": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_side_platform.glb",
+"size": 3660,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_sides": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_sides.glb",
+"size": 2148,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_sides45": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_sides45.glb",
+"size": 2576,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_sides_u": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_sides_u.glb",
+"size": 3816,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_single_side": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_single_side.glb",
+"size": 1852,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_single_side_thick": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_single_side_thick.glb",
+"size": 1856,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_straight": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_straight.glb",
+"size": 5884,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_straight_center": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_straight_center.glb",
+"size": 4236,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_straight_l": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_straight_l.glb",
+"size": 5404,
+"status": "ok"
+},
+"medievalkit_stairs_exterior_straight_r": {
+"path": "assets/props/structures/medievalkit_stairs_exterior_straight_r.glb",
+"size": 5400,
+"status": "ok"
+},
+"medievalkit_wall_arch": {
+"path": "assets/props/structures/medievalkit_wall_arch.glb",
+"size": 10528,
+"status": "ok"
+},
+"medievalkit_wall_bottom_cover": {
+"path": "assets/props/structures/medievalkit_wall_bottom_cover.glb",
+"size": 2816,
+"status": "ok"
+},
+"medievalkit_wall_plaster_door_flat": {
+"path": "assets/props/structures/medievalkit_wall_plaster_door_flat.glb",
+"size": 9384,
+"status": "ok"
+},
+"medievalkit_wall_plaster_door_round": {
+"path": "assets/props/structures/medievalkit_wall_plaster_door_round.glb",
+"size": 11460,
+"status": "ok"
+},
+"medievalkit_wall_plaster_door_round_inset": {
+"path": "assets/props/structures/medievalkit_wall_plaster_door_round_inset.glb",
+"size": 12072,
+"status": "ok"
+},
+"medievalkit_wall_plaster_straight": {
+"path": "assets/props/structures/medievalkit_wall_plaster_straight.glb",
+"size": 7756,
+"status": "ok"
+},
+"medievalkit_wall_plaster_straight_base": {
+"path": "assets/props/structures/medievalkit_wall_plaster_straight_base.glb",
+"size": 6668,
+"status": "ok"
+},
+"medievalkit_wall_plaster_straight_l": {
+"path": "assets/props/structures/medievalkit_wall_plaster_straight_l.glb",
+"size": 7368,
+"status": "ok"
+},
+"medievalkit_wall_plaster_straight_r": {
+"path": "assets/props/structures/medievalkit_wall_plaster_straight_r.glb",
+"size": 7352,
+"status": "ok"
+},
+"medievalkit_wall_plaster_window_thin_round": {
+"path": "assets/props/structures/medievalkit_wall_plaster_window_thin_round.glb",
+"size": 12180,
+"status": "ok"
+},
+"medievalkit_wall_plaster_window_wide_flat": {
+"path": "assets/props/structures/medievalkit_wall_plaster_window_wide_flat.glb",
+"size": 7988,
+"status": "ok"
+},
+"medievalkit_wall_plaster_window_wide_flat2": {
+"path": "assets/props/structures/medievalkit_wall_plaster_window_wide_flat2.glb",
+"size": 9424,
+"status": "ok"
+},
+"medievalkit_wall_plaster_window_wide_round": {
+"path": "assets/props/structures/medievalkit_wall_plaster_window_wide_round.glb",
+"size": 9280,
+"status": "ok"
+},
+"medievalkit_wall_plaster_wood_grid": {
+"path": "assets/props/structures/medievalkit_wall_plaster_wood_grid.glb",
+"size": 19160,
+"status": "ok"
+},
+"medievalkit_wall_uneven_brick_door_flat": {
+"path": "assets/props/structures/medievalkit_wall_uneven_brick_door_flat.glb",
+"size": 5832,
+"status": "ok"
+},
+"medievalkit_wall_uneven_brick_door_round": {
+"path": "assets/props/structures/medievalkit_wall_uneven_brick_door_round.glb",
+"size": 7684,
+"status": "ok"
+},
+"medievalkit_wall_uneven_brick_straight": {
+"path": "assets/props/structures/medievalkit_wall_uneven_brick_straight.glb",
+"size": 5076,
+"status": "ok"
+},
+"medievalkit_wall_uneven_brick_window_thin_round": {
+"path": "assets/props/structures/medievalkit_wall_uneven_brick_window_thin_round.glb",
+"size": 10160,
+"status": "ok"
+},
+"medievalkit_wall_uneven_brick_window_wide_flat": {
+"path": "assets/props/structures/medievalkit_wall_uneven_brick_window_wide_flat.glb",
+"size": 7216,
+"status": "ok"
+},
+"medievalkit_wall_uneven_brick_window_wide_round": {
+"path": "assets/props/structures/medievalkit_wall_uneven_brick_window_wide_round.glb",
+"size": 8508,
+"status": "ok"
+},
+"medievalkit_window_roof_thin": {
+"path": "assets/props/structures/medievalkit_window_roof_thin.glb",
+"size": 5932,
+"status": "ok"
+},
+"medievalkit_window_roof_wide": {
+"path": "assets/props/structures/medievalkit_window_roof_wide.glb",
+"size": 7652,
+"status": "ok"
+},
+"medievalkit_window_shutters_thin_flat_closed": {
+"path": "assets/props/structures/medievalkit_window_shutters_thin_flat_closed.glb",
+"size": 9448,
+"status": "ok"
+},
+"medievalkit_window_shutters_thin_flat_open": {
+"path": "assets/props/structures/medievalkit_window_shutters_thin_flat_open.glb",
+"size": 9448,
+"status": "ok"
+},
+"medievalkit_window_shutters_thin_round_closed": {
+"path": "assets/props/structures/medievalkit_window_shutters_thin_round_closed.glb",
+"size": 10664,
+"status": "ok"
+},
+"medievalkit_window_shutters_thin_round_open": {
+"path": "assets/props/structures/medievalkit_window_shutters_thin_round_open.glb",
+"size": 10668,
+"status": "ok"
+},
+"medievalkit_window_shutters_wide_flat_closed": {
+"path": "assets/props/structures/medievalkit_window_shutters_wide_flat_closed.glb",
+"size": 11512,
+"status": "ok"
+},
+"medievalkit_window_shutters_wide_flat_open": {
+"path": "assets/props/structures/medievalkit_window_shutters_wide_flat_open.glb",
+"size": 11512,
+"status": "ok"
+},
+"medievalkit_window_shutters_wide_round_closed": {
+"path": "assets/props/structures/medievalkit_window_shutters_wide_round_closed.glb",
+"size": 12732,
+"status": "ok"
+},
+"medievalkit_window_shutters_wide_round_open": {
+"path": "assets/props/structures/medievalkit_window_shutters_wide_round_open.glb",
+"size": 12728,
+"status": "ok"
+},
+"medievalkit_window_thin_flat1": {
+"path": "assets/props/structures/medievalkit_window_thin_flat1.glb",
+"size": 9576,
+"status": "ok"
+},
+"medievalkit_window_thin_round1": {
+"path": "assets/props/structures/medievalkit_window_thin_round1.glb",
+"size": 27964,
+"status": "ok"
+},
+"medievalkit_window_wide_flat1": {
+"path": "assets/props/structures/medievalkit_window_wide_flat1.glb",
+"size": 13032,
+"status": "ok"
+},
+"medievalkit_window_wide_round1": {
+"path": "assets/props/structures/medievalkit_window_wide_round1.glb",
+"size": 23936,
+"status": "ok"
+},
+"nature_bed": {
+"path": "assets/props/nature/nature_bed.glb",
+"size": 19108,
+"status": "ok"
+},
+"nature_bed_floor": {
+"path": "assets/props/nature/nature_bed_floor.glb",
+"size": 10688,
+"status": "ok"
+},
+"nature_bridge": {
+"path": "assets/props/nature/nature_bridge.glb",
+"size": 32460,
+"status": "ok"
+},
+"nature_bridge_center_stone": {
+"path": "assets/props/nature/nature_bridge_center_stone.glb",
+"size": 5076,
+"status": "ok"
+},
+"nature_bridge_center_stone_round": {
+"path": "assets/props/nature/nature_bridge_center_stone_round.glb",
+"size": 5080,
+"status": "ok"
+},
+"nature_bridge_center_wood": {
+"path": "assets/props/nature/nature_bridge_center_wood.glb",
+"size": 5480,
+"status": "ok"
+},
+"nature_bridge_center_wood_round": {
+"path": "assets/props/nature/nature_bridge_center_wood_round.glb",
+"size": 6280,
+"status": "ok"
+},
+"nature_bridge_side_stone": {
+"path": "assets/props/nature/nature_bridge_side_stone.glb",
+"size": 11408,
+"status": "ok"
+},
+"nature_bridge_side_stone_round": {
+"path": "assets/props/nature/nature_bridge_side_stone_round.glb",
+"size": 13540,
+"status": "ok"
+},
+"nature_bridge_side_wood": {
+"path": "assets/props/nature/nature_bridge_side_wood.glb",
+"size": 10604,
+"status": "ok"
+},
+"nature_bridge_side_wood_round": {
+"path": "assets/props/nature/nature_bridge_side_wood_round.glb",
+"size": 13460,
+"status": "ok"
+},
+"nature_bridge_stone": {
+"path": "assets/props/nature/nature_bridge_stone.glb",
+"size": 17708,
+"status": "ok"
+},
+"nature_bridge_stone_narrow": {
+"path": "assets/props/nature/nature_bridge_stone_narrow.glb",
+"size": 17724,
+"status": "ok"
+},
+"nature_bridge_stone_round": {
+"path": "assets/props/nature/nature_bridge_stone_round.glb",
+"size": 22552,
+"status": "ok"
+},
+"nature_bridge_stone_round_narrow": {
+"path": "assets/props/nature/nature_bridge_stone_round_narrow.glb",
+"size": 22564,
+"status": "ok"
+},
+"nature_bridge_wood": {
+"path": "assets/props/nature/nature_bridge_wood.glb",
+"size": 15692,
+"status": "ok"
+},
+"nature_bridge_wood_narrow": {
+"path": "assets/props/nature/nature_bridge_wood_narrow.glb",
+"size": 15708,
+"status": "ok"
+},
+"nature_bridge_wood_round": {
+"path": "assets/props/nature/nature_bridge_wood_round.glb",
+"size": 21192,
+"status": "ok"
+},
+"nature_bridge_wood_round_narrow": {
+"path": "assets/props/nature/nature_bridge_wood_round_narrow.glb",
+"size": 21204,
+"status": "ok"
+},
+"nature_building_platform": {
+"path": "assets/props/structures/nature_building_platform.glb",
+"size": 48212,
+"status": "ok"
+},
+"nature_building_roof": {
+"path": "assets/props/structures/nature_building_roof.glb",
+"size": 31964,
+"status": "ok"
+},
+"nature_building_structure": {
+"path": "assets/props/structures/nature_building_structure.glb",
+"size": 16356,
+"status": "ok"
+},
+"nature_cactus_short": {
+"path": "assets/props/nature/nature_cactus_short.glb",
+"size": 8844,
+"status": "ok"
+},
+"nature_cactus_tall": {
+"path": "assets/props/nature/nature_cactus_tall.glb",
+"size": 9668,
+"status": "ok"
+},
+"nature_campfire_bricks": {
+"path": "assets/props/nature/nature_campfire_bricks.glb",
+"size": 10220,
+"status": "ok"
+},
+"nature_campfire_logs": {
+"path": "assets/props/nature/nature_campfire_logs.glb",
+"size": 9284,
+"status": "ok"
+},
+"nature_campfire_planks": {
+"path": "assets/props/nature/nature_campfire_planks.glb",
+"size": 8148,
+"status": "ok"
+},
+"nature_campfire_stones": {
+"path": "assets/props/nature/nature_campfire_stones.glb",
+"size": 17344,
+"status": "ok"
+},
+"nature_canoe": {
+"path": "assets/props/vehicles/nature_canoe.glb",
+"size": 15780,
+"status": "ok"
+},
+"nature_canoe_paddle": {
+"path": "assets/props/vehicles/nature_canoe_paddle.glb",
+"size": 3952,
+"status": "ok"
+},
+"nature_character_archer": {
+"path": "assets/props/nature/nature_character_archer.glb",
+"size": 239124,
+"status": "ok"
+},
+"nature_cliff_block_cave_rock": {
+"path": "assets/props/nature/nature_cliff_block_cave_rock.glb",
+"size": 5432,
+"status": "ok"
+},
+"nature_cliff_block_cave_stone": {
+"path": "assets/props/nature/nature_cliff_block_cave_stone.glb",
+"size": 5436,
+"status": "ok"
+},
+"nature_cliff_block_diagonal_rock": {
+"path": "assets/props/nature/nature_cliff_block_diagonal_rock.glb",
+"size": 2564,
+"status": "ok"
+},
+"nature_cliff_block_diagonal_stone": {
+"path": "assets/props/nature/nature_cliff_block_diagonal_stone.glb",
+"size": 2568,
+"status": "ok"
+},
+"nature_cliff_block_half_rock": {
+"path": "assets/props/nature/nature_cliff_block_half_rock.glb",
+"size": 2788,
+"status": "ok"
+},
+"nature_cliff_block_half_stone": {
+"path": "assets/props/nature/nature_cliff_block_half_stone.glb",
+"size": 2792,
+"status": "ok"
+},
+"nature_cliff_block_quarter_rock": {
+"path": "assets/props/nature/nature_cliff_block_quarter_rock.glb",
+"size": 2796,
+"status": "ok"
+},
+"nature_cliff_block_quarter_stone": {
+"path": "assets/props/nature/nature_cliff_block_quarter_stone.glb",
+"size": 2800,
+"status": "ok"
+},
+"nature_cliff_block_rock": {
+"path": "assets/props/nature/nature_cliff_block_rock.glb",
+"size": 2776,
+"status": "ok"
+},
+"nature_cliff_block_slope_half_walls_rock": {
+"path": "assets/props/nature/nature_cliff_block_slope_half_walls_rock.glb",
+"size": 8880,
+"status": "ok"
+},
+"nature_cliff_block_slope_half_walls_stone": {
+"path": "assets/props/structures/nature_cliff_block_slope_half_walls_stone.glb",
+"size": 8884,
+"status": "ok"
+},
+"nature_cliff_block_slope_rock": {
+"path": "assets/props/nature/nature_cliff_block_slope_rock.glb",
+"size": 6720,
+"status": "ok"
+},
+"nature_cliff_block_slope_stone": {
+"path": "assets/props/nature/nature_cliff_block_slope_stone.glb",
+"size": 6724,
+"status": "ok"
+},
+"nature_cliff_block_slope_walls_rock": {
+"path": "assets/props/nature/nature_cliff_block_slope_walls_rock.glb",
+"size": 8900,
+"status": "ok"
+},
+"nature_cliff_block_slope_walls_stone": {
+"path": "assets/props/structures/nature_cliff_block_slope_walls_stone.glb",
+"size": 8904,
+"status": "ok"
+},
+"nature_cliff_block_stone": {
+"path": "assets/props/nature/nature_cliff_block_stone.glb",
+"size": 2780,
+"status": "ok"
+},
+"nature_cliff_cave_rock": {
+"path": "assets/props/nature/nature_cliff_cave_rock.glb",
+"size": 5480,
+"status": "ok"
+},
+"nature_cliff_cave_stone": {
+"path": "assets/props/nature/nature_cliff_cave_stone.glb",
+"size": 5484,
+"status": "ok"
+},
+"nature_cliff_corner_inner_large_rock": {
+"path": "assets/props/nature/nature_cliff_corner_inner_large_rock.glb",
+"size": 4296,
+"status": "ok"
+},
+"nature_cliff_corner_inner_large_stone": {
+"path": "assets/props/nature/nature_cliff_corner_inner_large_stone.glb",
+"size": 4300,
+"status": "ok"
+},
+"nature_cliff_corner_inner_rock": {
+"path": "assets/props/nature/nature_cliff_corner_inner_rock.glb",
+"size": 5008,
+"status": "ok"
+},
+"nature_cliff_corner_inner_stone": {
+"path": "assets/props/nature/nature_cliff_corner_inner_stone.glb",
+"size": 8568,
+"status": "ok"
+},
+"nature_cliff_corner_inner_top_rock": {
+"path": "assets/props/nature/nature_cliff_corner_inner_top_rock.glb",
+"size": 7608,
+"status": "ok"
+},
+"nature_cliff_corner_inner_top_stone": {
+"path": "assets/props/nature/nature_cliff_corner_inner_top_stone.glb",
+"size": 7612,
+"status": "ok"
+},
+"nature_cliff_corner_large_rock": {
+"path": "assets/props/nature/nature_cliff_corner_large_rock.glb",
+"size": 2376,
+"status": "ok"
+},
+"nature_cliff_corner_large_stone": {
+"path": "assets/props/nature/nature_cliff_corner_large_stone.glb",
+"size": 3296,
+"status": "ok"
+},
+"nature_cliff_corner_rock": {
+"path": "assets/props/nature/nature_cliff_corner_rock.glb",
+"size": 2360,
+"status": "ok"
+},
+"nature_cliff_corner_stone": {
+"path": "assets/props/nature/nature_cliff_corner_stone.glb",
+"size": 2364,
+"status": "ok"
+},
+"nature_cliff_corner_top_rock": {
+"path": "assets/props/nature/nature_cliff_corner_top_rock.glb",
+"size": 3108,
+"status": "ok"
+},
+"nature_cliff_corner_top_stone": {
+"path": "assets/props/nature/nature_cliff_corner_top_stone.glb",
+"size": 3112,
+"status": "ok"
+},
+"nature_cliff_diagonal_rock": {
+"path": "assets/props/nature/nature_cliff_diagonal_rock.glb",
+"size": 4296,
+"status": "ok"
+},
+"nature_cliff_diagonal_stone": {
+"path": "assets/props/nature/nature_cliff_diagonal_stone.glb",
+"size": 4236,
+"status": "ok"
+},
+"nature_cliff_half_corner_inner_rock": {
+"path": "assets/props/nature/nature_cliff_half_corner_inner_rock.glb",
+"size": 8016,
+"status": "ok"
+},
+"nature_cliff_half_corner_inner_stone": {
+"path": "assets/props/nature/nature_cliff_half_corner_inner_stone.glb",
+"size": 8020,
+"status": "ok"
+},
+"nature_cliff_half_corner_rock": {
+"path": "assets/props/nature/nature_cliff_half_corner_rock.glb",
+"size": 3128,
+"status": "ok"
+},
+"nature_cliff_half_corner_stone": {
+"path": "assets/props/nature/nature_cliff_half_corner_stone.glb",
+"size": 3132,
+"status": "ok"
+},
+"nature_cliff_half_rock": {
+"path": "assets/props/nature/nature_cliff_half_rock.glb",
+"size": 5316,
+"status": "ok"
+},
+"nature_cliff_half_stone": {
+"path": "assets/props/nature/nature_cliff_half_stone.glb",
+"size": 5320,
+"status": "ok"
+},
+"nature_cliff_large_rock": {
+"path": "assets/props/nature/nature_cliff_large_rock.glb",
+"size": 3560,
+"status": "ok"
+},
+"nature_cliff_large_stone": {
+"path": "assets/props/nature/nature_cliff_large_stone.glb",
+"size": 3564,
+"status": "ok"
+},
+"nature_cliff_rock": {
+"path": "assets/props/nature/nature_cliff_rock.glb",
+"size": 3556,
+"status": "ok"
+},
+"nature_cliff_steps_corner_inner_rock": {
+"path": "assets/props/nature/nature_cliff_steps_corner_inner_rock.glb",
+"size": 15632,
+"status": "ok"
+},
+"nature_cliff_steps_corner_inner_stone": {
+"path": "assets/props/nature/nature_cliff_steps_corner_inner_stone.glb",
+"size": 15636,
+"status": "ok"
+},
+"nature_cliff_steps_corner_rock": {
+"path": "assets/props/nature/nature_cliff_steps_corner_rock.glb",
+"size": 17544,
+"status": "ok"
+},
+"nature_cliff_steps_corner_stone": {
+"path": "assets/props/nature/nature_cliff_steps_corner_stone.glb",
+"size": 17548,
+"status": "ok"
+},
+"nature_cliff_steps_rock": {
+"path": "assets/props/nature/nature_cliff_steps_rock.glb",
+"size": 15952,
+"status": "ok"
+},
+"nature_cliff_steps_stone": {
+"path": "assets/props/nature/nature_cliff_steps_stone.glb",
+"size": 15956,
+"status": "ok"
+},
+"nature_cliff_stone": {
+"path": "assets/props/nature/nature_cliff_stone.glb",
+"size": 3560,
+"status": "ok"
+},
+"nature_cliff_top_diagonal_rock": {
+"path": "assets/props/nature/nature_cliff_top_diagonal_rock.glb",
+"size": 6220,
+"status": "ok"
+},
+"nature_cliff_top_diagonal_stone": {
+"path": "assets/props/nature/nature_cliff_top_diagonal_stone.glb",
+"size": 10540,
+"status": "ok"
+},
+"nature_cliff_top_rock": {
+"path": "assets/props/nature/nature_cliff_top_rock.glb",
+"size": 5312,
+"status": "ok"
+},
+"nature_cliff_top_stone": {
+"path": "assets/props/nature/nature_cliff_top_stone.glb",
+"size": 5316,
+"status": "ok"
+},
+"nature_cliff_waterfall_rock": {
+"path": "assets/props/nature/nature_cliff_waterfall_rock.glb",
+"size": 4488,
+"status": "ok"
+},
+"nature_cliff_waterfall_stone": {
+"path": "assets/props/nature/nature_cliff_waterfall_stone.glb",
+"size": 6100,
+"status": "ok"
+},
+"nature_cliff_waterfall_top_rock": {
+"path": "assets/props/nature/nature_cliff_waterfall_top_rock.glb",
+"size": 7076,
+"status": "ok"
+},
+"nature_cliff_waterfall_top_stone": {
+"path": "assets/props/nature/nature_cliff_waterfall_top_stone.glb",
+"size": 7508,
+"status": "ok"
+},
+"nature_crop_carrot": {
+"path": "assets/props/nature/nature_crop_carrot.glb",
+"size": 12664,
+"status": "ok"
+},
+"nature_crop_melon": {
+"path": "assets/props/nature/nature_crop_melon.glb",
+"size": 13328,
+"status": "ok"
+},
+"nature_crop_pumpkin": {
+"path": "assets/props/nature/nature_crop_pumpkin.glb",
+"size": 10840,
+"status": "ok"
+},
+"nature_crop_turnip": {
+"path": "assets/props/nature/nature_crop_turnip.glb",
+"size": 14308,
+"status": "ok"
+},
+"nature_crops_bamboo_stage_a": {
+"path": "assets/props/nature/nature_crops_bamboo_stage_a.glb",
+"size": 22092,
+"status": "ok"
+},
+"nature_crops_bamboo_stage_b": {
+"path": "assets/props/nature/nature_crops_bamboo_stage_b.glb",
+"size": 40144,
+"status": "ok"
+},
+"nature_crops_corn_stage_a": {
+"path": "assets/props/nature/nature_crops_corn_stage_a.glb",
+"size": 9076,
+"status": "ok"
+},
+"nature_crops_corn_stage_b": {
+"path": "assets/props/nature/nature_crops_corn_stage_b.glb",
+"size": 9780,
+"status": "ok"
+},
+"nature_crops_corn_stage_c": {
+"path": "assets/props/nature/nature_crops_corn_stage_c.glb",
+"size": 11960,
+"status": "ok"
+},
+"nature_crops_corn_stage_d": {
+"path": "assets/props/nature/nature_crops_corn_stage_d.glb",
+"size": 29316,
+"status": "ok"
+},
+"nature_crops_dirt_double_row": {
+"path": "assets/props/nature/nature_crops_dirt_double_row.glb",
+"size": 7560,
+"status": "ok"
+},
+"nature_crops_dirt_double_row_corner": {
+"path": "assets/props/nature/nature_crops_dirt_double_row_corner.glb",
+"size": 5396,
+"status": "ok"
+},
+"nature_crops_dirt_double_row_end": {
+"path": "assets/props/nature/nature_crops_dirt_double_row_end.glb",
+"size": 6248,
+"status": "ok"
+},
+"nature_crops_dirt_row": {
+"path": "assets/props/nature/nature_crops_dirt_row.glb",
+"size": 4712,
+"status": "ok"
+},
+"nature_crops_dirt_row_corner": {
+"path": "assets/props/nature/nature_crops_dirt_row_corner.glb",
+"size": 3248,
+"status": "ok"
+},
+"nature_crops_dirt_row_end": {
+"path": "assets/props/nature/nature_crops_dirt_row_end.glb",
+"size": 4064,
+"status": "ok"
+},
+"nature_crops_dirt_single": {
+"path": "assets/props/nature/nature_crops_dirt_single.glb",
+"size": 4196,
+"status": "ok"
+},
+"nature_crops_leafs_stage_a": {
+"path": "assets/props/nature/nature_crops_leafs_stage_a.glb",
+"size": 7144,
+"status": "ok"
+},
+"nature_crops_leafs_stage_b": {
+"path": "assets/props/nature/nature_crops_leafs_stage_b.glb",
+"size": 7768,
+"status": "ok"
+},
+"nature_crops_wheat_stage_a": {
+"path": "assets/props/nature/nature_crops_wheat_stage_a.glb",
+"size": 56228,
+"status": "ok"
+},
+"nature_crops_wheat_stage_b": {
+"path": "assets/props/nature/nature_crops_wheat_stage_b.glb",
+"size": 30040,
+"status": "ok"
+},
+"nature_fence": {
+"path": "assets/props/nature/nature_fence.glb",
+"size": 29904,
+"status": "ok"
+},
+"nature_fence_bend": {
+"path": "assets/props/nature/nature_fence_bend.glb",
+"size": 16276,
+"status": "ok"
+},
+"nature_fence_bend_center": {
+"path": "assets/props/nature/nature_fence_bend_center.glb",
+"size": 20016,
+"status": "ok"
+},
+"nature_fence_corner": {
+"path": "assets/props/nature/nature_fence_corner.glb",
+"size": 8644,
+"status": "ok"
+},
+"nature_fence_gate": {
+"path": "assets/props/structures/nature_fence_gate.glb",
+"size": 27652,
+"status": "ok"
+},
+"nature_fence_planks": {
+"path": "assets/props/nature/nature_fence_planks.glb",
+"size": 7720,
+"status": "ok"
+},
+"nature_fence_planks_double": {
+"path": "assets/props/nature/nature_fence_planks_double.glb",
+"size": 11160,
+"status": "ok"
+},
+"nature_fence_simple": {
+"path": "assets/props/nature/nature_fence_simple.glb",
+"size": 5712,
+"status": "ok"
+},
+"nature_fence_simple_center": {
+"path": "assets/props/nature/nature_fence_simple_center.glb",
+"size": 8660,
+"status": "ok"
+},
+"nature_fence_simple_diagonal": {
+"path": "assets/props/nature/nature_fence_simple_diagonal.glb",
+"size": 6688,
+"status": "ok"
+},
+"nature_fence_simple_diagonal_center": {
+"path": "assets/props/nature/nature_fence_simple_diagonal_center.glb",
+"size": 11064,
+"status": "ok"
+},
+"nature_fence_simple_high": {
+"path": "assets/props/nature/nature_fence_simple_high.glb",
+"size": 4300,
+"status": "ok"
+},
+"nature_fence_simple_low": {
+"path": "assets/props/nature/nature_fence_simple_low.glb",
+"size": 4312,
+"status": "ok"
+},
+"nature_flag": {
+"path": "assets/props/others/nature_flag.glb",
+"size": 16604,
+"status": "ok"
+},
+"nature_flower_purple_a": {
+"path": "assets/props/nature/nature_flower_purple_a.glb",
+"size": 7112,
+"status": "ok"
+},
+"nature_flower_purple_b": {
+"path": "assets/props/nature/nature_flower_purple_b.glb",
+"size": 8084,
+"status": "ok"
+},
+"nature_flower_purple_c": {
+"path": "assets/props/nature/nature_flower_purple_c.glb",
+"size": 7600,
+"status": "ok"
+},
+"nature_flower_red_a": {
+"path": "assets/props/nature/nature_flower_red_a.glb",
+"size": 7104,
+"status": "ok"
+},
+"nature_flower_red_b": {
+"path": "assets/props/nature/nature_flower_red_b.glb",
+"size": 8080,
+"status": "ok"
+},
+"nature_flower_red_c": {
+"path": "assets/props/nature/nature_flower_red_c.glb",
+"size": 7600,
+"status": "ok"
+},
+"nature_flower_yellow_a": {
+"path": "assets/props/nature/nature_flower_yellow_a.glb",
+"size": 7120,
+"status": "ok"
+},
+"nature_flower_yellow_b": {
+"path": "assets/props/nature/nature_flower_yellow_b.glb",
+"size": 11256,
+"status": "ok"
+},
+"nature_flower_yellow_c": {
+"path": "assets/props/nature/nature_flower_yellow_c.glb",
+"size": 7616,
+"status": "ok"
+},
+"nature_grass": {
+"path": "assets/props/nature/nature_grass.glb",
+"size": 11496,
+"status": "ok"
+},
+"nature_grass_large": {
+"path": "assets/props/nature/nature_grass_large.glb",
+"size": 18504,
+"status": "ok"
+},
+"nature_grass_leafs": {
+"path": "assets/props/nature/nature_grass_leafs.glb",
+"size": 4608,
+"status": "ok"
+},
+"nature_grass_leafs_large": {
+"path": "assets/props/nature/nature_grass_leafs_large.glb",
+"size": 13988,
+"status": "ok"
+},
+"nature_ground_grass": {
+"path": "assets/props/nature/nature_ground_grass.glb",
+"size": 1576,
+"status": "ok"
+},
+"nature_ground_path_bend": {
+"path": "assets/props/nature/nature_ground_path_bend.glb",
+"size": 4132,
+"status": "ok"
+},
+"nature_ground_path_bend_bank": {
+"path": "assets/props/nature/nature_ground_path_bend_bank.glb",
+"size": 4308,
+"status": "ok"
+},
+"nature_ground_path_corner": {
+"path": "assets/props/nature/nature_ground_path_corner.glb",
+"size": 3532,
+"status": "ok"
+},
+"nature_ground_path_corner_small": {
+"path": "assets/props/nature/nature_ground_path_corner_small.glb",
+"size": 3632,
+"status": "ok"
+},
+"nature_ground_path_cross": {
+"path": "assets/props/nature/nature_ground_path_cross.glb",
+"size": 6404,
+"status": "ok"
+},
+"nature_ground_path_end": {
+"path": "assets/props/nature/nature_ground_path_end.glb",
+"size": 5044,
+"status": "ok"
+},
+"nature_ground_path_end_closed": {
+"path": "assets/props/nature/nature_ground_path_end_closed.glb",
+"size": 5824,
+"status": "ok"
+},
+"nature_ground_path_open": {
+"path": "assets/props/nature/nature_ground_path_open.glb",
+"size": 1856,
+"status": "ok"
+},
+"nature_ground_path_rocks": {
+"path": "assets/props/nature/nature_ground_path_rocks.glb",
+"size": 8036,
+"status": "ok"
+},
+"nature_ground_path_side": {
+"path": "assets/props/nature/nature_ground_path_side.glb",
+"size": 4124,
+"status": "ok"
+},
+"nature_ground_path_side_open": {
+"path": "assets/props/nature/nature_ground_path_side_open.glb",
+"size": 4524,
+"status": "ok"
+},
+"nature_ground_path_split": {
+"path": "assets/props/nature/nature_ground_path_split.glb",
+"size": 6012,
+"status": "ok"
+},
+"nature_ground_path_straight": {
+"path": "assets/props/nature/nature_ground_path_straight.glb",
+"size": 5620,
+"status": "ok"
+},
+"nature_ground_path_tile": {
+"path": "assets/props/nature/nature_ground_path_tile.glb",
+"size": 6624,
+"status": "ok"
+},
+"nature_ground_river_bend": {
+"path": "assets/props/nature/nature_ground_river_bend.glb",
+"size": 5684,
+"status": "ok"
+},
+"nature_ground_river_bend_bank": {
+"path": "assets/props/nature/nature_ground_river_bend_bank.glb",
+"size": 5692,
+"status": "ok"
+},
+"nature_ground_river_corner": {
+"path": "assets/props/nature/nature_ground_river_corner.glb",
+"size": 4844,
+"status": "ok"
+},
+"nature_ground_river_corner_small": {
+"path": "assets/props/nature/nature_ground_river_corner_small.glb",
+"size": 4236,
+"status": "ok"
+},
+"nature_ground_river_cross": {
+"path": "assets/props/nature/nature_ground_river_cross.glb",
+"size": 7560,
+"status": "ok"
+},
+"nature_ground_river_end": {
+"path": "assets/props/nature/nature_ground_river_end.glb",
+"size": 5464,
+"status": "ok"
+},
+"nature_ground_river_end_closed": {
+"path": "assets/props/nature/nature_ground_river_end_closed.glb",
+"size": 6920,
+"status": "ok"
+},
+"nature_ground_river_open": {
+"path": "assets/props/nature/nature_ground_river_open.glb",
+"size": 1852,
+"status": "ok"
+},
+"nature_ground_river_rocks": {
+"path": "assets/props/nature/nature_ground_river_rocks.glb",
+"size": 8884,
+"status": "ok"
+},
+"nature_ground_river_side": {
+"path": "assets/props/nature/nature_ground_river_side.glb",
+"size": 4544,
+"status": "ok"
+},
+"nature_ground_river_side_open": {
+"path": "assets/props/nature/nature_ground_river_side_open.glb",
+"size": 5312,
+"status": "ok"
+},
+"nature_ground_river_split": {
+"path": "assets/props/nature/nature_ground_river_split.glb",
+"size": 6804,
+"status": "ok"
+},
+"nature_ground_river_straight": {
+"path": "assets/props/nature/nature_ground_river_straight.glb",
+"size": 6044,
+"status": "ok"
+},
+"nature_ground_river_tile": {
+"path": "assets/props/nature/nature_ground_river_tile.glb",
+"size": 9120,
+"status": "ok"
+},
+"nature_hanging_moss": {
+"path": "assets/props/nature/nature_hanging_moss.glb",
+"size": 4776,
+"status": "ok"
+},
+"nature_ladder": {
+"path": "assets/props/nature/nature_ladder.glb",
+"size": 22260,
+"status": "ok"
+},
+"nature_lily_large": {
+"path": "assets/props/nature/nature_lily_large.glb",
+"size": 8044,
+"status": "ok"
+},
+"nature_lily_small": {
+"path": "assets/props/nature/nature_lily_small.glb",
+"size": 5664,
+"status": "ok"
+},
+"nature_log": {
+"path": "assets/props/nature/nature_log.glb",
+"size": 14288,
+"status": "ok"
+},
+"nature_log_large": {
+"path": "assets/props/nature/nature_log_large.glb",
+"size": 7924,
+"status": "ok"
+},
+"nature_log_stack": {
+"path": "assets/props/nature/nature_log_stack.glb",
+"size": 10896,
+"status": "ok"
+},
+"nature_log_stack_large": {
+"path": "assets/props/nature/nature_log_stack_large.glb",
+"size": 17604,
+"status": "ok"
+},
+"nature_mushroom_red": {
+"path": "assets/props/nature/nature_mushroom_red.glb",
+"size": 6364,
+"status": "ok"
+},
+"nature_mushroom_red_group": {
+"path": "assets/props/nature/nature_mushroom_red_group.glb",
+"size": 14960,
+"status": "ok"
+},
+"nature_mushroom_red_tall": {
+"path": "assets/props/nature/nature_mushroom_red_tall.glb",
+"size": 6504,
+"status": "ok"
+},
+"nature_mushroom_tan": {
+"path": "assets/props/nature/nature_mushroom_tan.glb",
+"size": 5804,
+"status": "ok"
+},
+"nature_mushroom_tan_group": {
+"path": "assets/props/nature/nature_mushroom_tan_group.glb",
+"size": 14956,
+"status": "ok"
+},
+"nature_mushroom_tan_tall": {
+"path": "assets/props/nature/nature_mushroom_tan_tall.glb",
+"size": 6500,
+"status": "ok"
+},
+"nature_patch_dirt": {
+"path": "assets/props/nature/nature_patch_dirt.glb",
+"size": 10176,
+"status": "ok"
+},
+"nature_patch_grass": {
+"path": "assets/props/nature/nature_patch_grass.glb",
+"size": 29732,
+"status": "ok"
+},
+"nature_path_stone": {
+"path": "assets/props/nature/nature_path_stone.glb",
+"size": 12392,
+"status": "ok"
+},
+"nature_path_stone_circle": {
+"path": "assets/props/nature/nature_path_stone_circle.glb",
+"size": 13100,
+"status": "ok"
+},
+"nature_path_stone_corner": {
+"path": "assets/props/nature/nature_path_stone_corner.glb",
+"size": 10772,
+"status": "ok"
+},
+"nature_path_stone_end": {
+"path": "assets/props/nature/nature_path_stone_end.glb",
+"size": 8996,
+"status": "ok"
+},
+"nature_path_wood": {
+"path": "assets/props/nature/nature_path_wood.glb",
+"size": 6448,
+"status": "ok"
+},
+"nature_path_wood_corner": {
+"path": "assets/props/nature/nature_path_wood_corner.glb",
+"size": 6444,
+"status": "ok"
+},
+"nature_path_wood_end": {
+"path": "assets/props/nature/nature_path_wood_end.glb",
+"size": 5164,
+"status": "ok"
+},
+"nature_plant": {
+"path": "assets/props/nature/nature_plant.glb",
+"size": 22424,
+"status": "ok"
+},
+"nature_plant_bush": {
+"path": "assets/props/nature/nature_plant_bush.glb",
+"size": 4396,
+"status": "ok"
+},
+"nature_plant_bush_detailed": {
+"path": "assets/props/nature/nature_plant_bush_detailed.glb",
+"size": 10172,
+"status": "ok"
+},
+"nature_plant_bush_large": {
+"path": "assets/props/nature/nature_plant_bush_large.glb",
+"size": 6436,
+"status": "ok"
+},
+"nature_plant_bush_large_triangle": {
+"path": "assets/props/nature/nature_plant_bush_large_triangle.glb",
+"size": 4564,
+"status": "ok"
+},
+"nature_plant_bush_small": {
+"path": "assets/props/nature/nature_plant_bush_small.glb",
+"size": 3212,
+"status": "ok"
+},
+"nature_plant_bush_triangle": {
+"path": "assets/props/nature/nature_plant_bush_triangle.glb",
+"size": 3956,
+"status": "ok"
+},
+"nature_plant_flat_short": {
+"path": "assets/props/nature/nature_plant_flat_short.glb",
+"size": 3936,
+"status": "ok"
+},
+"nature_plant_flat_tall": {
+"path": "assets/props/nature/nature_plant_flat_tall.glb",
+"size": 3480,
+"status": "ok"
+},
+"nature_platform": {
+"path": "assets/props/structures/nature_platform.glb",
+"size": 63436,
+"status": "ok"
+},
+"nature_platform_beach": {
+"path": "assets/props/structures/nature_platform_beach.glb",
+"size": 13204,
+"status": "ok"
+},
+"nature_platform_grass": {
+"path": "assets/props/nature/nature_platform_grass.glb",
+"size": 12568,
+"status": "ok"
+},
+"nature_platform_stone": {
+"path": "assets/props/structures/nature_platform_stone.glb",
+"size": 13632,
+"status": "ok"
+},
+"nature_pot_large": {
+"path": "assets/props/nature/nature_pot_large.glb",
+"size": 6168,
+"status": "ok"
+},
+"nature_pot_small": {
+"path": "assets/props/nature/nature_pot_small.glb",
+"size": 7004,
+"status": "ok"
+},
+"nature_rock_large_a": {
+"path": "assets/props/nature/nature_rock_large_a.glb",
+"size": 7552,
+"status": "ok"
+},
+"nature_rock_large_b": {
+"path": "assets/props/nature/nature_rock_large_b.glb",
+"size": 8560,
+"status": "ok"
+},
+"nature_rock_large_c": {
+"path": "assets/props/nature/nature_rock_large_c.glb",
+"size": 7004,
+"status": "ok"
+},
+"nature_rock_large_d": {
+"path": "assets/props/nature/nature_rock_large_d.glb",
+"size": 7992,
+"status": "ok"
+},
+"nature_rock_large_e": {
+"path": "assets/props/nature/nature_rock_large_e.glb",
+"size": 6464,
+"status": "ok"
+},
+"nature_rock_large_f": {
+"path": "assets/props/nature/nature_rock_large_f.glb",
+"size": 7516,
+"status": "ok"
+},
+"nature_rock_small_a": {
+"path": "assets/props/nature/nature_rock_small_a.glb",
+"size": 3044,
+"status": "ok"
+},
+"nature_rock_small_b": {
+"path": "assets/props/nature/nature_rock_small_b.glb",
+"size": 3528,
+"status": "ok"
+},
+"nature_rock_small_c": {
+"path": "assets/props/nature/nature_rock_small_c.glb",
+"size": 3044,
+"status": "ok"
+},
+"nature_rock_small_d": {
+"path": "assets/props/nature/nature_rock_small_d.glb",
+"size": 4012,
+"status": "ok"
+},
+"nature_rock_small_e": {
+"path": "assets/props/nature/nature_rock_small_e.glb",
+"size": 5932,
+"status": "ok"
+},
+"nature_rock_small_f": {
+"path": "assets/props/nature/nature_rock_small_f.glb",
+"size": 5700,
+"status": "ok"
+},
+"nature_rock_small_flat_a": {
+"path": "assets/props/nature/nature_rock_small_flat_a.glb",
+"size": 3300,
+"status": "ok"
+},
+"nature_rock_small_flat_b": {
+"path": "assets/props/nature/nature_rock_small_flat_b.glb",
+"size": 3056,
+"status": "ok"
+},
+"nature_rock_small_flat_c": {
+"path": "assets/props/nature/nature_rock_small_flat_c.glb",
+"size": 4508,
+"status": "ok"
+},
+"nature_rock_small_g": {
+"path": "assets/props/nature/nature_rock_small_g.glb",
+"size": 4204,
+"status": "ok"
+},
+"nature_rock_small_h": {
+"path": "assets/props/nature/nature_rock_small_h.glb",
+"size": 6200,
+"status": "ok"
+},
+"nature_rock_small_i": {
+"path": "assets/props/nature/nature_rock_small_i.glb",
+"size": 5120,
+"status": "ok"
+},
+"nature_rock_small_top_a": {
+"path": "assets/props/nature/nature_rock_small_top_a.glb",
+"size": 5220,
+"status": "ok"
+},
+"nature_rock_small_top_b": {
+"path": "assets/props/nature/nature_rock_small_top_b.glb",
+"size": 6660,
+"status": "ok"
+},
+"nature_rock_tall_a": {
+"path": "assets/props/nature/nature_rock_tall_a.glb",
+"size": 12072,
+"status": "ok"
+},
+"nature_rock_tall_b": {
+"path": "assets/props/nature/nature_rock_tall_b.glb",
+"size": 14060,
+"status": "ok"
+},
+"nature_rock_tall_c": {
+"path": "assets/props/nature/nature_rock_tall_c.glb",
+"size": 5184,
+"status": "ok"
+},
+"nature_rock_tall_d": {
+"path": "assets/props/nature/nature_rock_tall_d.glb",
+"size": 5132,
+"status": "ok"
+},
+"nature_rock_tall_e": {
+"path": "assets/props/nature/nature_rock_tall_e.glb",
+"size": 5192,
+"status": "ok"
+},
+"nature_rock_tall_f": {
+"path": "assets/props/nature/nature_rock_tall_f.glb",
+"size": 5608,
+"status": "ok"
+},
+"nature_rock_tall_g": {
+"path": "assets/props/nature/nature_rock_tall_g.glb",
+"size": 6772,
+"status": "ok"
+},
+"nature_rock_tall_h": {
+"path": "assets/props/nature/nature_rock_tall_h.glb",
+"size": 7792,
+"status": "ok"
+},
+"nature_rock_tall_i": {
+"path": "assets/props/nature/nature_rock_tall_i.glb",
+"size": 5584,
+"status": "ok"
+},
+"nature_rock_tall_j": {
+"path": "assets/props/nature/nature_rock_tall_j.glb",
+"size": 5424,
+"status": "ok"
+},
+"nature_rocks_high": {
+"path": "assets/props/nature/nature_rocks_high.glb",
+"size": 31952,
+"status": "ok"
+},
+"nature_rocks_low": {
+"path": "assets/props/nature/nature_rocks_low.glb",
+"size": 31964,
+"status": "ok"
+},
+"nature_rocks_ramp": {
+"path": "assets/props/nature/nature_rocks_ramp.glb",
+"size": 23148,
+"status": "ok"
+},
+"nature_sign": {
+"path": "assets/props/nature/nature_sign.glb",
+"size": 5040,
+"status": "ok"
+},
+"nature_statue_block": {
+"path": "assets/props/nature/nature_statue_block.glb",
+"size": 11252,
+"status": "ok"
+},
+"nature_statue_column": {
+"path": "assets/props/nature/nature_statue_column.glb",
+"size": 10472,
+"status": "ok"
+},
+"nature_statue_column_damaged": {
+"path": "assets/props/nature/nature_statue_column_damaged.glb",
+"size": 8824,
+"status": "ok"
+},
+"nature_statue_head": {
+"path": "assets/props/nature/nature_statue_head.glb",
+"size": 14704,
+"status": "ok"
+},
+"nature_statue_obelisk": {
+"path": "assets/props/nature/nature_statue_obelisk.glb",
+"size": 4416,
+"status": "ok"
+},
+"nature_statue_ring": {
+"path": "assets/props/nature/nature_statue_ring.glb",
+"size": 6568,
+"status": "ok"
+},
+"nature_stone_large_a": {
+"path": "assets/props/nature/nature_stone_large_a.glb",
+"size": 7124,
+"status": "ok"
+},
+"nature_stone_large_b": {
+"path": "assets/props/nature/nature_stone_large_b.glb",
+"size": 8132,
+"status": "ok"
+},
+"nature_stone_large_c": {
+"path": "assets/props/nature/nature_stone_large_c.glb",
+"size": 6580,
+"status": "ok"
+},
+"nature_stone_large_d": {
+"path": "assets/props/nature/nature_stone_large_d.glb",
+"size": 7564,
+"status": "ok"
+},
+"nature_stone_large_e": {
+"path": "assets/props/nature/nature_stone_large_e.glb",
+"size": 6036,
+"status": "ok"
+},
+"nature_stone_large_f": {
+"path": "assets/props/nature/nature_stone_large_f.glb",
+"size": 7092,
+"status": "ok"
+},
+"nature_stone_small_a": {
+"path": "assets/props/nature/nature_stone_small_a.glb",
+"size": 2620,
+"status": "ok"
+},
+"nature_stone_small_b": {
+"path": "assets/props/nature/nature_stone_small_b.glb",
+"size": 3100,
+"status": "ok"
+},
+"nature_stone_small_c": {
+"path": "assets/props/nature/nature_stone_small_c.glb",
+"size": 2620,
+"status": "ok"
+},
+"nature_stone_small_d": {
+"path": "assets/props/nature/nature_stone_small_d.glb",
+"size": 3584,
+"status": "ok"
+},
+"nature_stone_small_e": {
+"path": "assets/props/nature/nature_stone_small_e.glb",
+"size": 5504,
+"status": "ok"
+},
+"nature_stone_small_f": {
+"path": "assets/props/nature/nature_stone_small_f.glb",
+"size": 5272,
+"status": "ok"
+},
+"nature_stone_small_flat_a": {
+"path": "assets/props/nature/nature_stone_small_flat_a.glb",
+"size": 2872,
+"status": "ok"
+},
+"nature_stone_small_flat_b": {
+"path": "assets/props/nature/nature_stone_small_flat_b.glb",
+"size": 2632,
+"status": "ok"
+},
+"nature_stone_small_flat_c": {
+"path": "assets/props/nature/nature_stone_small_flat_c.glb",
+"size": 4080,
+"status": "ok"
+},
+"nature_stone_small_g": {
+"path": "assets/props/nature/nature_stone_small_g.glb",
+"size": 3776,
+"status": "ok"
+},
+"nature_stone_small_h": {
+"path": "assets/props/nature/nature_stone_small_h.glb",
+"size": 5772,
+"status": "ok"
+},
+"nature_stone_small_i": {
+"path": "assets/props/nature/nature_stone_small_i.glb",
+"size": 4692,
+"status": "ok"
+},
+"nature_stone_small_top_a": {
+"path": "assets/props/nature/nature_stone_small_top_a.glb",
+"size": 4792,
+"status": "ok"
+},
+"nature_stone_small_top_b": {
+"path": "assets/props/nature/nature_stone_small_top_b.glb",
+"size": 6232,
+"status": "ok"
+},
+"nature_stone_tall_a": {
+"path": "assets/props/nature/nature_stone_tall_a.glb",
+"size": 11644,
+"status": "ok"
+},
+"nature_stone_tall_b": {
+"path": "assets/props/nature/nature_stone_tall_b.glb",
+"size": 13596,
+"status": "ok"
+},
+"nature_stone_tall_c": {
+"path": "assets/props/nature/nature_stone_tall_c.glb",
+"size": 4788,
+"status": "ok"
+},
+"nature_stone_tall_d": {
+"path": "assets/props/nature/nature_stone_tall_d.glb",
+"size": 4704,
+"status": "ok"
+},
+"nature_stone_tall_e": {
+"path": "assets/props/nature/nature_stone_tall_e.glb",
+"size": 4764,
+"status": "ok"
+},
+"nature_stone_tall_f": {
+"path": "assets/props/nature/nature_stone_tall_f.glb",
+"size": 5180,
+"status": "ok"
+},
+"nature_stone_tall_g": {
+"path": "assets/props/nature/nature_stone_tall_g.glb",
+"size": 6344,
+"status": "ok"
+},
+"nature_stone_tall_h": {
+"path": "assets/props/nature/nature_stone_tall_h.glb",
+"size": 7364,
+"status": "ok"
+},
+"nature_stone_tall_i": {
+"path": "assets/props/nature/nature_stone_tall_i.glb",
+"size": 5160,
+"status": "ok"
+},
+"nature_stone_tall_j": {
+"path": "assets/props/nature/nature_stone_tall_j.glb",
+"size": 4808,
+"status": "ok"
+},
+"nature_stones": {
+"path": "assets/props/nature/nature_stones.glb",
+"size": 23124,
+"status": "ok"
+},
+"nature_stump_old": {
+"path": "assets/props/nature/nature_stump_old.glb",
+"size": 9564,
+"status": "ok"
+},
+"nature_stump_old_tall": {
+"path": "assets/props/nature/nature_stump_old_tall.glb",
+"size": 9564,
+"status": "ok"
+},
+"nature_stump_round": {
+"path": "assets/props/nature/nature_stump_round.glb",
+"size": 5644,
+"status": "ok"
+},
+"nature_stump_round_detailed": {
+"path": "assets/props/nature/nature_stump_round_detailed.glb",
+"size": 8188,
+"status": "ok"
+},
+"nature_stump_square": {
+"path": "assets/props/nature/nature_stump_square.glb",
+"size": 4584,
+"status": "ok"
+},
+"nature_stump_square_detailed": {
+"path": "assets/props/nature/nature_stump_square_detailed.glb",
+"size": 7544,
+"status": "ok"
+},
+"nature_stump_square_detailed_wide": {
+"path": "assets/props/nature/nature_stump_square_detailed_wide.glb",
+"size": 7536,
+"status": "ok"
+},
+"nature_target": {
+"path": "assets/props/nature/nature_target.glb",
+"size": 17696,
+"status": "ok"
+},
+"nature_tent": {
+"path": "assets/props/nature/nature_tent.glb",
+"size": 77896,
+"status": "ok"
+},
+"nature_tent_detailed_closed": {
+"path": "assets/props/nature/nature_tent_detailed_closed.glb",
+"size": 15460,
+"status": "ok"
+},
+"nature_tent_detailed_open": {
+"path": "assets/props/nature/nature_tent_detailed_open.glb",
+"size": 15324,
+"status": "ok"
+},
+"nature_tent_small_closed": {
+"path": "assets/props/nature/nature_tent_small_closed.glb",
+"size": 13200,
+"status": "ok"
+},
+"nature_tent_small_open": {
+"path": "assets/props/nature/nature_tent_small_open.glb",
+"size": 13604,
+"status": "ok"
+},
+"nature_tree": {
+"path": "assets/props/nature/nature_tree.glb",
+"size": 23476,
+"status": "ok"
+},
+"nature_tree_blocks": {
+"path": "assets/props/nature/nature_tree_blocks.glb",
+"size": 10128,
+"status": "ok"
+},
+"nature_tree_blocks_dark": {
+"path": "assets/props/nature/nature_tree_blocks_dark.glb",
+"size": 10132,
+"status": "ok"
+},
+"nature_tree_blocks_fall": {
+"path": "assets/props/nature/nature_tree_blocks_fall.glb",
+"size": 18368,
+"status": "ok"
+},
+"nature_tree_cone": {
+"path": "assets/props/nature/nature_tree_cone.glb",
+"size": 10924,
+"status": "ok"
+},
+"nature_tree_cone_dark": {
+"path": "assets/props/nature/nature_tree_cone_dark.glb",
+"size": 19940,
+"status": "ok"
+},
+"nature_tree_cone_fall": {
+"path": "assets/props/nature/nature_tree_cone_fall.glb",
+"size": 10916,
+"status": "ok"
+},
+"nature_tree_default": {
+"path": "assets/props/nature/nature_tree_default.glb",
+"size": 9428,
+"status": "ok"
+},
+"nature_tree_default_dark": {
+"path": "assets/props/nature/nature_tree_default_dark.glb",
+"size": 9436,
+"status": "ok"
+},
+"nature_tree_default_fall": {
+"path": "assets/props/nature/nature_tree_default_fall.glb",
+"size": 16940,
+"status": "ok"
+},
+"nature_tree_detailed": {
+"path": "assets/props/nature/nature_tree_detailed.glb",
+"size": 31412,
+"status": "ok"
+},
+"nature_tree_detailed_dark": {
+"path": "assets/props/nature/nature_tree_detailed_dark.glb",
+"size": 31416,
+"status": "ok"
+},
+"nature_tree_detailed_fall": {
+"path": "assets/props/nature/nature_tree_detailed_fall.glb",
+"size": 31404,
+"status": "ok"
+},
+"nature_tree_fat": {
+"path": "assets/props/nature/nature_tree_fat.glb",
+"size": 5576,
+"status": "ok"
+},
+"nature_tree_fat_darkh": {
+"path": "assets/props/nature/nature_tree_fat_darkh.glb",
+"size": 5584,
+"status": "ok"
+},
+"nature_tree_fat_fall": {
+"path": "assets/props/nature/nature_tree_fat_fall.glb",
+"size": 5572,
+"status": "ok"
+},
+"nature_tree_high": {
+"path": "assets/props/nature/nature_tree_high.glb",
+"size": 31176,
+"status": "ok"
+},
+"nature_tree_oak": {
+"path": "assets/props/nature/nature_tree_oak.glb",
+"size": 14644,
+"status": "ok"
+},
+"nature_tree_oak_dark": {
+"path": "assets/props/nature/nature_tree_oak_dark.glb",
+"size": 14648,
+"status": "ok"
+},
+"nature_tree_oak_fall": {
+"path": "assets/props/nature/nature_tree_oak_fall.glb",
+"size": 14640,
+"status": "ok"
+},
+"nature_tree_palm": {
+"path": "assets/props/nature/nature_tree_palm.glb",
+"size": 13616,
+"status": "ok"
+},
+"nature_tree_palm_bend": {
+"path": "assets/props/nature/nature_tree_palm_bend.glb",
+"size": 14820,
+"status": "ok"
+},
+"nature_tree_palm_detailed_short": {
+"path": "assets/props/nature/nature_tree_palm_detailed_short.glb",
+"size": 28212,
+"status": "ok"
+},
+"nature_tree_palm_detailed_tall": {
+"path": "assets/props/nature/nature_tree_palm_detailed_tall.glb",
+"size": 28204,
+"status": "ok"
+},
+"nature_tree_palm_short": {
+"path": "assets/props/nature/nature_tree_palm_short.glb",
+"size": 15596,
+"status": "ok"
+},
+"nature_tree_palm_tall": {
+"path": "assets/props/nature/nature_tree_palm_tall.glb",
+"size": 15592,
+"status": "ok"
+},
+"nature_tree_pine_default_a": {
+"path": "assets/props/nature/nature_tree_pine_default_a.glb",
+"size": 17220,
+"status": "ok"
+},
+"nature_tree_pine_default_b": {
+"path": "assets/props/nature/nature_tree_pine_default_b.glb",
+"size": 18180,
+"status": "ok"
+},
+"nature_tree_pine_ground_a": {
+"path": "assets/props/nature/nature_tree_pine_ground_a.glb",
+"size": 6704,
+"status": "ok"
+},
+"nature_tree_pine_ground_b": {
+"path": "assets/props/nature/nature_tree_pine_ground_b.glb",
+"size": 6704,
+"status": "ok"
+},
+"nature_tree_pine_round_a": {
+"path": "assets/props/nature/nature_tree_pine_round_a.glb",
+"size": 14488,
+"status": "ok"
+},
+"nature_tree_pine_round_b": {
+"path": "assets/props/nature/nature_tree_pine_round_b.glb",
+"size": 18464,
+"status": "ok"
+},
+"nature_tree_pine_round_c": {
+"path": "assets/props/nature/nature_tree_pine_round_c.glb",
+"size": 15332,
+"status": "ok"
+},
+"nature_tree_pine_round_d": {
+"path": "assets/props/nature/nature_tree_pine_round_d.glb",
+"size": 13748,
+"status": "ok"
+},
+"nature_tree_pine_round_e": {
+"path": "assets/props/nature/nature_tree_pine_round_e.glb",
+"size": 15308,
+"status": "ok"
+},
+"nature_tree_pine_round_f": {
+"path": "assets/props/nature/nature_tree_pine_round_f.glb",
+"size": 16264,
+"status": "ok"
+},
+"nature_tree_pine_small_a": {
+"path": "assets/props/nature/nature_tree_pine_small_a.glb",
+"size": 12820,
+"status": "ok"
+},
+"nature_tree_pine_small_b": {
+"path": "assets/props/nature/nature_tree_pine_small_b.glb",
+"size": 7816,
+"status": "ok"
+},
+"nature_tree_pine_small_c": {
+"path": "assets/props/nature/nature_tree_pine_small_c.glb",
+"size": 5376,
+"status": "ok"
+},
+"nature_tree_pine_small_d": {
+"path": "assets/props/nature/nature_tree_pine_small_d.glb",
+"size": 5368,
+"status": "ok"
+},
+"nature_tree_pine_tall_a": {
+"path": "assets/props/nature/nature_tree_pine_tall_a.glb",
+"size": 7200,
+"status": "ok"
+},
+"nature_tree_pine_tall_a_detailed": {
+"path": "assets/props/nature/nature_tree_pine_tall_a_detailed.glb",
+"size": 10708,
+"status": "ok"
+},
+"nature_tree_pine_tall_b": {
+"path": "assets/props/nature/nature_tree_pine_tall_b.glb",
+"size": 7204,
+"status": "ok"
+},
+"nature_tree_pine_tall_b_detailed": {
+"path": "assets/props/nature/nature_tree_pine_tall_b_detailed.glb",
+"size": 12632,
+"status": "ok"
+},
+"nature_tree_pine_tall_c": {
+"path": "assets/props/nature/nature_tree_pine_tall_c.glb",
+"size": 8080,
+"status": "ok"
+},
+"nature_tree_pine_tall_c_detailed": {
+"path": "assets/props/nature/nature_tree_pine_tall_c_detailed.glb",
+"size": 11588,
+"status": "ok"
+},
+"nature_tree_pine_tall_d": {
+"path": "assets/props/nature/nature_tree_pine_tall_d.glb",
+"size": 8080,
+"status": "ok"
+},
+"nature_tree_pine_tall_d_detailed": {
+"path": "assets/props/nature/nature_tree_pine_tall_d_detailed.glb",
+"size": 12548,
+"status": "ok"
+},
+"nature_tree_plateau": {
+"path": "assets/props/nature/nature_tree_plateau.glb",
+"size": 16304,
+"status": "ok"
+},
+"nature_tree_plateau_dark": {
+"path": "assets/props/nature/nature_tree_plateau_dark.glb",
+"size": 16308,
+"status": "ok"
+},
+"nature_tree_plateau_fall": {
+"path": "assets/props/nature/nature_tree_plateau_fall.glb",
+"size": 16296,
+"status": "ok"
+},
+"nature_tree_simple": {
+"path": "assets/props/nature/nature_tree_simple.glb",
+"size": 6500,
+"status": "ok"
+},
+"nature_tree_simple_dark": {
+"path": "assets/props/nature/nature_tree_simple_dark.glb",
+"size": 6508,
+"status": "ok"
+},
+"nature_tree_simple_fall": {
+"path": "assets/props/nature/nature_tree_simple_fall.glb",
+"size": 6496,
+"status": "ok"
+},
+"nature_tree_small": {
+"path": "assets/props/nature/nature_tree_small.glb",
+"size": 6500,
+"status": "ok"
+},
+"nature_tree_small_dark": {
+"path": "assets/props/nature/nature_tree_small_dark.glb",
+"size": 11092,
+"status": "ok"
+},
+"nature_tree_small_fall": {
+"path": "assets/props/nature/nature_tree_small_fall.glb",
+"size": 6492,
+"status": "ok"
+},
+"nature_tree_tall": {
+"path": "assets/props/nature/nature_tree_tall.glb",
+"size": 7000,
+"status": "ok"
+},
+"nature_tree_tall_dark": {
+"path": "assets/props/nature/nature_tree_tall_dark.glb",
+"size": 7008,
+"status": "ok"
+},
+"nature_tree_tall_fall": {
+"path": "assets/props/nature/nature_tree_tall_fall.glb",
+"size": 12088,
+"status": "ok"
+},
+"nature_tree_thin": {
+"path": "assets/props/nature/nature_tree_thin.glb",
+"size": 17200,
+"status": "ok"
+},
+"nature_tree_thin_dark": {
+"path": "assets/props/nature/nature_tree_thin_dark.glb",
+"size": 32488,
+"status": "ok"
+},
+"nature_tree_thin_fall": {
+"path": "assets/props/nature/nature_tree_thin_fall.glb",
+"size": 17192,
+"status": "ok"
+},
+"nature_weapon_arrow": {
+"path": "assets/props/weapons/nature_weapon_arrow.glb",
+"size": 7168,
+"status": "ok"
+},
+"nature_weapon_bow": {
+"path": "assets/props/weapons/nature_weapon_bow.glb",
+"size": 8508,
+"status": "ok"
+},
+"pirate_barrel": {
+"path": "assets/props/others/pirate_barrel.glb",
+"size": 14092,
+"status": "ok"
+},
+"pirate_boat_row_large": {
+"path": "assets/props/vehicles/pirate_boat_row_large.glb",
+"size": 15972,
+"status": "ok"
+},
+"pirate_boat_row_small": {
+"path": "assets/props/vehicles/pirate_boat_row_small.glb",
+"size": 17616,
+"status": "ok"
+},
+"pirate_bottle": {
+"path": "assets/props/others/pirate_bottle.glb",
+"size": 13796,
+"status": "ok"
+},
+"pirate_bottle_large": {
+"path": "assets/props/others/pirate_bottle_large.glb",
+"size": 12232,
+"status": "ok"
+},
+"pirate_cannon": {
+"path": "assets/props/weapons/pirate_cannon.glb",
+"size": 24024,
+"status": "ok"
+},
+"pirate_cannon_ball": {
+"path": "assets/props/weapons/pirate_cannon_ball.glb",
+"size": 7192,
+"status": "ok"
+},
+"pirate_cannon_mobile": {
+"path": "assets/props/weapons/pirate_cannon_mobile.glb",
+"size": 43824,
+"status": "ok"
+},
+"pirate_castle_door": {
+"path": "assets/props/structures/pirate_castle_door.glb",
+"size": 37648,
+"status": "ok"
+},
+"pirate_castle_gate": {
+"path": "assets/props/structures/pirate_castle_gate.glb",
+"size": 67440,
+"status": "ok"
+},
+"pirate_castle_wall": {
+"path": "assets/props/structures/pirate_castle_wall.glb",
+"size": 30504,
+"status": "ok"
+},
+"pirate_castle_window": {
+"path": "assets/props/structures/pirate_castle_window.glb",
+"size": 28668,
+"status": "ok"
+},
+"pirate_chest": {
+"path": "assets/props/others/pirate_chest.glb",
+"size": 25240,
+"status": "ok"
+},
+"pirate_crate": {
+"path": "assets/props/others/pirate_crate.glb",
+"size": 9232,
+"status": "ok"
+},
+"pirate_crate_bottles": {
+"path": "assets/props/others/pirate_crate_bottles.glb",
+"size": 58588,
+"status": "ok"
+},
+"pirate_flag": {
+"path": "assets/props/others/pirate_flag.glb",
+"size": 15184,
+"status": "ok"
+},
+"pirate_flag_high": {
+"path": "assets/props/others/pirate_flag_high.glb",
+"size": 15196,
+"status": "ok"
+},
+"pirate_flag_high_pennant": {
+"path": "assets/props/others/pirate_flag_high_pennant.glb",
+"size": 13656,
+"status": "ok"
+},
+"pirate_flag_pennant": {
+"path": "assets/props/others/pirate_flag_pennant.glb",
+"size": 13640,
+"status": "ok"
+},
+"pirate_flag_pirate": {
+"path": "assets/props/others/pirate_flag_pirate.glb",
+"size": 15204,
+"status": "ok"
+},
+"pirate_flag_pirate_high": {
+"path": "assets/props/others/pirate_flag_pirate_high.glb",
+"size": 15220,
+"status": "ok"
+},
+"pirate_flag_pirate_high_pennant": {
+"path": "assets/props/others/pirate_flag_pirate_high_pennant.glb",
+"size": 13676,
+"status": "ok"
+},
+"pirate_flag_pirate_pennant": {
+"path": "assets/props/others/pirate_flag_pirate_pennant.glb",
+"size": 13660,
+"status": "ok"
+},
+"pirate_grass": {
+"path": "assets/props/nature/pirate_grass.glb",
+"size": 8964,
+"status": "ok"
+},
+"pirate_grass_patch": {
+"path": "assets/props/nature/pirate_grass_patch.glb",
+"size": 38640,
+"status": "ok"
+},
+"pirate_grass_plant": {
+"path": "assets/props/nature/pirate_grass_plant.glb",
+"size": 14400,
+"status": "ok"
+},
+"pirate_hole": {
+"path": "assets/props/nature/pirate_hole.glb",
+"size": 28168,
+"status": "ok"
+},
+"pirate_mast": {
+"path": "assets/props/vehicles/pirate_mast.glb",
+"size": 30816,
+"status": "ok"
+},
+"pirate_mast_ropes": {
+"path": "assets/props/vehicles/pirate_mast_ropes.glb",
+"size": 36156,
+"status": "ok"
+},
+"pirate_palm_bend": {
+"path": "assets/props/nature/pirate_palm_bend.glb",
+"size": 36528,
+"status": "ok"
+},
+"pirate_palm_detailed_bend": {
+"path": "assets/props/nature/pirate_palm_detailed_bend.glb",
+"size": 52012,
+"status": "ok"
+},
+"pirate_palm_detailed_straight": {
+"path": "assets/props/nature/pirate_palm_detailed_straight.glb",
+"size": 51916,
+"status": "ok"
+},
+"pirate_palm_straight": {
+"path": "assets/props/nature/pirate_palm_straight.glb",
+"size": 36524,
+"status": "ok"
+},
+"pirate_patch_grass": {
+"path": "assets/props/nature/pirate_patch_grass.glb",
+"size": 8416,
+"status": "ok"
+},
+"pirate_patch_grass_foliage": {
+"path": "assets/props/nature/pirate_patch_grass_foliage.glb",
+"size": 30716,
+"status": "ok"
+},
+"pirate_patch_sand": {
+"path": "assets/props/nature/pirate_patch_sand.glb",
+"size": 10212,
+"status": "ok"
+},
+"pirate_patch_sand_foliage": {
+"path": "assets/props/nature/pirate_patch_sand_foliage.glb",
+"size": 63008,
+"status": "ok"
+},
+"pirate_platform": {
+"path": "assets/props/structures/pirate_platform.glb",
+"size": 7668,
+"status": "ok"
+},
+"pirate_platform_planks": {
+"path": "assets/props/structures/pirate_platform_planks.glb",
+"size": 6524,
+"status": "ok"
+},
+"pirate_rocks_a": {
+"path": "assets/props/nature/pirate_rocks_a.glb",
+"size": 27644,
+"status": "ok"
+},
+"pirate_rocks_b": {
+"path": "assets/props/nature/pirate_rocks_b.glb",
+"size": 31316,
+"status": "ok"
+},
+"pirate_rocks_c": {
+"path": "assets/props/nature/pirate_rocks_c.glb",
+"size": 24572,
+"status": "ok"
+},
+"pirate_rocks_sand_a": {
+"path": "assets/props/nature/pirate_rocks_sand_a.glb",
+"size": 57052,
+"status": "ok"
+},
+"pirate_rocks_sand_b": {
+"path": "assets/props/nature/pirate_rocks_sand_b.glb",
+"size": 53404,
+"status": "ok"
+},
+"pirate_rocks_sand_c": {
+"path": "assets/props/nature/pirate_rocks_sand_c.glb",
+"size": 46624,
+"status": "ok"
+},
+"pirate_ship_ghost": {
+"path": "assets/props/vehicles/pirate_ship_ghost.glb",
+"size": 155692,
+"status": "ok"
+},
+"pirate_ship_large": {
+"path": "assets/props/vehicles/pirate_ship_large.glb",
+"size": 155792,
+"status": "ok"
+},
+"pirate_ship_medium": {
+"path": "assets/props/vehicles/pirate_ship_medium.glb",
+"size": 144944,
+"status": "ok"
+},
+"pirate_ship_pirate_large": {
+"path": "assets/props/vehicles/pirate_ship_pirate_large.glb",
+"size": 177216,
+"status": "ok"
+},
+"pirate_ship_pirate_medium": {
+"path": "assets/props/vehicles/pirate_ship_pirate_medium.glb",
+"size": 166388,
+"status": "ok"
+},
+"pirate_ship_pirate_small": {
+"path": "assets/props/vehicles/pirate_ship_pirate_small.glb",
+"size": 131464,
+"status": "ok"
+},
+"pirate_ship_small": {
+"path": "assets/props/vehicles/pirate_ship_small.glb",
+"size": 116440,
+"status": "ok"
+},
+"pirate_ship_wreck": {
+"path": "assets/props/vehicles/pirate_ship_wreck.glb",
+"size": 223676,
+"status": "ok"
+},
+"pirate_structure": {
+"path": "assets/props/structures/pirate_structure.glb",
+"size": 27988,
+"status": "ok"
+},
+"pirate_structure_fence": {
+"path": "assets/props/structures/pirate_structure_fence.glb",
+"size": 35752,
+"status": "ok"
+},
+"pirate_structure_fence_sides": {
+"path": "assets/props/structures/pirate_structure_fence_sides.glb",
+"size": 44480,
+"status": "ok"
+},
+"pirate_structure_platform": {
+"path": "assets/props/structures/pirate_structure_platform.glb",
+"size": 24248,
+"status": "ok"
+},
+"pirate_structure_platform_dock": {
+"path": "assets/props/structures/pirate_structure_platform_dock.glb",
+"size": 33336,
+"status": "ok"
+},
+"pirate_structure_platform_dock_small": {
+"path": "assets/props/structures/pirate_structure_platform_dock_small.glb",
+"size": 32156,
+"status": "ok"
+},
+"pirate_structure_platform_small": {
+"path": "assets/props/structures/pirate_structure_platform_small.glb",
+"size": 23068,
+"status": "ok"
+},
+"pirate_structure_roof": {
+"path": "assets/props/structures/pirate_structure_roof.glb",
+"size": 34480,
+"status": "ok"
+},
+"pirate_tool_paddle": {
+"path": "assets/props/others/pirate_tool_paddle.glb",
+"size": 6864,
+"status": "ok"
+},
+"pirate_tool_shovel": {
+"path": "assets/props/others/pirate_tool_shovel.glb",
+"size": 16144,
+"status": "ok"
+},
+"pirate_tower_base": {
+"path": "assets/props/structures/pirate_tower_base.glb",
+"size": 5772,
+"status": "ok"
+},
+"pirate_tower_base_door": {
+"path": "assets/props/structures/pirate_tower_base_door.glb",
+"size": 12592,
+"status": "ok"
+},
+"pirate_tower_complete_large": {
+"path": "assets/props/structures/pirate_tower_complete_large.glb",
+"size": 54660,
+"status": "ok"
+},
+"pirate_tower_complete_small": {
+"path": "assets/props/structures/pirate_tower_complete_small.glb",
+"size": 58412,
+"status": "ok"
+},
+"pirate_tower_middle": {
+"path": "assets/props/structures/pirate_tower_middle.glb",
+"size": 21112,
+"status": "ok"
+},
+"pirate_tower_middle_windows": {
+"path": "assets/props/structures/pirate_tower_middle_windows.glb",
+"size": 23188,
+"status": "ok"
+},
+"pirate_tower_roof": {
+"path": "assets/props/structures/pirate_tower_roof.glb",
+"size": 11772,
+"status": "ok"
+},
+"pirate_tower_top": {
+"path": "assets/props/structures/pirate_tower_top.glb",
+"size": 29484,
+"status": "ok"
+},
+"pirate_tower_watch": {
+"path": "assets/props/structures/pirate_tower_watch.glb",
+"size": 21672,
+"status": "ok"
+},
+"spaceships_bob": {
+"path": "assets/props/vehicles/spaceships_bob.glb",
+"size": 47404,
+"status": "ok"
+},
+"spaceships_challenger": {
+"path": "assets/props/vehicles/spaceships_challenger.glb",
+"size": 79532,
+"status": "ok"
+},
+"spaceships_dispatcher": {
+"path": "assets/props/nature/spaceships_dispatcher.glb",
+"size": 42964,
+"status": "ok"
+},
+"spaceships_executioner": {
+"path": "assets/props/vehicles/spaceships_executioner.glb",
+"size": 143616,
+"status": "ok"
+},
+"spaceships_imperial": {
+"path": "assets/props/vehicles/spaceships_imperial.glb",
+"size": 134464,
+"status": "ok"
+},
+"spaceships_insurgent": {
+"path": "assets/props/vehicles/spaceships_insurgent.glb",
+"size": 295572,
+"status": "ok"
+},
+"spaceships_omen": {
+"path": "assets/props/vehicles/spaceships_omen.glb",
+"size": 66616,
+"status": "ok"
+},
+"spaceships_pancake": {
+"path": "assets/props/vehicles/spaceships_pancake.glb",
+"size": 129524,
+"status": "ok"
+},
+"spaceships_spitfire": {
+"path": "assets/props/vehicles/spaceships_spitfire.glb",
+"size": 153572,
+"status": "ok"
+},
+"spaceships_striker": {
+"path": "assets/props/vehicles/spaceships_striker.glb",
+"size": 185424,
+"status": "ok"
+},
+"spaceships_zenith": {
+"path": "assets/props/vehicles/spaceships_zenith.glb",
+"size": 96192,
+"status": "ok"
+},
+"tanks_tank": {
+"path": "assets/props/vehicles/tanks_tank.glb",
+"size": 272464,
+"status": "ok"
+},
+"tanks_tank2": {
+"path": "assets/props/vehicles/tanks_tank2.glb",
+"size": 327388,
+"status": "ok"
+},
+"tanks_tank3": {
+"path": "assets/props/vehicles/tanks_tank3.glb",
+"size": 299548,
+"status": "ok"
+},
+"tanks_tank4": {
+"path": "assets/props/vehicles/tanks_tank4.glb",
+"size": 517988,
+"status": "ok"
+},
+"trains_cargo_train_coal_container": {
+"path": "assets/props/vehicles/trains_cargo_train_coal_container.glb",
+"size": 116604,
+"status": "ok"
+},
+"trains_cargo_train_container": {
+"path": "assets/props/vehicles/trains_cargo_train_container.glb",
+"size": 198784,
+"status": "ok"
+},
+"trains_cargo_train_front": {
+"path": "assets/props/vehicles/trains_cargo_train_front.glb",
+"size": 443952,
+"status": "ok"
+},
+"trains_cargo_train_wagon": {
+"path": "assets/props/vehicles/trains_cargo_train_wagon.glb",
+"size": 364580,
+"status": "ok"
+},
+"trains_cargo_train_wagon_empty": {
+"path": "assets/props/vehicles/trains_cargo_train_wagon_empty.glb",
+"size": 87088,
+"status": "ok"
+},
+"trains_cargo_train_wagon_open_container": {
+"path": "assets/props/vehicles/trains_cargo_train_wagon_open_container.glb",
+"size": 99904,
+"status": "ok"
+},
+"trains_high_speed_front": {
+"path": "assets/props/vehicles/trains_high_speed_front.glb",
+"size": 163920,
+"status": "ok"
+},
+"trains_high_speed_wagon": {
+"path": "assets/props/vehicles/trains_high_speed_wagon.glb",
+"size": 162256,
+"status": "ok"
+},
+"trains_locomotive_coal_tender": {
+"path": "assets/props/vehicles/trains_locomotive_coal_tender.glb",
+"size": 134284,
+"status": "ok"
+},
+"trains_locomotive_front": {
+"path": "assets/props/vehicles/trains_locomotive_front.glb",
+"size": 761592,
+"status": "ok"
+},
+"trains_locomotive_passenger_wagon": {
+"path": "assets/props/vehicles/trains_locomotive_passenger_wagon.glb",
+"size": 153652,
+"status": "ok"
+},
+"trains_locomotive_wagon": {
+"path": "assets/props/vehicles/trains_locomotive_wagon.glb",
+"size": 305232,
+"status": "ok"
+},
+"trains_railway_track_curve": {
+"path": "assets/props/vehicles/trains_railway_track_curve.glb",
+"size": 123444,
+"status": "ok"
+},
+"trains_railway_track_straight": {
+"path": "assets/props/vehicles/trains_railway_track_straight.glb",
+"size": 72524,
+"status": "ok"
+},
+"trees_birch_tree_1": {
+"path": "assets/props/nature/trees_birch_tree_1.glb",
+"size": 96208,
+"status": "ok"
+},
+"trees_birch_tree_2": {
+"path": "assets/props/nature/trees_birch_tree_2.glb",
+"size": 89184,
+"status": "ok"
+},
+"trees_birch_tree_3": {
+"path": "assets/props/nature/trees_birch_tree_3.glb",
+"size": 98268,
+"status": "ok"
+},
+"trees_birch_tree_4": {
+"path": "assets/props/nature/trees_birch_tree_4.glb",
+"size": 130688,
+"status": "ok"
+},
+"trees_birch_tree_5": {
+"path": "assets/props/nature/trees_birch_tree_5.glb",
+"size": 98964,
+"status": "ok"
+},
+"trees_birch_tree_autumn_1": {
+"path": "assets/props/nature/trees_birch_tree_autumn_1.glb",
+"size": 96376,
+"status": "ok"
+},
+"trees_birch_tree_autumn_2": {
+"path": "assets/props/nature/trees_birch_tree_autumn_2.glb",
+"size": 89276,
+"status": "ok"
+},
+"trees_birch_tree_autumn_3": {
+"path": "assets/props/nature/trees_birch_tree_autumn_3.glb",
+"size": 98376,
+"status": "ok"
+},
+"trees_birch_tree_autumn_4": {
+"path": "assets/props/nature/trees_birch_tree_autumn_4.glb",
+"size": 130800,
+"status": "ok"
+},
+"trees_birch_tree_autumn_5": {
+"path": "assets/props/nature/trees_birch_tree_autumn_5.glb",
+"size": 99068,
+"status": "ok"
+},
+"trees_birch_tree_dead_1": {
+"path": "assets/props/nature/trees_birch_tree_dead_1.glb",
+"size": 46756,
+"status": "ok"
+},
+"trees_birch_tree_dead_2": {
+"path": "assets/props/nature/trees_birch_tree_dead_2.glb",
+"size": 73768,
+"status": "ok"
+},
+"trees_birch_tree_dead_3": {
+"path": "assets/props/nature/trees_birch_tree_dead_3.glb",
+"size": 75956,
+"status": "ok"
+},
+"trees_birch_tree_dead_4": {
+"path": "assets/props/nature/trees_birch_tree_dead_4.glb",
+"size": 87640,
+"status": "ok"
+},
+"trees_birch_tree_dead_5": {
+"path": "assets/props/nature/trees_birch_tree_dead_5.glb",
+"size": 69736,
+"status": "ok"
+},
+"trees_birch_tree_dead_snow_1": {
+"path": "assets/props/nature/trees_birch_tree_dead_snow_1.glb",
+"size": 50560,
+"status": "ok"
+},
+"trees_birch_tree_dead_snow_2": {
+"path": "assets/props/nature/trees_birch_tree_dead_snow_2.glb",
+"size": 81192,
+"status": "ok"
+},
+"trees_birch_tree_dead_snow_3": {
+"path": "assets/props/nature/trees_birch_tree_dead_snow_3.glb",
+"size": 80940,
+"status": "ok"
+},
+"trees_birch_tree_dead_snow_4": {
+"path": "assets/props/nature/trees_birch_tree_dead_snow_4.glb",
+"size": 96424,
+"status": "ok"
+},
+"trees_birch_tree_dead_snow_5": {
+"path": "assets/props/nature/trees_birch_tree_dead_snow_5.glb",
+"size": 72956,
+"status": "ok"
+},
+"trees_birch_tree_snow_1": {
+"path": "assets/props/nature/trees_birch_tree_snow_1.glb",
+"size": 102568,
+"status": "ok"
+},
+"trees_birch_tree_snow_2": {
+"path": "assets/props/nature/trees_birch_tree_snow_2.glb",
+"size": 92444,
+"status": "ok"
+},
+"trees_birch_tree_snow_3": {
+"path": "assets/props/nature/trees_birch_tree_snow_3.glb",
+"size": 102840,
+"status": "ok"
+},
+"trees_birch_tree_snow_4": {
+"path": "assets/props/nature/trees_birch_tree_snow_4.glb",
+"size": 139152,
+"status": "ok"
+},
+"trees_birch_tree_snow_5": {
+"path": "assets/props/nature/trees_birch_tree_snow_5.glb",
+"size": 103744,
+"status": "ok"
+},
+"trees_bush_1": {
+"path": "assets/props/nature/trees_bush_1.glb",
+"size": 20828,
+"status": "ok"
+},
+"trees_bush_2": {
+"path": "assets/props/nature/trees_bush_2.glb",
+"size": 15640,
+"status": "ok"
+},
+"trees_bush_berries_1": {
+"path": "assets/props/nature/trees_bush_berries_1.glb",
+"size": 50204,
+"status": "ok"
+},
+"trees_bush_berries_2": {
+"path": "assets/props/nature/trees_bush_berries_2.glb",
+"size": 45016,
+"status": "ok"
+},
+"trees_bush_snow_1": {
+"path": "assets/props/nature/trees_bush_snow_1.glb",
+"size": 26848,
+"status": "ok"
+},
+"trees_bush_snow_2": {
+"path": "assets/props/nature/trees_bush_snow_2.glb",
+"size": 20360,
+"status": "ok"
+},
+"trees_cactus_1": {
+"path": "assets/props/nature/trees_cactus_1.glb",
+"size": 29568,
+"status": "ok"
+},
+"trees_cactus_2": {
+"path": "assets/props/nature/trees_cactus_2.glb",
+"size": 40072,
+"status": "ok"
+},
+"trees_cactus_3": {
+"path": "assets/props/nature/trees_cactus_3.glb",
+"size": 23660,
+"status": "ok"
+},
+"trees_cactus_4": {
+"path": "assets/props/nature/trees_cactus_4.glb",
+"size": 63404,
+"status": "ok"
+},
+"trees_cactus_5": {
+"path": "assets/props/nature/trees_cactus_5.glb",
+"size": 31440,
+"status": "ok"
+},
+"trees_cactus_flower_1": {
+"path": "assets/props/nature/trees_cactus_flower_1.glb",
+"size": 115288,
+"status": "ok"
+},
+"trees_cactus_flowers_2": {
+"path": "assets/props/nature/trees_cactus_flowers_2.glb",
+"size": 83564,
+"status": "ok"
+},
+"trees_cactus_flowers_3": {
+"path": "assets/props/nature/trees_cactus_flowers_3.glb",
+"size": 67148,
+"status": "ok"
+},
+"trees_cactus_flowers_4": {
+"path": "assets/props/nature/trees_cactus_flowers_4.glb",
+"size": 90192,
+"status": "ok"
+},
+"trees_cactus_flowers_5": {
+"path": "assets/props/nature/trees_cactus_flowers_5.glb",
+"size": 45264,
+"status": "ok"
+},
+"trees_common_tree_1": {
+"path": "assets/props/nature/trees_common_tree_1.glb",
+"size": 157988,
+"status": "ok"
+},
+"trees_common_tree_2": {
+"path": "assets/props/nature/trees_common_tree_2.glb",
+"size": 161416,
+"status": "ok"
+},
+"trees_common_tree_3": {
+"path": "assets/props/nature/trees_common_tree_3.glb",
+"size": 88376,
+"status": "ok"
+},
+"trees_common_tree_4": {
+"path": "assets/props/nature/trees_common_tree_4.glb",
+"size": 75848,
+"status": "ok"
+},
+"trees_common_tree_5": {
+"path": "assets/props/nature/trees_common_tree_5.glb",
+"size": 101176,
+"status": "ok"
+},
+"trees_common_tree_autumn_1": {
+"path": "assets/props/nature/trees_common_tree_autumn_1.glb",
+"size": 158052,
+"status": "ok"
+},
+"trees_common_tree_autumn_2": {
+"path": "assets/props/nature/trees_common_tree_autumn_2.glb",
+"size": 162316,
+"status": "ok"
+},
+"trees_common_tree_autumn_3": {
+"path": "assets/props/nature/trees_common_tree_autumn_3.glb",
+"size": 88464,
+"status": "ok"
+},
+"trees_common_tree_autumn_4": {
+"path": "assets/props/nature/trees_common_tree_autumn_4.glb",
+"size": 75936,
+"status": "ok"
+},
+"trees_common_tree_autumn_5": {
+"path": "assets/props/nature/trees_common_tree_autumn_5.glb",
+"size": 101240,
+"status": "ok"
+},
+"trees_common_tree_dead_1": {
+"path": "assets/props/nature/trees_common_tree_dead_1.glb",
+"size": 128692,
+"status": "ok"
+},
+"trees_common_tree_dead_2": {
+"path": "assets/props/nature/trees_common_tree_dead_2.glb",
+"size": 128692,
+"status": "ok"
+},
+"trees_common_tree_dead_3": {
+"path": "assets/props/nature/trees_common_tree_dead_3.glb",
+"size": 52224,
+"status": "ok"
+},
+"trees_common_tree_dead_4": {
+"path": "assets/props/nature/trees_common_tree_dead_4.glb",
+"size": 55680,
+"status": "ok"
+},
+"trees_common_tree_dead_5": {
+"path": "assets/props/nature/trees_common_tree_dead_5.glb",
+"size": 78144,
+"status": "ok"
+},
+"trees_common_tree_dead_snow_1": {
+"path": "assets/props/nature/trees_common_tree_dead_snow_1.glb",
+"size": 144036,
+"status": "ok"
+},
+"trees_common_tree_dead_snow_2": {
+"path": "assets/props/nature/trees_common_tree_dead_snow_2.glb",
+"size": 143484,
+"status": "ok"
+},
+"trees_common_tree_dead_snow_3": {
+"path": "assets/props/nature/trees_common_tree_dead_snow_3.glb",
+"size": 56552,
+"status": "ok"
+},
+"trees_common_tree_dead_snow_4": {
+"path": "assets/props/nature/trees_common_tree_dead_snow_4.glb",
+"size": 61732,
+"status": "ok"
+},
+"trees_common_tree_dead_snow_5": {
+"path": "assets/props/nature/trees_common_tree_dead_snow_5.glb",
+"size": 85932,
+"status": "ok"
+},
+"trees_common_tree_snow_1": {
+"path": "assets/props/nature/trees_common_tree_snow_1.glb",
+"size": 163216,
+"status": "ok"
+},
+"trees_common_tree_snow_2": {
+"path": "assets/props/nature/trees_common_tree_snow_2.glb",
+"size": 167628,
+"status": "ok"
+},
+"trees_common_tree_snow_3": {
+"path": "assets/props/nature/trees_common_tree_snow_3.glb",
+"size": 94208,
+"status": "ok"
+},
+"trees_common_tree_snow_4": {
+"path": "assets/props/nature/trees_common_tree_snow_4.glb",
+"size": 79696,
+"status": "ok"
+},
+"trees_common_tree_snow_5": {
+"path": "assets/props/nature/trees_common_tree_snow_5.glb",
+"size": 106368,
+"status": "ok"
+},
+"trees_corn_1": {
+"path": "assets/props/nature/trees_corn_1.glb",
+"size": 32656,
+"status": "ok"
+},
+"trees_corn_2": {
+"path": "assets/props/nature/trees_corn_2.glb",
+"size": 42528,
+"status": "ok"
+},
+"trees_flowers": {
+"path": "assets/props/nature/trees_flowers.glb",
+"size": 25588,
+"status": "ok"
+},
+"trees_grass": {
+"path": "assets/props/nature/trees_grass.glb",
+"size": 12124,
+"status": "ok"
+},
+"trees_grass_2": {
+"path": "assets/props/nature/trees_grass_2.glb",
+"size": 12132,
+"status": "ok"
+},
+"trees_grass_short": {
+"path": "assets/props/nature/trees_grass_short.glb",
+"size": 12160,
+"status": "ok"
+},
+"trees_lilypad": {
+"path": "assets/props/nature/trees_lilypad.glb",
+"size": 23016,
+"status": "ok"
+},
+"trees_palm_tree_1": {
+"path": "assets/props/nature/trees_palm_tree_1.glb",
+"size": 99892,
+"status": "ok"
+},
+"trees_palm_tree_2": {
+"path": "assets/props/nature/trees_palm_tree_2.glb",
+"size": 70252,
+"status": "ok"
+},
+"trees_palm_tree_3": {
+"path": "assets/props/nature/trees_palm_tree_3.glb",
+"size": 86968,
+"status": "ok"
+},
+"trees_palm_tree_4": {
+"path": "assets/props/nature/trees_palm_tree_4.glb",
+"size": 62608,
+"status": "ok"
+},
+"trees_pine_tree_1": {
+"path": "assets/props/nature/trees_pine_tree_1.glb",
+"size": 104656,
+"status": "ok"
+},
+"trees_pine_tree_2": {
+"path": "assets/props/nature/trees_pine_tree_2.glb",
+"size": 92632,
+"status": "ok"
+},
+"trees_pine_tree_3": {
+"path": "assets/props/nature/trees_pine_tree_3.glb",
+"size": 130920,
+"status": "ok"
+},
+"trees_pine_tree_4": {
+"path": "assets/props/nature/trees_pine_tree_4.glb",
+"size": 93696,
+"status": "ok"
+},
+"trees_pine_tree_5": {
+"path": "assets/props/nature/trees_pine_tree_5.glb",
+"size": 86412,
+"status": "ok"
+},
+"trees_pine_tree_autumn_1": {
+"path": "assets/props/nature/trees_pine_tree_autumn_1.glb",
+"size": 105636,
+"status": "ok"
+},
+"trees_pine_tree_autumn_2": {
+"path": "assets/props/nature/trees_pine_tree_autumn_2.glb",
+"size": 93536,
+"status": "ok"
+},
+"trees_pine_tree_autumn_3": {
+"path": "assets/props/nature/trees_pine_tree_autumn_3.glb",
+"size": 131828,
+"status": "ok"
+},
+"trees_pine_tree_autumn_4": {
+"path": "assets/props/nature/trees_pine_tree_autumn_4.glb",
+"size": 94604,
+"status": "ok"
+},
+"trees_pine_tree_autumn_5": {
+"path": "assets/props/nature/trees_pine_tree_autumn_5.glb",
+"size": 87324,
+"status": "ok"
+},
+"trees_pine_tree_snow_1": {
+"path": "assets/props/nature/trees_pine_tree_snow_1.glb",
+"size": 105532,
+"status": "ok"
+},
+"trees_pine_tree_snow_2": {
+"path": "assets/props/nature/trees_pine_tree_snow_2.glb",
+"size": 93512,
+"status": "ok"
+},
+"trees_pine_tree_snow_3": {
+"path": "assets/props/nature/trees_pine_tree_snow_3.glb",
+"size": 131800,
+"status": "ok"
+},
+"trees_pine_tree_snow_4": {
+"path": "assets/props/nature/trees_pine_tree_snow_4.glb",
+"size": 94644,
+"status": "ok"
+},
+"trees_pine_tree_snow_5": {
+"path": "assets/props/nature/trees_pine_tree_snow_5.glb",
+"size": 87292,
+"status": "ok"
+},
+"trees_plant_1": {
+"path": "assets/props/nature/trees_plant_1.glb",
+"size": 17928,
+"status": "ok"
+},
+"trees_plant_2": {
+"path": "assets/props/nature/trees_plant_2.glb",
+"size": 15324,
+"status": "ok"
+},
+"trees_plant_3": {
+"path": "assets/props/nature/trees_plant_3.glb",
+"size": 32520,
+"status": "ok"
+},
+"trees_plant_4": {
+"path": "assets/props/nature/trees_plant_4.glb",
+"size": 27108,
+"status": "ok"
+},
+"trees_plant_5": {
+"path": "assets/props/nature/trees_plant_5.glb",
+"size": 35852,
+"status": "ok"
+},
+"trees_rock_1": {
+"path": "assets/props/nature/trees_rock_1.glb",
+"size": 5004,
+"status": "ok"
+},
+"trees_rock_2": {
+"path": "assets/props/nature/trees_rock_2.glb",
+"size": 5592,
+"status": "ok"
+},
+"trees_rock_3": {
+"path": "assets/props/nature/trees_rock_3.glb",
+"size": 5300,
+"status": "ok"
+},
+"trees_rock_4": {
+"path": "assets/props/nature/trees_rock_4.glb",
+"size": 8276,
+"status": "ok"
+},
+"trees_rock_5": {
+"path": "assets/props/nature/trees_rock_5.glb",
+"size": 6128,
+"status": "ok"
+},
+"trees_rock_6": {
+"path": "assets/props/nature/trees_rock_6.glb",
+"size": 7244,
+"status": "ok"
+},
+"trees_rock_7": {
+"path": "assets/props/nature/trees_rock_7.glb",
+"size": 6248,
+"status": "ok"
+},
+"trees_rock_moss_1": {
+"path": "assets/props/nature/trees_rock_moss_1.glb",
+"size": 5836,
+"status": "ok"
+},
+"trees_rock_moss_2": {
+"path": "assets/props/nature/trees_rock_moss_2.glb",
+"size": 6360,
+"status": "ok"
+},
+"trees_rock_moss_3": {
+"path": "assets/props/nature/trees_rock_moss_3.glb",
+"size": 5396,
+"status": "ok"
+},
+"trees_rock_moss_4": {
+"path": "assets/props/nature/trees_rock_moss_4.glb",
+"size": 9108,
+"status": "ok"
+},
+"trees_rock_moss_5": {
+"path": "assets/props/nature/trees_rock_moss_5.glb",
+"size": 6808,
+"status": "ok"
+},
+"trees_rock_moss_6": {
+"path": "assets/props/nature/trees_rock_moss_6.glb",
+"size": 8080,
+"status": "ok"
+},
+"trees_rock_moss_7": {
+"path": "assets/props/nature/trees_rock_moss_7.glb",
+"size": 6572,
+"status": "ok"
+},
+"trees_rock_snow_1": {
+"path": "assets/props/nature/trees_rock_snow_1.glb",
+"size": 7568,
+"status": "ok"
+},
+"trees_rock_snow_2": {
+"path": "assets/props/nature/trees_rock_snow_2.glb",
+"size": 8532,
+"status": "ok"
+},
+"trees_rock_snow_3": {
+"path": "assets/props/nature/trees_rock_snow_3.glb",
+"size": 6908,
+"status": "ok"
+},
+"trees_rock_snow_4": {
+"path": "assets/props/nature/trees_rock_snow_4.glb",
+"size": 12352,
+"status": "ok"
+},
+"trees_rock_snow_5": {
+"path": "assets/props/nature/trees_rock_snow_5.glb",
+"size": 8756,
+"status": "ok"
+},
+"trees_rock_snow_6": {
+"path": "assets/props/nature/trees_rock_snow_6.glb",
+"size": 11756,
+"status": "ok"
+},
+"trees_rock_snow_7": {
+"path": "assets/props/nature/trees_rock_snow_7.glb",
+"size": 10140,
+"status": "ok"
+},
+"trees_tree_stump": {
+"path": "assets/props/nature/trees_tree_stump.glb",
+"size": 15404,
+"status": "ok"
+},
+"trees_tree_stump_moss": {
+"path": "assets/props/nature/trees_tree_stump_moss.glb",
+"size": 14632,
+"status": "ok"
+},
+"trees_tree_stump_snow": {
+"path": "assets/props/nature/trees_tree_stump_snow.glb",
+"size": 16056,
+"status": "ok"
+},
+"trees_wheat": {
+"path": "assets/props/nature/trees_wheat.glb",
+"size": 22344,
+"status": "ok"
+},
+"trees_willow_1": {
+"path": "assets/props/nature/trees_willow_1.glb",
+"size": 107588,
+"status": "ok"
+},
+"trees_willow_2": {
+"path": "assets/props/nature/trees_willow_2.glb",
+"size": 150512,
+"status": "ok"
+},
+"trees_willow_3": {
+"path": "assets/props/nature/trees_willow_3.glb",
+"size": 58376,
+"status": "ok"
+},
+"trees_willow_4": {
+"path": "assets/props/nature/trees_willow_4.glb",
+"size": 86716,
+"status": "ok"
+},
+"trees_willow_5": {
+"path": "assets/props/nature/trees_willow_5.glb",
+"size": 89500,
+"status": "ok"
+},
+"trees_willow_autumn_1": {
+"path": "assets/props/nature/trees_willow_autumn_1.glb",
+"size": 107648,
+"status": "ok"
+},
+"trees_willow_autumn_2": {
+"path": "assets/props/nature/trees_willow_autumn_2.glb",
+"size": 150572,
+"status": "ok"
+},
+"trees_willow_autumn_3": {
+"path": "assets/props/nature/trees_willow_autumn_3.glb",
+"size": 58436,
+"status": "ok"
+},
+"trees_willow_autumn_4": {
+"path": "assets/props/nature/trees_willow_autumn_4.glb",
+"size": 86780,
+"status": "ok"
+},
+"trees_willow_autumn_5": {
+"path": "assets/props/nature/trees_willow_autumn_5.glb",
+"size": 89560,
+"status": "ok"
+},
+"trees_willow_dead_1": {
+"path": "assets/props/nature/trees_willow_dead_1.glb",
+"size": 62736,
+"status": "ok"
+},
+"trees_willow_dead_2": {
+"path": "assets/props/nature/trees_willow_dead_2.glb",
+"size": 101664,
+"status": "ok"
+},
+"trees_willow_dead_3": {
+"path": "assets/props/nature/trees_willow_dead_3.glb",
+"size": 22820,
+"status": "ok"
+},
+"trees_willow_dead_4": {
+"path": "assets/props/nature/trees_willow_dead_4.glb",
+"size": 43556,
+"status": "ok"
+},
+"trees_willow_dead_5": {
+"path": "assets/props/nature/trees_willow_dead_5.glb",
+"size": 28008,
+"status": "ok"
+},
+"trees_willow_dead_snow_1": {
+"path": "assets/props/nature/trees_willow_dead_snow_1.glb",
+"size": 68372,
+"status": "ok"
+},
+"trees_willow_dead_snow_2": {
+"path": "assets/props/nature/trees_willow_dead_snow_2.glb",
+"size": 113108,
+"status": "ok"
+},
+"trees_willow_dead_snow_3": {
+"path": "assets/props/nature/trees_willow_dead_snow_3.glb",
+"size": 25844,
+"status": "ok"
+},
+"trees_willow_dead_snow_4": {
+"path": "assets/props/nature/trees_willow_dead_snow_4.glb",
+"size": 48300,
+"status": "ok"
+},
+"trees_willow_dead_snow_5": {
+"path": "assets/props/nature/trees_willow_dead_snow_5.glb",
+"size": 32444,
+"status": "ok"
+},
+"trees_willow_snow_1": {
+"path": "assets/props/nature/trees_willow_snow_1.glb",
+"size": 111904,
+"status": "ok"
+},
+"trees_willow_snow_2": {
+"path": "assets/props/nature/trees_willow_snow_2.glb",
+"size": 155044,
+"status": "ok"
+},
+"trees_willow_snow_3": {
+"path": "assets/props/nature/trees_willow_snow_3.glb",
+"size": 62040,
+"status": "ok"
+},
+"trees_willow_snow_4": {
+"path": "assets/props/nature/trees_willow_snow_4.glb",
+"size": 91244,
+"status": "ok"
+},
+"trees_willow_snow_5": {
+"path": "assets/props/nature/trees_willow_snow_5.glb",
+"size": 95548,
+"status": "ok"
+},
+"trees_wood_log": {
+"path": "assets/props/nature/trees_wood_log.glb",
+"size": 28336,
+"status": "ok"
+},
+"trees_wood_log_moss": {
+"path": "assets/props/nature/trees_wood_log_moss.glb",
+"size": 38620,
+"status": "ok"
+},
+"trees_wood_log_snow": {
+"path": "assets/props/nature/trees_wood_log_snow.glb",
+"size": 17176,
+"status": "ok"
+},
+"vehicles_ambulance": {
+"path": "assets/props/vehicles/vehicles_ambulance.glb",
+"size": 233612,
+"status": "ok"
+},
+"vehicles_box": {
+"path": "assets/props/vehicles/vehicles_box.glb",
+"size": 14108,
+"status": "ok"
+},
+"vehicles_cone": {
+"path": "assets/props/vehicles/vehicles_cone.glb",
+"size": 16696,
+"status": "ok"
+},
+"vehicles_cone_flat": {
+"path": "assets/props/vehicles/vehicles_cone_flat.glb",
+"size": 16712,
+"status": "ok"
+},
+"vehicles_debris_bolt": {
+"path": "assets/props/vehicles/vehicles_debris_bolt.glb",
+"size": 4768,
+"status": "ok"
+},
+"vehicles_debris_bumper": {
+"path": "assets/props/vehicles/vehicles_debris_bumper.glb",
+"size": 11312,
+"status": "ok"
+},
+"vehicles_debris_door": {
+"path": "assets/props/vehicles/vehicles_debris_door.glb",
+"size": 7052,
+"status": "ok"
+},
+"vehicles_debris_door_window": {
+"path": "assets/props/vehicles/vehicles_debris_door_window.glb",
+"size": 7576,
+"status": "ok"
+},
+"vehicles_debris_drivetrain": {
+"path": "assets/props/vehicles/vehicles_debris_drivetrain.glb",
+"size": 36896,
+"status": "ok"
+},
+"vehicles_debris_drivetrain_axle": {
+"path": "assets/props/vehicles/vehicles_debris_drivetrain_axle.glb",
+"size": 18740,
+"status": "ok"
+},
+"vehicles_debris_nut": {
+"path": "assets/props/vehicles/vehicles_debris_nut.glb",
+"size": 4744,
+"status": "ok"
+},
+"vehicles_debris_plate_a": {
+"path": "assets/props/vehicles/vehicles_debris_plate_a.glb",
+"size": 5048,
+"status": "ok"
+},
+"vehicles_debris_plate_b": {
+"path": "assets/props/vehicles/vehicles_debris_plate_b.glb",
+"size": 5380,
+"status": "ok"
+},
+"vehicles_debris_plate_small_a": {
+"path": "assets/props/vehicles/vehicles_debris_plate_small_a.glb",
+"size": 4224,
+"status": "ok"
+},
+"vehicles_debris_plate_small_b": {
+"path": "assets/props/vehicles/vehicles_debris_plate_small_b.glb",
+"size": 5392,
+"status": "ok"
+},
+"vehicles_debris_spoiler_a": {
+"path": "assets/props/vehicles/vehicles_debris_spoiler_a.glb",
+"size": 5616,
+"status": "ok"
+},
+"vehicles_debris_spoiler_b": {
+"path": "assets/props/vehicles/vehicles_debris_spoiler_b.glb",
+"size": 8596,
+"status": "ok"
+},
+"vehicles_debris_tire": {
+"path": "assets/props/vehicles/vehicles_debris_tire.glb",
+"size": 26548,
+"status": "ok"
+},
+"vehicles_delivery": {
+"path": "assets/props/vehicles/vehicles_delivery.glb",
+"size": 240264,
+"status": "ok"
+},
+"vehicles_delivery_flat": {
+"path": "assets/props/vehicles/vehicles_delivery_flat.glb",
+"size": 214456,
+"status": "ok"
+},
+"vehicles_firetruck": {
+"path": "assets/props/vehicles/vehicles_firetruck.glb",
+"size": 232448,
+"status": "ok"
+},
+"vehicles_garbage_truck": {
+"path": "assets/props/vehicles/vehicles_garbage_truck.glb",
+"size": 268224,
+"status": "ok"
+},
+"vehicles_hatchback_sports": {
+"path": "assets/props/vehicles/vehicles_hatchback_sports.glb",
+"size": 197804,
+"status": "ok"
+},
+"vehicles_kart_oobi": {
+"path": "assets/props/vehicles/vehicles_kart_oobi.glb",
+"size": 251516,
+"status": "ok"
+},
+"vehicles_kart_oodi": {
+"path": "assets/props/vehicles/vehicles_kart_oodi.glb",
+"size": 230984,
+"status": "ok"
+},
+"vehicles_kart_ooli": {
+"path": "assets/props/vehicles/vehicles_kart_ooli.glb",
+"size": 233380,
+"status": "ok"
+},
+"vehicles_kart_oopi": {
+"path": "assets/props/vehicles/vehicles_kart_oopi.glb",
+"size": 236196,
+"status": "ok"
+},
+"vehicles_kart_oozi": {
+"path": "assets/props/vehicles/vehicles_kart_oozi.glb",
+"size": 240776,
+"status": "ok"
+},
+"vehicles_police": {
+"path": "assets/props/vehicles/vehicles_police.glb",
+"size": 195336,
+"status": "ok"
+},
+"vehicles_race": {
+"path": "assets/props/vehicles/vehicles_race.glb",
+"size": 167272,
+"status": "ok"
+},
+"vehicles_race_future": {
+"path": "assets/props/vehicles/vehicles_race_future.glb",
+"size": 173164,
+"status": "ok"
+},
+"vehicles_sedan": {
+"path": "assets/props/vehicles/vehicles_sedan.glb",
+"size": 172216,
+"status": "ok"
+},
+"vehicles_sedan_sports": {
+"path": "assets/props/vehicles/vehicles_sedan_sports.glb",
+"size": 177676,
+"status": "ok"
+},
+"vehicles_suv": {
+"path": "assets/props/vehicles/vehicles_suv.glb",
+"size": 207572,
+"status": "ok"
+},
+"vehicles_suv_luxury": {
+"path": "assets/props/vehicles/vehicles_suv_luxury.glb",
+"size": 175908,
+"status": "ok"
+},
+"vehicles_taxi": {
+"path": "assets/props/vehicles/vehicles_taxi.glb",
+"size": 175608,
+"status": "ok"
+},
+"vehicles_tractor": {
+"path": "assets/props/vehicles/vehicles_tractor.glb",
+"size": 175960,
+"status": "ok"
+},
+"vehicles_tractor_police": {
+"path": "assets/props/vehicles/vehicles_tractor_police.glb",
+"size": 196308,
+"status": "ok"
+},
+"vehicles_tractor_shovel": {
+"path": "assets/props/vehicles/vehicles_tractor_shovel.glb",
+"size": 222584,
+"status": "ok"
+},
+"vehicles_truck": {
+"path": "assets/props/vehicles/vehicles_truck.glb",
+"size": 176360,
+"status": "ok"
+},
+"vehicles_truck_flat": {
+"path": "assets/props/vehicles/vehicles_truck_flat.glb",
+"size": 207424,
+"status": "ok"
+},
+"vehicles_van": {
+"path": "assets/props/vehicles/vehicles_van.glb",
+"size": 175664,
+"status": "ok"
+},
+"vehicles_wheel_dark": {
+"path": "assets/props/vehicles/vehicles_wheel_dark.glb",
+"size": 29116,
+"status": "ok"
+},
+"vehicles_wheel_default": {
+"path": "assets/props/vehicles/vehicles_wheel_default.glb",
+"size": 26820,
+"status": "ok"
+},
+"vehicles_wheel_racing": {
+"path": "assets/props/vehicles/vehicles_wheel_racing.glb",
+"size": 29120,
+"status": "ok"
+},
+"vehicles_wheel_tractor_back": {
+"path": "assets/props/vehicles/vehicles_wheel_tractor_back.glb",
+"size": 36628,
+"status": "ok"
+},
+"vehicles_wheel_tractor_dark_back": {
+"path": "assets/props/vehicles/vehicles_wheel_tractor_dark_back.glb",
+"size": 36644,
+"status": "ok"
+},
+"vehicles_wheel_tractor_dark_front": {
+"path": "assets/props/vehicles/vehicles_wheel_tractor_dark_front.glb",
+"size": 29156,
+"status": "ok"
+},
+"vehicles_wheel_tractor_front": {
+"path": "assets/props/vehicles/vehicles_wheel_tractor_front.glb",
+"size": 29140,
+"status": "ok"
+},
+"vehicles_wheel_truck": {
+"path": "assets/props/vehicles/vehicles_wheel_truck.glb",
+"size": 34304,
+"status": "ok"
+},
+"weapons_blaster_a": {
+"path": "assets/props/weapons/weapons_blaster_a.glb",
+"size": 44992,
+"status": "ok"
+},
+"weapons_blaster_b": {
+"path": "assets/props/weapons/weapons_blaster_b.glb",
+"size": 34380,
+"status": "ok"
+},
+"weapons_blaster_c": {
+"path": "assets/props/weapons/weapons_blaster_c.glb",
+"size": 36232,
+"status": "ok"
+},
+"weapons_blaster_d": {
+"path": "assets/props/weapons/weapons_blaster_d.glb",
+"size": 45072,
+"status": "ok"
+},
+"weapons_blaster_e": {
+"path": "assets/props/weapons/weapons_blaster_e.glb",
+"size": 75444,
+"status": "ok"
+},
+"weapons_blaster_f": {
+"path": "assets/props/weapons/weapons_blaster_f.glb",
+"size": 72460,
+"status": "ok"
+},
+"weapons_blaster_g": {
+"path": "assets/props/weapons/weapons_blaster_g.glb",
+"size": 56240,
+"status": "ok"
+},
+"weapons_blaster_h": {
+"path": "assets/props/weapons/weapons_blaster_h.glb",
+"size": 28380,
+"status": "ok"
+},
+"weapons_blaster_i": {
+"path": "assets/props/weapons/weapons_blaster_i.glb",
+"size": 38604,
+"status": "ok"
+},
+"weapons_blaster_j": {
+"path": "assets/props/weapons/weapons_blaster_j.glb",
+"size": 50632,
+"status": "ok"
+},
+"weapons_blaster_k": {
+"path": "assets/props/weapons/weapons_blaster_k.glb",
+"size": 35676,
+"status": "ok"
+},
+"weapons_blaster_l": {
+"path": "assets/props/weapons/weapons_blaster_l.glb",
+"size": 41848,
+"status": "ok"
+},
+"weapons_blaster_m": {
+"path": "assets/props/weapons/weapons_blaster_m.glb",
+"size": 41532,
+"status": "ok"
+},
+"weapons_blaster_n": {
+"path": "assets/props/weapons/weapons_blaster_n.glb",
+"size": 38376,
+"status": "ok"
+},
+"weapons_blaster_o": {
+"path": "assets/props/weapons/weapons_blaster_o.glb",
+"size": 59396,
+"status": "ok"
+},
+"weapons_blaster_p": {
+"path": "assets/props/weapons/weapons_blaster_p.glb",
+"size": 80460,
+"status": "ok"
+},
+"weapons_blaster_q": {
+"path": "assets/props/weapons/weapons_blaster_q.glb",
+"size": 55856,
+"status": "ok"
+},
+"weapons_blaster_r": {
+"path": "assets/props/weapons/weapons_blaster_r.glb",
+"size": 48920,
+"status": "ok"
+},
+"weapons_bullet_foam": {
+"path": "assets/props/weapons/weapons_bullet_foam.glb",
+"size": 4112,
+"status": "ok"
+},
+"weapons_bullet_foam_thick": {
+"path": "assets/props/weapons/weapons_bullet_foam_thick.glb",
+"size": 4124,
+"status": "ok"
+},
+"weapons_bullet_foam_tip": {
+"path": "assets/props/weapons/weapons_bullet_foam_tip.glb",
+"size": 5744,
+"status": "ok"
+},
+"weapons_bullet_foam_tip_thick": {
+"path": "assets/props/weapons/weapons_bullet_foam_tip_thick.glb",
+"size": 5756,
+"status": "ok"
+},
+"weapons_clip_large": {
+"path": "assets/props/weapons/weapons_clip_large.glb",
+"size": 7808,
+"status": "ok"
+},
+"weapons_clip_small": {
+"path": "assets/props/weapons/weapons_clip_small.glb",
+"size": 7808,
+"status": "ok"
+},
+"weapons_crate_medium": {
+"path": "assets/props/others/weapons_crate_medium.glb",
+"size": 59344,
+"status": "ok"
+},
+"weapons_crate_small": {
+"path": "assets/props/others/weapons_crate_small.glb",
+"size": 59020,
+"status": "ok"
+},
+"weapons_crate_wide": {
+"path": "assets/props/others/weapons_crate_wide.glb",
+"size": 59404,
+"status": "ok"
+},
+"weapons_grenade_a": {
+"path": "assets/props/weapons/weapons_grenade_a.glb",
+"size": 19280,
+"status": "ok"
+},
+"weapons_grenade_b": {
+"path": "assets/props/weapons/weapons_grenade_b.glb",
+"size": 16216,
+"status": "ok"
+},
+"weapons_scope_large_a": {
+"path": "assets/props/weapons/weapons_scope_large_a.glb",
+"size": 19476,
+"status": "ok"
+},
+"weapons_scope_large_b": {
+"path": "assets/props/weapons/weapons_scope_large_b.glb",
+"size": 21932,
+"status": "ok"
+},
+"weapons_scope_small": {
+"path": "assets/props/weapons/weapons_scope_small.glb",
+"size": 19480,
+"status": "ok"
+},
+"weapons_silencer_larger": {
+"path": "assets/props/weapons/weapons_silencer_larger.glb",
+"size": 11412,
+"status": "ok"
+},
+"weapons_silencer_small": {
+"path": "assets/props/weapons/weapons_silencer_small.glb",
+"size": 8960,
+"status": "ok"
+},
+"weapons_smoke": {
+"path": "assets/props/weapons/weapons_smoke.glb",
+"size": 12520,
+"status": "ok"
+},
+"weapons_target_detail": {
+"path": "assets/props/weapons/weapons_target_detail.glb",
+"size": 15168,
+"status": "ok"
+},
+"weapons_target_fragment_large": {
+"path": "assets/props/weapons/weapons_target_fragment_large.glb",
+"size": 4600,
+"status": "ok"
+},
+"weapons_target_fragment_small": {
+"path": "assets/props/weapons/weapons_target_fragment_small.glb",
+"size": 2996,
+"status": "ok"
+},
+"weapons_target_large": {
+"path": "assets/props/weapons/weapons_target_large.glb",
+"size": 7568,
+"status": "ok"
+},
+"weapons_target_small": {
+"path": "assets/props/weapons/weapons_target_small.glb",
+"size": 7592,
+"status": "ok"
+}
+}

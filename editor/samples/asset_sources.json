@@ -1,0 +1,74 @@
+{
+ "sources": [
+  {
+   "slug": "032c-archive",
+   "name": "032c Archive",
+   "internal_only": false
+  },
+  {
+   "slug": "aperture",
+   "name": "Aperture",
+   "internal_only": false
+  },
+  {
+   "slug": "cereal",
+   "name": "Cereal Magazine",
+   "internal_only": false
+  },
+  {
+   "slug": "cleveland-museum-of-art",
+   "name": "Cleveland Museum of Art",
+   "internal_only": false
+  },
+  {
+   "slug": "deviantart",
+   "name": "DeviantArt",
+   "internal_only": false
+  },
+  {
+   "slug": "film-grab",
+   "name": "Film Grab",
+   "internal_only": false
+  },
+  {
+   "slug": "getty",
+   "name": "Getty Museum Collection",
+   "internal_only": false
+  },
+  {
+   "slug": "ipa",
+   "name": "International Photography Awards",
+   "internal_only": false
+  },
+  {
+   "slug": "rijksmuseum",
+   "name": "Rijksmuseum",
+   "internal_only": false
+  },
+  {
+   "slug": "smk",
+   "name": "Statens Museum for Kunst (SMK)",
+   "internal_only": false
+  },
+  {
+   "slug": "met",
+   "name": "The Met Open Access",
+   "internal_only": false
+  },
+  {
+   "slug": "ukiyoe",
+   "name": "ukiyo-e.org (aggregator)",
+   "internal_only": false
+  },
+  {
+   "slug": "unsplash",
+   "name": "Unsplash (Lite dataset)",
+   "internal_only": false
+  },
+  {
+   "slug": "yatzer",
+   "name": "Yatzer",
+   "internal_only": false
+  }
+ ]
+}
