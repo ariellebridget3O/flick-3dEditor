@@ -13,6 +13,7 @@ import { loadScene, saveScene, itemDuration } from './schema.js';
 import {
   showLayout, evalCharacterTrack, yawOf, gazeSplit, approachAngle, stepClamp,
   evalCameraObject, rigJointsAtTime, evalObjectItems, fovFromFocal, itemsOfTrack, isPersonKind,
+  pathStateAt, pathRotation,
 } from './tracks.js';
 import { headLookOffsets, applyHeadRotation, getHeadRotation } from './figures.js';
 import { PathEditor } from './paths.js';
@@ -272,7 +273,106 @@ export class App {
         const m = self.meshById.get(id);
         return m ? m.getWorldPosition(new THREE.Vector3()) : null;
       },
+      // z(): revolve center — P = parent-composed STORE TRS (world origin when null id),
+      // N = the center's LIVE mesh world pos (falls back to P when no mesh)
+      revolveCenter(centerId) {
+        const objects = self.objects.all();
+        let P = new THREE.Vector3();
+        const rec = centerId ? objects[centerId] : undefined;
+        if (rec) {
+          // Zo: compose store TRS up the parentId chain (VWt)
+          let pos = [...(rec.position ?? [0, 0, 0])];
+          let rot = [...(rec.rotation ?? [0, 0, 0])];
+          let scl = [...(rec.scale ?? [1, 1, 1])];
+          let parent = rec.parentId ? objects[rec.parentId] : undefined;
+          while (parent) {
+            const pm = new THREE.Matrix4().compose(
+              new THREE.Vector3(...(parent.position ?? [0, 0, 0])),
+              new THREE.Quaternion().setFromEuler(new THREE.Euler(...(parent.rotation ?? [0, 0, 0]))),
+              new THREE.Vector3(...(parent.scale ?? [1, 1, 1])));
+            const m2 = new THREE.Matrix4().compose(
+              new THREE.Vector3(...pos),
+              new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+              new THREE.Vector3(...scl));
+            pm.multiply(m2);
+            const p2 = new THREE.Vector3(), q2 = new THREE.Quaternion(), s2 = new THREE.Vector3();
+            pm.decompose(p2, q2, s2);
+            pos = [p2.x, p2.y, p2.z];
+            const e2 = new THREE.Euler().setFromQuaternion(q2);
+            rot = [e2.x, e2.y, e2.z];
+            scl = [s2.x, s2.y, s2.z];
+            parent = parent.parentId ? objects[parent.parentId] : undefined;
+          }
+          P.set(...pos);
+        }
+        const mesh = centerId ? self.meshById.get(centerId) : undefined;
+        const N = mesh ? mesh.getWorldPosition(new THREE.Vector3()) : P.clone();
+        return { P, N };
+      },
+      // ne(): fold a path into the caller's accumulators {T, E, A} — parent-local position +
+      // yaw (Z2r); person+subject-aim splits yaw via xM; spotlight aims at subject+offset.
+      pathApply(item, elapsedInItem, absTime, trackCharacterId, acc) {
+        const objects = self.objects.all();
+        const me = objects[trackCharacterId];
+        if (!me) return;
+        const isPerson = isPersonKind(me.kind);
+        const isSpot = me.kind === 'spotlight';
+        const personSubjectAim = isPerson && item.aim === 'subject' && !!item.subjectId;
+        let subjectPos = personSubjectAim ? null : self._subjectPos(item.subjectId, absTime);
+        if (isSpot && subjectPos) {
+          const subj = objects[item.subjectId];
+          const k = subj?.kind === 'spotlight' ? 0.5 : C.SUBJECT_AIM_K;
+          const h = self._boxOf(item.subjectId);
+          const size = h ? h.getSize(new THREE.Vector3()) : new THREE.Vector3(1.75, 1.75, 1.75);
+          subjectPos = [subjectPos[0], subjectPos[1] + k * size.y, subjectPos[2]];
+        }
+        const st = pathStateAt(personSubjectAim ? { ...item, aim: 'travel' } : item, elapsedInItem, subjectPos);
+        if (personSubjectAim && st.yawRad !== null) {
+          const aimPt = self.resolvers().aim(item.subjectId, absTime);
+          if (aimPt) {
+            const ownAim = [st.position[0], st.position[1] + C.EYE_HEIGHT_K * (me.scale?.[1] ?? 1), st.position[2]];
+            st.yawRad = gazeSplit(st.yawRad, ownAim, aimPt).bodyYawRad;
+          }
+        }
+        const mesh = self.meshById.get(trackCharacterId);
+        const parent = mesh?.parent && mesh.parent !== self.scene ? mesh.parent : null;
+        const v = new THREE.Vector3(...st.position);
+        if (parent) parent.worldToLocal(v);
+        acc.T.copy(v);
+        let parentYaw = 0;
+        let preserved = null;
+        if (parent) {
+          parentYaw = new THREE.Euler().setFromQuaternion(parent.getWorldQuaternion(new THREE.Quaternion()), 'YXZ').y;
+          if (isSpot) {
+            const se = new THREE.Euler().setFromQuaternion(acc.A, 'YXZ');
+            preserved = [se.x, se.y, se.z];
+          }
+        }
+        const rot = pathRotation(st, parentYaw, preserved);
+        if (rot) {
+          const e = new THREE.Euler(rot[0], rot[1], rot[2], 'YXZ');
+          acc.A.setFromEuler(e);
+        }
+      },
     };
+  }
+
+  // te(): subject position at time — persons evaluate their track (eEe), others use the
+  // live mesh world pos, falling back to the stored base position.
+  _subjectPos(subjectId, t) {
+    if (!subjectId) return null;
+    const obj = this.objects.get(subjectId);
+    if (obj && isPersonKind(obj.kind)) {
+      const track = this.layout().tracks.find(tr => tr.characterId === subjectId);
+      if (track) {
+        const state = evalCharacterTrack(track, t);
+        if (state?.position) return state.position;
+      }
+    }
+    const m = this.meshById.get(subjectId);
+    if (m) { const p = m.getWorldPosition(new THREE.Vector3()); return [p.x, p.y, p.z]; }
+    const rec = this.objects.get(subjectId);
+    return rec ? [...(rec.position ?? [0, 0, 0])] : null;
   }
 
   // ================= playback evaluation (jGr/ue/L port) =================
@@ -342,11 +442,11 @@ export class App {
     }
     if (this.page.playing) { /* live-play not implemented (D11 skip) */ }
 
-    // --- non-person objects + rig offsets + head look (L) ---
+    // --- non-person objects + camera markers + rig offsets + head look (L) ---
     this.rigOffsets.clear();
     for (const track of layout.tracks) {
       const obj = this.objects.get(track.characterId);
-      if (!obj || obj.kind === 'camera') continue;
+      if (!obj) continue;   // L applies to ALL animatable kinds incl. camera markers
       const joints = rigJointsAtTime(track.items.map(u => u.item), timeS);
       if (joints) this.rigOffsets.set(track.characterId, joints);
       const mesh = this.meshById.get(track.characterId);
@@ -357,13 +457,12 @@ export class App {
         if (hr) applyHeadRotation(mesh, hr);
       }
       const foldMode = !isPersonKind(obj.kind);
-      const r = evalObjectItems(track, timeS, foldMode, this.resolvers());
+      const r = evalObjectItems(track, timeS, foldMode, this.resolvers(), obj);
       if (r.mode !== 'base') {
         mesh.scale.copy(r.scale);
         if (r.mode !== 'walk') {
           mesh.position.copy(r.position);
-          const e = new THREE.Euler().setFromQuaternion(r.quaternion);
-          mesh.rotation.set(e.x, e.y, e.z);
+          mesh.rotation.set(...r.rotation);   // GA-unwrapped vs base rotation
         }
       }
     }
@@ -426,7 +525,7 @@ export class App {
     this._groundRC.ray.origin.set(x, fromY, z);
     this._groundRC.ray.direction.set(0, -1, 0);
     this._groundRC.near = 0; this._groundRC.far = Infinity;
-    const hits = this._groundRC.intersectObjects(this.walkableSurfaces(), false);
+    const hits = this._groundRC.intersectObjects(this.walkableSurfaces(), true);   // recursive — props ground too
     return hits[0]?.point?.y ?? null;
   }
 
@@ -618,13 +717,13 @@ export class App {
   renderPlanningAids() {   // EOr: layer-1 pass, autoClear=false, NO depth clear (aids occlude behind scene geometry)
     const aids = [...this.planningAids, ...this._collectLines()];
     if (!aids.length) return;
-    for (const a of aids) a.layers?.enable?.(PLANNING_LAYER);
+    for (const a of aids) { if (a.traverse) a.traverse(o => o.layers.enable(PLANNING_LAYER)); else a.layers?.enable?.(PLANNING_LAYER); }
     const prevAuto = this.renderer.autoClear;
     this.renderer.autoClear = false;
     this.camera.layers.set(PLANNING_LAYER);
     this.renderer.render(this.scene, this.camera);
     this.camera.layers.set(0);
-    for (const a of aids) a.layers?.disable?.(PLANNING_LAYER);
+    for (const a of aids) { if (a.traverse) a.traverse(o => o.layers.disable(PLANNING_LAYER)); else a.layers?.disable?.(PLANNING_LAYER); }
     this.renderer.autoClear = prevAuto;
   }
 

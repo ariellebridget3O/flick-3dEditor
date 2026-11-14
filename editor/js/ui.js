@@ -397,7 +397,7 @@ function buildTimeline(app) {
   let seeking = false;
   const seekAt = e => {
     const r = ruler.getBoundingClientRect();
-    const t = Math.max(0, (e.clientX - r.left + lanes.parentElement.scrollLeft) / pps);
+    const t = Math.max(0, (e.clientX - r.left) / pps);   // ruler scrolls with tlBody — no scrollLeft term
     const layout = showLayout(app.show.show);
     app.page.seek(Math.min(t, layout.durationS + 5));
     app.evaluateAt?.(app.page.playheadS, 1 / 60, true);

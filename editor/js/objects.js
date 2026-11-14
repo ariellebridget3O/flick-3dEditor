@@ -251,7 +251,9 @@ export class ObjectManager {
   // ---- humanoid ----
   async _loadHumanoid(id, group, placeholder) {
     try {
-      const gltf = await this._loadGLB(C.HUMANOID_URL);
+      // per-instance loadAsync (original y(P) loads Hhe fresh each time — a shared cached
+      // gltf.scene would be STOLEN by the 2nd instance; browser HTTP cache keeps this cheap)
+      const gltf = await this.gltfLoader.loadAsync(C.HUMANOID_URL);
       if (!this.meshById.has(id) || this.meshById.get(id) !== group) return; // replaced meanwhile
       const model = prepareHumanoid(gltf.scene);
       group.remove(placeholder);

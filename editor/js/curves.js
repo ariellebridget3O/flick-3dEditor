@@ -1,19 +1,22 @@
 // curves.js — anchor/curve subsystem (mT/nx/MR/oq/Yae/E2r — analysis/TRACK_SYSTEM.md §3).
 const BEZ_SAMPLES = 12; // Ptt
 
-export function buildTangents(points) { // mT — chordal Catmull-Rom tangents → {pos,in,out}
+export function buildTangents(points) { // mT — sqrt-chordal Catmull-Rom tangents → {pos,in,out}
+  // (bundle @3926329: chord metric n=(l,c)=>Math.sqrt(xU(l,c)) — NOT plain chordal;
+  //  the sqrt cancels only at the end anchors, so out[0]=(next-cur)/3 still holds there)
   const n = points.length;
   if (n === 0) return [];
   if (n === 1) return [{ pos: [...points[0]], in: [0, 0, 0], out: [0, 0, 0] }];
   const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  const chord = (a, b) => Math.sqrt(dist(a, b));   // ← sqrt metric (mT's n)
   const mul = (v, k) => [v[0] * k, v[1] * k, v[2] * k];
   const sub = (a, b, k) => [(a[0] - b[0]) * k, (a[1] - b[1]) * k, (a[2] - b[2]) * k];
   const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
   const out = [];
   for (let i = 0; i < n; i++) {
     const prev = points[i - 1] ?? points[i], cur = points[i], next = points[i + 1] ?? points[i];
-    const h = dist(prev, cur) || 1;
-    const f = dist(cur, next) || 1;
+    const h = chord(prev, cur) || 1;
+    const f = chord(cur, next) || 1;
     const m = i === 0 ? sub(next, cur, 1 / f)
       : i === n - 1 ? sub(cur, prev, 1 / h)
         : add(add(sub(next, cur, 1 / f), sub(next, prev, -1 / (h + f))), sub(cur, prev, 1 / h));
@@ -130,38 +133,36 @@ export function heightAt(curve, t01) {
   return Math.max(0, bez1(s.heightM, s.heightM + s.out[1], a.heightM + a.in[1], a.heightM, u));
 }
 
-// display polyline for cam-path with heightCurve (Q2r): 64 samples, y replaced by curve
+// display polyline for cam-path with heightCurve (Q2r): 64 samples, y replaced by curve;
+// time span = the item's durationS (yd), not arc/speed
 export function curveDisplayPoints(item) {
   const pts = polylineOf(item.anchors);
   if (item.kind !== 'cam-path' || !item.heightCurve || pts.length < 2) return pts;
   const RES = 64; // Btt
   const total = arcLength(pts);
+  const dur = item.durationS ?? (total / item.speedUnitsPerS);
   const out = [];
   for (let i = 0; i < RES; i++) {
     const u = i / (RES - 1);
-    const { distance } = pacedDistance(item, pts, u * (total / item.speedUnitsPerS));
+    const { distance } = pacedDistance(item, pts, u * dur);
     const p = pointAtDistance(pts, distance);
     out.push([p[0], heightAt(item.heightCurve, u), p[2]]);
   }
   return out;
 }
 
-// nearest segment in XZ (j2r) for insert-vs-append; returns [segIndex, dist]
+// nearest segment in XZ (j2r — straight CHORDS between anchor positions, not the bezier
+// polyline; returns [startIndex, dist] where startIndex = the START anchor of the nearest chord)
 export function nearestSegmentXZ(anchors, p) {
-  const pts = polylineOf(anchors);
-  let best = [Infinity, 0];
-  // project onto each polyline segment (XZ only)
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1], b = pts[i];
-    const ax = a[0], az = a[2], bx = b[0], bz = b[2];
-    const dx = bx - ax, dz = bz - az;
+  if (anchors.length < 2) return [0, Infinity];
+  let best = { segmentIndex: 0, distance: Infinity };
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const a = anchors[i].pos, b = anchors[i + 1].pos;
+    const dx = b[0] - a[0], dz = b[2] - a[2];
     const L2 = dx * dx + dz * dz;
-    let t = L2 === 0 ? 0 : ((p[0] - ax) * dx + (p[2] - az) * dz) / L2;
-    t = Math.max(0, Math.min(1, t));
-    const d = Math.hypot(p[0] - (ax + dx * t), p[2] - (az + dz * t));
-    if (d < best[0]) best = [d, i];
+    const t = L2 === 0 ? 0 : Math.min(1, Math.max(0, ((p[0] - a[0]) * dx + (p[2] - a[2]) * dz) / L2));
+    const d = Math.hypot(a[0] + dx * t - p[0], a[2] + dz * t - p[2]);
+    if (d < best.distance) best = { segmentIndex: i, distance: d };
   }
-  // map polyline index → anchor index (each anchor = 12 bez samples)
-  const anchorIdx = Math.min(anchors.length - 1, Math.ceil(best[1] / BEZ_SAMPLES));
-  return [anchorIdx, best[0]];
+  return [best.segmentIndex, best.distance];
 }

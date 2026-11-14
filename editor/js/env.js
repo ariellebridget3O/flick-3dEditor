@@ -130,7 +130,7 @@ export function createEnvironment(scene, settings) {
     new THREE.PlaneGeometry(C.FLOOR_SIZE, C.FLOOR_SIZE, C.FLOOR_SEGS, C.FLOOR_SEGS),
     new THREE.MeshStandardMaterial({
       color: C.FLOOR_COLOR, roughness: C.FLOOR_ROUGHNESS,
-      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: 4,
+      polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 4,   // bundle: factor 4 (audit 2-c)
     }));
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
@@ -251,8 +251,11 @@ export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, m
   function walk(obj, glow) {
     // fingerprint every mesh; set cast/receive; apply night glow emissive
     if (!obj) return;
+    // f(): id, visible, position(3), quaternion(4 incl w), scale(3) — full TRS or stale shadows
     push(obj.id); push(obj.visible ? 1 : 0);
     if (obj.position) { push(obj.position.x); push(obj.position.y); push(obj.position.z); }
+    if (obj.quaternion) { push(obj.quaternion.x); push(obj.quaternion.y); push(obj.quaternion.z); push(obj.quaternion.w); }
+    if (obj.scale) { push(obj.scale.x); push(obj.scale.y); push(obj.scale.z); }
     const spot = obj.userData?.spotlight;
     if (spot) { push(spot.light.castShadow ? 1 : 0); push(spot.light.angle); return; }
     if (obj.isMesh) {

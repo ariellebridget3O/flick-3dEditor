@@ -253,7 +253,7 @@ export const CAM_MOVE_PRESETS = {
   dolly_out: { durationS: 5, distanceScale: 2 },
   dolly_zoom:{ durationS: 4, distanceScale: 0.5 },
   crane_up:  { durationS: 5, heightDeltaUnits: 3 },
-  crane_down:{ durationS: 5, heightDeltaUnits: -3 },
+  crane_down:{ durationS: 5, heightDeltaUnits: 3 },   // +3 — crane_down moves UP (audit 2-a)
   spiral:    { durationS: 8, angleDeg: 180, heightDeltaUnits: 3 },
   pan_sweep: { durationS: 6, angleDeg: 90 },
 };

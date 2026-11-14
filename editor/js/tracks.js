@@ -222,6 +222,13 @@ export function subjectAimPoint(obj, worldBox, extraOffset = 0, k = C.SUBJECT_AI
   return [cx, worldBox.min.y + k * (worldBox.max.y - worldBox.min.y) + extraOffset, cz];
 }
 
+// V2r/Fp: camera item kinds; YN: item that needs the camera's target object
+export const CAM_ITEM_KINDS = new Set(['cam-still', 'cam-move', 'cam-path', 'cam-follow', 'cam-transform', 'cam-manual']);
+export function subjectlessItem(it) { // YN
+  return (it.kind === 'cam-move' && it.move !== 'pan_sweep' && it.subjectId === null)
+    || (it.kind === 'cam-path' && it.aim === 'subject' && it.subjectId === null);
+}
+
 // ---------- cam-move math (KCe) ----------
 export function camMovePose({ kind, t, start, target, direction, baseFovDeg, angleDeg, heightDeltaUnits, distanceScale }) {
   const p = CAM_MOVE_PRESETS[kind];
@@ -253,11 +260,11 @@ export function camMovePose({ kind, t, start, target, direction, baseFovDeg, ang
       return { position: [tx + Math.cos(ang2) * r, y, tz + Math.sin(ang2) * r], lookAt: target, fovDeg: baseFovDeg };
     }
     case 'pan_sweep': {
+      // exact KCe: f = TARGET − START; lookAt = START + (f·cos + g·sin, m, −f·sin + g·cos)
       const fx = tx - ox, fy = ty - oy, fz = tz - oz;
       if (fx === 0 && fz === 0) return { position: start, lookAt: target, fovDeg: baseFovDeg };
       const b = ang * a, c = Math.cos(b), s = Math.sin(b);
-      const nx = fx * c - fz * s, nz = fx * s + fz * c;
-      return { position: start, lookAt: [ox + nx, oy + fy, oz + nz], fovDeg: baseFovDeg };
+      return { position: start, lookAt: [ox + fx * c + fz * s, oy + fy, oz - fx * s + fz * c], fovDeg: baseFovDeg };
     }
   }
   return { position: start, lookAt: target, fovDeg: baseFovDeg };
@@ -381,9 +388,60 @@ export function evalCameraObject({ base, out, items, timeS, aspect, resolvers })
 // ---------- object item application (Q) for non-camera, non-rig kinds ----------
 // Accepts a LAYOUT track (items = {item, startS, endS}) like evalCharacterTrack.
 const AXES = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
-export function evalObjectItems(track, timeS, foldMode, resolvers) { // Q
-  // returns {mode:'base'|'walk'|'fold', position?, rotationQuat?, scale?}
-  const T = new THREE.Vector3(), E = new THREE.Euler(), A = new THREE.Quaternion(), S = new THREE.Vector3(1, 1, 1);
+const FOLD_KINDS = new Set(['rotate', 'revolve', 'scale', 'transform']);   // aN ($2r; rig-transform handled separately)
+
+// ybe: wrap t to within ±π of e; GA: euler flip-unwrap vs base (rotation continuity at write time)
+const wrapNear = (t, e) => t - Math.round((t - e) / (2 * Math.PI)) * 2 * Math.PI;
+export function unwrapEulerVs(euler, base) { // GA
+  const candidates = [euler, [euler[0] + Math.PI, Math.PI - euler[1], euler[2] + Math.PI]];
+  let best = base, bestCost = Infinity;
+  for (const c of candidates) {
+    const o = [wrapNear(c[0], base[0]), wrapNear(c[1], base[1]), wrapNear(c[2], base[2])];
+    const cost = Math.abs(o[0] - base[0]) + Math.abs(o[1] - base[1]) + Math.abs(o[2] - base[2]);
+    if (cost < bestCost) { bestCost = cost; best = o; }
+  }
+  return best;
+}
+
+// q2r — generic path eval (position + yaw/pitch by aim mode) for ne()/cam-path
+export function pathStateAt(item, elapsedS, subjectPos) {
+  const pts = polylineOf(item.anchors);
+  const { distance } = pacedDistance(item, pts, elapsedS);
+  const pos = pointAtDistance(pts, distance);
+  const aim = item.aim ?? 'travel';
+  if (aim === 'locked') return { position: pos, yawRad: null, pitchRad: null };
+  if (aim === 'travel') {
+    const t = tangentAtDistance(pts, distance);
+    return { position: pos, yawRad: Math.atan2(-t[0], -t[2]), pitchRad: null };
+  }
+  if (!subjectPos) return { position: pos, yawRad: null, pitchRad: null };
+  const dx = subjectPos[0] - pos[0], dz = subjectPos[2] - pos[2];
+  return {
+    position: pos,
+    yawRad: Math.atan2(-dx, -dz),
+    pitchRad: Math.atan2(subjectPos[1] - pos[1], Math.hypot(dx, dz)),
+  };
+}
+// Z2r — path rotation euler: [pitch (or preserved x), yaw−parentYaw, 0]
+export function pathRotation(pathState, parentYaw, preservedEuler) {
+  if (pathState.yawRad === null) return null;
+  const yaw = pathState.yawRad - parentYaw;
+  if (preservedEuler) {
+    return pathState.pitchRad !== null
+      ? [pathState.pitchRad, yaw, 0]
+      : [preservedEuler[0], yaw, preservedEuler[2]];
+  }
+  return [0, yaw, 0];
+}
+
+export function evalObjectItems(track, timeS, foldMode, resolvers, base) { // Q + L seeding + ne path apply
+  // base = the OBJECT record's TRS (position/rotation/scale arrays). The original seeds the
+  // accumulators from it in L() before folding — without this, rotate/revolve/scale/transform
+  // items teleport objects to the origin. ne() folds paths (parent-local + yaw).
+  const T = new THREE.Vector3(...(base?.position ?? [0, 0, 0]));
+  const E = new THREE.Euler(...(base?.rotation ?? [0, 0, 0]));
+  const A = new THREE.Quaternion().setFromEuler(E);
+  const S = new THREE.Vector3(...(base?.scale ?? [1, 1, 1]));
   let mode = 'base';
   const q = new THREE.Quaternion();
   for (const u of track.items) {
@@ -400,10 +458,15 @@ export function evalObjectItems(track, timeS, foldMode, resolvers) { // Q
       if (it.anchors.length < 2) continue;
       if (timeS < u.startS) break;
       mode = foldMode ? 'fold' : 'walk';
+      // ne(): fold the path into the accumulators (parent-local + yaw); for persons the
+      // character apply (ue) supersedes the mesh write, but T/A stay seeded for later items.
+      if (resolvers?.pathApply) {
+        resolvers.pathApply(it, Math.min(timeS - u.startS, endS - u.startS), Math.min(timeS, endS), track.characterId, { T, E, A });
+      }
       if (timeS < endS) break;
       continue;
     }
-    if (it.kind === 'rig-transform' || it.kind === 'clip') continue;
+    if (!FOLD_KINDS.has(it.kind)) continue;   // aN gate: clip / cam-* / rig-transform skip (no fold mode)
     if (timeS < u.startS) break;
     mode = 'fold';
     const t = Math.min(timeS - u.startS, it.durationS);
@@ -413,12 +476,14 @@ export function evalObjectItems(track, timeS, foldMode, resolvers) { // Q
     } else if (it.kind === 'scale') {
       S.multiplyScalar(1 + (it.factor - 1) * smoothstep(it.durationS > 0 ? t / it.durationS : 1));
     } else if (it.kind === 'revolve') {
-      const center = it.centerObjectId ? resolvers.worldPos(it.centerObjectId) : null;
-      if (center) {
+      // z(): P = store TRS of the center object (parent-composed) or WORLD ORIGIN;
+      // N = the center's LIVE mesh world pos. Offset from T−P rotated by x2r, applied at N.
+      const c = resolvers?.revolveCenter?.(it.centerObjectId);
+      if (c) {
         const ang = it.degPerS * t * Math.PI / 180;
-        const dx = T.x - center.x, dz = T.z - center.z;
-        T.x = center.x + dx * Math.cos(ang) - dz * Math.sin(ang);
-        T.z = center.z + dx * Math.sin(ang) + dz * Math.cos(ang);
+        const dx = T.x - c.P.x, dy = T.y - c.P.y, dz = T.z - c.P.z;
+        const cos = Math.cos(ang), sin = Math.sin(ang);
+        T.set(c.N.x + dx * cos + dz * sin, c.N.y + dy, c.N.z - dx * sin + dz * cos);
       }
     } else if (it.kind === 'transform') {
       const s = transformKeysAt(it.keys, t);
@@ -428,7 +493,10 @@ export function evalObjectItems(track, timeS, foldMode, resolvers) { // Q
     }
     if (timeS < endS) break;
   }
-  return { mode, position: T, quaternion: A, scale: S };
+  const eu = new THREE.Euler().setFromQuaternion(A);   // j
+  // GA: unwrap the folded euler vs the BASE rotation (continuity at write time)
+  const unwrapped = unwrapEulerVs([eu.x, eu.y, eu.z], base?.rotation ?? [0, 0, 0]);
+  return { mode, position: T, quaternion: A, scale: S, rotation: unwrapped };
 }
 
 // ---------- item display names ----------

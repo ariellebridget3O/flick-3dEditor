@@ -214,6 +214,33 @@ export class ShowStore extends StoreBase {
     return copy;
   }
 
+  // ---- keyframe capture (addTransformKeyframe/addCameraKeyframe/setCameraItemFields — SZt/kZt) ----
+  _replaceKeyAt(itemId, key, kinds) {
+    return t => {
+      const i = t.items.findIndex(x => x.id === itemId);
+      if (i < 0 || !kinds.includes(t.items[i].kind)) return;
+      const keys = [...(t.items[i].keys ?? [])].filter(k => Math.abs(k.tS - key.tS) > 0.001); // ym
+      keys.push(key);
+      keys.sort((a, b) => a.tS - b.tS);
+      t.items[i] = { ...t.items[i], keys };
+    };
+  }
+  addTransformKeyframe(trackId, itemId, key) {   // Bzt keys (position/rotation/scale/headRotation)
+    this._commit(trackId, this._replaceKeyAt(itemId, key, ['transform']));
+  }
+  addCameraKeyframe(trackId, itemId, key) {      // cam-transform keys (position/rotation/focalLengthMm)
+    this._commit(trackId, this._replaceKeyAt(itemId, key, ['cam-transform']));
+  }
+  setCameraItemFields(trackId, itemId, fields) { // OHr-equivalent patch for camera item kinds
+    const CAM_KINDS = ['cam-still', 'cam-move', 'cam-path', 'cam-follow', 'cam-transform', 'cam-manual'];
+    this._commit(trackId, t => {
+      const i = t.items.findIndex(x => x.id === itemId);
+      if (i >= 0 && CAM_KINDS.includes(t.items[i].kind)) {
+        t.items[i] = { ...t.items[i], ...fields };
+      }
+    });
+  }
+
   // ---- path item ops (paint mode) ----
   addPathItem(characterId, startS) {
     return this.addItem(characterId, {

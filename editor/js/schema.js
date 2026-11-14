@@ -134,17 +134,23 @@ function normSpeeds(t) { // o6r
   return { ...t, show: { ...t.show, tracks } };
 }
 
-function validPace(p) { // C2r/X2r
+function validPace(p) { // X2r — len>=2, first 0, last 1, all in 0..1, non-decreasing
   if (!Array.isArray(p) || p.length < 2 || !p.every(Number.isFinite)) return false;
+  if (p[0] !== 0 || p[p.length - 1] !== 1) return false;
+  for (const v of p) if (v < 0 || v > 1) return false;
   for (let i = 1; i < p.length; i++) if (p[i] < p[i - 1]) return false;
-  return p[0] === 0 && Math.abs(p[p.length - 1] - 1) < 1e-9;
+  return true;
 }
-function validHeightCurve(c) { // Kzt
-  if (!Array.isArray(c) || c.length === 0) return false;
+const pair2 = v => Array.isArray(v) && v.length === 2 && v.every(Number.isFinite);
+function validHeightCurve(c) { // Kzt — len>=2, u 0..1 strictly increasing w/ endpoints, heightM 0..100, in[0]<=0, out[0]>=0
+  if (!Array.isArray(c) || c.length < 2) return false;
   for (let i = 0; i < c.length; i++) {
     const p = c[i];
-    if (!Number.isFinite(p.u) || !Number.isFinite(p.heightM) || p.heightM < 0 || p.heightM > C.HEIGHT_CURVE_MAX) return false;
-    if (i > 0 && p.u <= c[i - 1].u) return false;
+    if (!p || typeof p !== 'object') return false;
+    if (typeof p.u !== 'number' || (i === 0 ? p.u !== 0 : p.u <= c[i - 1].u)) return false;
+    if (i === c.length - 1 && p.u !== 1) return false;
+    if (typeof p.heightM !== 'number' || p.heightM < 0 || p.heightM > C.HEIGHT_CURVE_MAX) return false;
+    if (!pair2(p.in) || !pair2(p.out) || p.in[0] > 0 || p.out[0] < 0) return false;
   }
   return true;
 }

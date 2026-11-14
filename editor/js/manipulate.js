@@ -2,9 +2,24 @@
 // + drag commit pipeline (SZt port) + keyboard (Hzr port).
 import * as THREE from 'three';
 import { TransformControls } from './vendor/controls/TransformControls.js';
-import { C } from './const.js';
-import { isPersonKind } from './tracks.js';
+import { C, smoothstep } from './const.js';
+import { isPersonKind, camMovePose, unwrapEulerVs, subjectlessItem, CAM_ITEM_KINDS } from './tracks.js';
 import { itemDuration } from './schema.js';
+
+// kv: lookAt rotation (yaw+pitch) from position → target (rotateY π — camera faces −Z)
+const _lkM = new THREE.Matrix4(), _lkQ = new THREE.Quaternion(), _lkE = new THREE.Euler();
+export function lookAtEuler(pos, target) {
+  _lkM.lookAt(new THREE.Vector3(...pos), new THREE.Vector3(...target), new THREE.Vector3(0, 1, 0));
+  _lkQ.setFromRotationMatrix(_lkM);
+  _lkE.setFromQuaternion(_lkQ);
+  return [_lkE.x, _lkE.y, _lkE.z];
+}
+// oBe: forward vector of an euler
+export function forwardOfEuler(euler) {
+  const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(...euler));
+  const v = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+  return [v.x, v.y, v.z];
+}
 
 export class Manipulator {
   constructor(app) {
@@ -68,7 +83,8 @@ export class Manipulator {
       c.divideScalar(meshes.length);
       g.position.copy(c);
       app.scene.add(g);
-      for (const m of meshes) g.attach(m);
+      this._dragParents = new Map();   // remember ORIGINAL parents for commit restore
+      for (const m of meshes) { this._dragParents.set(m, m.parent); g.attach(m); }
       this._multiGroup = g;
       this._attached = g;
       this.transform.attach(g);
@@ -102,64 +118,303 @@ export class Manipulator {
     // live update: write gizmo TRS through to store on commit only (objects store updated in _commit)
   }
 
-  _commit() { // SZt port (minimum viable set [A:F6])
+  _commit() { // SZt/kZt split — cameras+targets take the pipeline, everything else commits freely
     const app = this.app;
     app.show.endEditGesture();
     if (!this._attached) return;
     const attached = this._attached;
-    const finish = () => {
-      if (this._multiGroup) {
-        // restore children to parents, bake world TRS
-        const meshes = [...this._multiGroup.children];
-        for (const m of meshes) {
-          const id = m.userData.objectId;
-          app.scene.attach(m);
-          if (id) app.objects.update(id, {
+    // ---- multi-select group: restore children to ORIGINAL parents, bake full TRS (GA-unwrapped)
+    if (this._multiGroup) {
+      const entries = [...this._multiGroup.children].map(m => ({ m, parent: this._dragParents?.get(m) ?? app.scene }));
+      for (const { m, parent } of entries) {
+        const id = m.userData.objectId;
+        parent.attach(m);
+        if (id && app.objects.get(id)) {
+          const base = app.objects.get(id);
+          app.objects.update(id, {
             position: [m.position.x, m.position.y, m.position.z],
-            rotation: [m.rotation.x, m.rotation.y, m.rotation.z],
-          });
-        }
-        app.scene.remove(this._multiGroup);
-        this._multiGroup = null;
-        this.attachToSelection();
-        return;
-      }
-      const id = attached.userData.objectId;
-      if (!id || !app.objects.get(id)) return;
-      const obj = app.objects.get(id);
-      // drive refusal (SZt): track-driven at playhead → refuse with toast
-      if (this._isTrackDriven(id)) {
-        app.toast?.('This object is driven by a track item at the playhead');
-        // revert
-        const src = this._dragStartObj;
-        if (src) app.objects.update(id, { position: src.position, rotation: src.rotation, scale: src.scale });
-        attached.position.set(...(src?.position ?? [0, 0, 0]));
-        attached.rotation.set(...(src?.rotation ?? [0, 0, 0]));
-        attached.scale.set(...(src?.scale ?? [1, 1, 1]));
-        return;
-      }
-      app.objects.update(id, {
-        position: [attached.position.x, attached.position.y, attached.position.z],
-        rotation: this._unwrapRotation(attached.rotation, obj.rotation),
-        scale: [attached.scale.x, attached.scale.y, attached.scale.z],
-      });
-      // camera+target pairing: move target with camera
-      if (obj.kind === 'camera' && obj.targetId) {
-        const tgt = app.meshById.get(obj.targetId);
-        if (tgt && this._dragStartObj) {
-          const dx = attached.position.x - (this._dragStartObj.position?.[0] ?? 0);
-          const dy = attached.position.y - (this._dragStartObj.position?.[1] ?? 0);
-          const dz = attached.position.z - (this._dragStartObj.position?.[2] ?? 0);
-          const tid = tgt.userData.objectId;
-          const tobj = app.objects.get(tid);
-          if (tobj) app.objects.update(tid, {
-            position: [tobj.position[0] + dx, tobj.position[1] + dy, tobj.position[2] + dz],
+            rotation: unwrapEulerVs([m.rotation.x, m.rotation.y, m.rotation.z], base.rotation ?? [0, 0, 0]),
+            scale: [m.scale.x, m.scale.y, m.scale.z],
           });
         }
       }
+      app.scene.remove(this._multiGroup);
+      this._multiGroup = null;
+      this._dragParents = null;
+      this.attachToSelection();
+      return;
+    }
+    const id = attached.userData.objectId;
+    if (!id || !app.objects.get(id)) return;
+    const obj = app.objects.get(id);
+    const world = {
+      position: attached.getWorldPosition(new THREE.Vector3()),
+      rotation: (() => { const q = attached.getWorldQuaternion(new THREE.Quaternion()); const e = new THREE.Euler().setFromQuaternion(q); return [e.x, e.y, e.z]; })(),
     };
-    finish();
+    const local = {
+      position: [attached.position.x, attached.position.y, attached.position.z],
+      rotation: [attached.rotation.x, attached.rotation.y, attached.rotation.z],
+      scale: [attached.scale.x, attached.scale.y, attached.scale.z],
+    };
+    const mode = this.transform.mode;
+    const isCamOrTarget = obj.kind === 'camera' || obj.kind === 'target';
+    const outcome = isCamOrTarget ? this._commitSZt(id, obj, attached, world, local, mode)
+      : this._commitKZt(id, obj, local);
+    if (outcome?.outcome === 'refused') {
+      app.toast?.(this._refusalText(outcome.reason));
+      // revert to the pre-drag state
+      const src = this._dragStartObj;
+      if (src) app.objects.update(id, { position: src.position, rotation: src.rotation, scale: src.scale });
+      attached.position.set(...(src?.position ?? [0, 0, 0]));
+      attached.rotation.set(...(src?.rotation ?? [0, 0, 0]));
+      attached.scale.set(...(src?.scale ?? [1, 1, 1]));
+    } else if (outcome?.outcome === 'unbased') {
+      app.toast?.('Camera move could not be re-based (' + outcome.reason + ')');
+    }
   }
+
+  // kZt: focused transform segment + playhead inside → write a KEY; else full TRS. NO refusal.
+  _commitKZt(id, obj, local) {
+    const app = this.app;
+    if (this._captureFocusedTransformPose(id, local)) return { outcome: 'keyed' };
+    app.objects.update(id, {
+      position: local.position,
+      rotation: unwrapEulerVs(local.rotation, obj.rotation ?? [0, 0, 0]),
+      scale: local.scale,
+    });
+    return { outcome: 'committed' };
+  }
+
+  // captureFocusedTransformPose: selected segment is a transform item covering the playhead
+  _captureFocusedTransformPose(id, local) {
+    const app = this.app;
+    const seg = app.show.selectedSegment;
+    if (!seg) return false;
+    const track = app.show.tracks().find(t => t.id === seg.trackId);
+    const item = track?.items.find(x => x.id === seg.itemId);
+    if (!track || item?.kind !== 'transform') return false;
+    if (track.characterId !== id) return false;
+    const tS = app.page.playheadS - item.startS;
+    if (tS < 0 || tS > itemDuration(item)) return false;
+    app.show.addTransformKeyframe(seg.trackId, seg.itemId, {
+      tS, position: local.position, rotation: local.rotation, scale: local.scale,
+    });
+    return true;
+  }
+
+  // SZt — the full camera/target commit pipeline (refusal → keyed → follow-offset → rebase → gates)
+  _commitSZt(id, obj, attached, world, local, mode) {
+    const app = this.app;
+    const t = app.page.playheadS;
+    const track = app.show.trackOf(id);
+    const items = track ? track.items : [];
+    const reason = this._refusalReason(items, t, mode);
+    if (reason) return { outcome: 'refused', reason };
+    // 1. keyed camera: focused cam-transform segment covering the playhead
+    if (this._captureFocusedCameraPose(id, obj, world)) return { outcome: 'keyed' };
+    // 2. keyed target: focused transform segment
+    if (obj.kind === 'target' && this._captureFocusedTransformPose(id, local)) return { outcome: 'keyed' };
+    // 3. active cam-follow: re-derive the follow offset from the dragged world pose (V8r)
+    const follow = this._activeFollowItem(id, t);
+    if (follow) {
+      const followedMesh = app.meshById.get(follow.item.objectId);
+      if (followedMesh) {
+        followedMesh.updateWorldMatrix(true, false);
+        const sp = followedMesh.getWorldPosition(new THREE.Vector3());
+        const sq = followedMesh.getWorldQuaternion(new THREE.Quaternion());
+        const inv = sq.clone().invert();
+        const e = new THREE.Euler(...world.rotation);
+        const wq = new THREE.Quaternion().setFromEuler(e);
+        const dp = world.position.clone().sub(sp).applyQuaternion(inv);
+        const dq = inv.clone().multiply(wq);
+        app.show.setCameraItemFields(follow.trackId, follow.item.id, {
+          offset: { position: [dp.x, dp.y, dp.z], quaternion: [dq.x, dq.y, dq.z, dq.w] },
+        });
+      }
+    }
+    // 4. cam-move chain rebase (_Zt/GOr)
+    const targetObj = obj.targetId ? app.objects.get(obj.targetId) : null;
+    const rebase = targetObj ? this._rebaseCamMove(id, world, t) : { outcome: 'refused', reason: 'no-move' };
+    if (rebase.outcome === 'refused' && rebase.reason !== 'no-move') return { outcome: 'unbased', reason: rebase.reason };
+    let pose = { position: world.position.toArray(), rotation: world.rotation };
+    if (rebase.outcome === 'rebased') {
+      pose.position = rebase.position;
+      if (rebase.rotation && typeof rebase.rotation === 'object') {
+        // kv: lookAt rotation from position → aimAt
+        pose.rotation = lookAtEuler(pose.position, rebase.rotation.aimAt);
+      }
+    }
+    const framesMarker = this._framesMarkerNow(id, t);
+    const rotationAllowed = rebase.outcome !== 'rebased' || rebase.rotation === 'free'
+      ? !framesMarker
+      : rebase.rotation !== 'keep';                                    // VOr
+    const positionAllowed = !this._driveChainActive(items, t);          // !UOr
+    const patch = {};
+    if (positionAllowed) patch.position = pose.position;
+    if (rotationAllowed) patch.rotation = unwrapEulerVs(pose.rotation, obj.rotation ?? [0, 0, 0]); // GA vs windFrom
+    app.objects.update(id, patch);
+    // 5. no-move refused translate → reaim (aim the cam-move item at its subject again)
+    if (rebase.outcome === 'refused' && rebase.reason === 'no-move' && mode === 'translate') this._reaimCamera(id);
+    // 6. paired target: rotated together during drag (XWt) — commit its new position
+    if (targetObj && this._dragStartObj) {
+      const tgtMesh = app.meshById.get(obj.targetId);
+      if (tgtMesh) {
+        const tid = tgtMesh.userData.objectId;
+        const tp = [tgtMesh.position.x, tgtMesh.position.y, tgtMesh.position.z];
+        const parent = tgtMesh.parent && tgtMesh.parent !== app.scene ? tgtMesh.parent : null;
+        if (parent) { const v = new THREE.Vector3(...tp); parent.worldToLocal(v); app.objects.update(tid, { position: [v.x, v.y, v.z] }); }
+        else app.objects.update(tid, { position: tp });
+      }
+    }
+    return { outcome: 'committed' };
+  }
+
+  _refusalText(reason) { // TZt
+    return reason === 'manual' ? 'This camera is filming a manual shot'
+      : reason === 'path-position' ? 'This camera is on a camera path'
+      : reason === 'path-look' ? 'This camera is looking down a camera path'
+      : 'This camera is anchored to a subject';
+  }
+
+  // wZt/_je: the drive chain = last started camera item at t; refusal only for cam-manual/cam-path
+  _driveChainItem(items, t) {
+    let n = null;
+    for (const it of items) {
+      if (t < it.startS) break;
+      if (CAM_ITEM_KINDS.has(it.kind)) n = it;
+      if (t < it.startS + itemDuration(it)) break;
+    }
+    if (!n || t > n.startS + itemDuration(n)) return null;
+    if (n.kind === 'cam-manual' && (n.samples?.length ?? 0) > 0) return n;
+    if (n.kind === 'cam-path' && (n.anchors?.length ?? 0) >= 2) return n;
+    return null;
+  }
+  _driveChainActive(items, t) { return this._driveChainItem(items, t) !== null; }  // UOr via wZt
+  _refusalReason(items, t, mode) { // _je
+    const r = this._driveChainItem(items, t);
+    if (!r) return null;
+    if (r.kind === 'cam-manual') return 'manual';
+    if (mode !== 'rotate') return 'path-position';
+    if ((r.aim ?? 'travel') !== 'locked') return 'path-look';
+    const onlyStillBefore = items.every(a => !CAM_ITEM_KINDS.has(a.kind) || a.startS >= r.startS || a.kind === 'cam-still');
+    return onlyStillBefore ? null : 'path-anchored';
+  }
+
+  // captureFocusedCameraPose: focused cam-transform segment covering the playhead → key
+  _captureFocusedCameraPose(id, obj, world) {
+    const app = this.app;
+    const seg = app.show.selectedSegment;
+    if (!seg) return false;
+    const track = app.show.tracks().find(t => t.id === seg.trackId);
+    const item = track?.items.find(x => x.id === seg.itemId);
+    if (!track || item?.kind !== 'cam-transform' || track.characterId !== id) return false;
+    const tS = app.page.playheadS - item.startS;
+    if (tS < 0 || tS > itemDuration(item)) return false;
+    app.show.addCameraKeyframe(seg.trackId, seg.itemId, {
+      tS, position: [...world.position.toArray()], rotation: [...world.rotation],
+      focalLengthMm: obj.focalLengthMm ?? C.FOCAL_DEFAULT,
+    });
+    return true;
+  }
+
+  // bFr: active cam-follow item for camera id at time t
+  _activeFollowItem(id, t) {
+    const app = this.app;
+    const track = app.show.trackOf(id);
+    if (!track) return null;
+    let n = null;
+    for (const it of track.items) {
+      if (t < it.startS) break;
+      if (CAM_ITEM_KINDS.has(it.kind)) n = it;
+      if (t < it.startS + itemDuration(it)) break;
+    }
+    return n?.kind === 'cam-follow' && t <= n.startS + itemDuration(n) ? { trackId: track.id, item: n } : null;
+  }
+
+  // xq ≈ framesMarkerNow: camera has a target and is driven by an active camera item (or chain)
+  _framesMarkerNow(id, t) {
+    const app = this.app;
+    const obj = app.objects.get(id);
+    if (!obj?.targetId) return false;
+    const items = app.show.trackOf(id)?.items ?? [];
+    const n = this._driveChainItem(items, t);
+    if (n) return subjectlessItem(n);   // YN: needs the camera's target
+    return !!(obj.targetId && items.some(subjectlessItem));
+  }
+
+  // GOr/_Zt — invert the active cam-move chain from the dragged world position
+  _rebaseCamMove(id, world, t) {
+    const app = this.app;
+    const items = app.show.trackOf(id)?.items ?? [];
+    const e = items.find(it => it.kind === 'cam-move' && t >= it.startS && t <= it.startS + itemDuration(it)) ?? null;
+    if (!e) return { outcome: 'refused', reason: 'no-move' };
+    const earlier = items.filter(it => CAM_ITEM_KINDS.has(it.kind) && it.startS < e.startS);
+    if (!earlier.every(it => it.kind === 'cam-move' || it.kind === 'cam-still')) return { outcome: 'refused', reason: 'anchored' };
+    const r = t - e.startS;
+    const aimOf = item => this._itemAimPoint(id, item);   // XN/WY subject target
+    // zat: forward-eval the move from the dragged position at progress u
+    let s = camMovePose({
+      kind: e.move, t: e.durationS > 0 ? r / e.durationS : 0,
+      start: world.position.toArray(), target: aimOf(e),
+      direction: e.direction, angleDeg: e.angleDeg, heightDeltaUnits: e.heightDeltaUnits, distanceScale: e.distanceScale,
+    }).position;
+    for (let i = earlier.length - 1; i >= 0 && s; i--) {
+      const u = earlier[i];
+      if (u.kind === 'cam-move') s = camMovePose({
+        kind: u.move, t: 1, start: s, target: aimOf(u),
+        direction: u.direction, angleDeg: u.angleDeg, heightDeltaUnits: u.heightDeltaUnits, distanceScale: u.distanceScale,
+      }).position;
+    }
+    if (!s) return { outcome: 'refused', reason: 'not-invertible' };
+    const looksDownAim = earlier.every(it => it.kind !== 'cam-move' || (it.move !== 'pan_sweep' && it.subjectId === e.subjectId));
+    const noMoves = earlier.every(it => it.kind !== 'cam-move');
+    if (e.move === 'pan_sweep') {
+      if (!noMoves) return { outcome: 'rebased', position: s, rotation: 'keep', looksDownAim };
+      // b2r: sweep direction from the dragged world rotation
+      const dir = forwardOfEuler(world.rotation);
+      const sweep = e.direction ?? 'ccw';
+      const ang = (e.angleDeg ?? 90) * Math.PI / 180 * (sweep === 'ccw' ? 1 : -1) * smoothstep(e.durationS > 0 ? r / e.durationS : 0);
+      const c = Math.cos(ang), sn = Math.sin(ang);
+      const d = [dir[0] * c - dir[2] * sn, dir[1], dir[0] * sn + dir[2] * c];
+      return { outcome: 'rebased', position: s, rotation: { from: 'turn', aimAt: [s[0] + d[0], s[1] + d[1], s[2] + d[2]] }, looksDownAim };
+    }
+    if (!noMoves && (!aimOf(e) || earlier.some(it => it.kind === 'cam-move' && it.move === 'pan_sweep')))
+      return { outcome: 'rebased', position: s, rotation: 'keep', looksDownAim };
+    const chainItem = [...earlier, e].find(it => it.kind === 'cam-move' && it.move !== 'pan_sweep' && this._itemAimPoint(id, it) !== null);
+    const c = chainItem ? (chainItem === e ? aimOf(e) : aimOf(chainItem)) : null;
+    return { outcome: 'rebased', position: s, rotation: c ? { from: 'framing', aimAt: c } : 'free', looksDownAim };
+  }
+
+  // XN: cam item subject aim point (subject world pos + aimOffsetUnits)
+  _itemAimPoint(id, item) {
+    const app = this.app;
+    const subjectId = 'subjectId' in item ? item.subjectId : null;
+    if (!subjectId) return null;
+    const p = app._subjectPos(subjectId, app.page.playheadS);
+    if (!p) return null;
+    const off = item.aimOffsetUnits ?? 0;
+    return [p[0], p[1] + off, p[2]];
+  }
+
+  // reaimCamera: re-aim the camera's cam-move item at its subject
+  _reaimCamera(id) {
+    const app = this.app;
+    const track = app.show.trackOf(id);
+    const item = track?.items.find(it => it.kind === 'cam-move');
+    if (!track || !item) return;
+    const subjectId = item.subjectId ?? app.objects.get(id)?.targetId ?? null;
+    if (!subjectId) return;
+    const p = app._subjectPos(subjectId, app.page.playheadS);
+    if (!p) return;
+    // place the camera base so the move starts aimed at the subject
+    const off = item.aimOffsetUnits ?? 0;
+    const aim = [p[0], p[1] + off, p[2]];
+    app.show.setCameraItemFields(track.id, item.id, {});
+    // nudge: set the camera's stored rotation to look at the subject
+    const obj = app.objects.get(id);
+    if (obj) app.objects.update(id, { rotation: lookAtEuler(obj.position ?? [0, 0, 0], aim) });
+  }
+
   _unwrapRotation(euler, prev) { // GA: rotation continuity on release
     if (!prev) return [euler.x, euler.y, euler.z];
     const wrap = (a, b) => b + 2 * Math.PI * Math.round((a - b) / (2 * Math.PI));
