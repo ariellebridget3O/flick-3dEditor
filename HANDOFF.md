@@ -1,23 +1,24 @@
 # HANDOFF — next session (immediate seam)
 
 ## State
-Round 1 complete through commit (see git log). The editor is LIVE-VERIFIED headless: renderer + exact daylight/time-of-day, all 11 object kinds w/ full asset library, selection footprints, path paint + track evaluation (14 item kinds), timeline, autosave. Both remotes + /home/sync synced. Server may be down (sandbox processes die) — restart: `cd /home/z/flick-3dEditor/editor && nohup python3 -m http.server 8124 &`.
+Round 2 complete through commit (see git log). The editor's RENDERING PATH is now exact end-to-end: finish composer (SSAO/edges/soft-terminator, auto-measured + `stage-finish` localStorage), stroke ring, clay props, exact primitives/procedurals/markers. All 4 audit P0s + ~18 P1s fixed and E2E-verified (docs/FIDELITY.md round-2 log). Both remotes + /home/sync synced. Server may be down (sandbox processes die) — restart: `cd /home/z/flick-3dEditor/editor && nohup python3 -m http.server 8124 &`.
 
 ## First 10 minutes
-1. `cd /home/z && git clone https://<GH_PAT>@github.com/ariellebridget3O/flick-3dEditor.git` (PAT split-coded in .env: source scripts/env.sh) — or resume /home/z/flick-3dEditor if sandbox survived.
-2. Read PLAN.md backlog (that IS the next-session scope, priority-ordered) + docs/FIDELITY.md (what's EXACT/PORT/APPROX/SKIP).
-3. Start server (above), verify: `agent-browser open "http://localhost:8124/index.html?scene=samples/synthetic_tracks.json&noAutosave=1"` → no errors, `window.__app` truthy.
+1. `cd /home/z && git clone https://<GH_PAT>@github.com/ariellebridget3O/flick-3dEditor.git` (PAT split-coded in .env: `source scripts/env.sh`) — or resume /home/z/flick-3dEditor if the sandbox survived.
+2. Read PLAN.md backlog (priority-ordered, sourced from the audit docs) + docs/FIDELITY.md.
+3. Start server (above), verify: `agent-browser open "http://localhost:8124/index.html?scene=samples/synthetic_tracks.json&noAutosave=1&finish=1"` → no errors, `window.__app` truthy. Finish note: `?finish=1|0` forces the pref (persisted, source manual); otherwise auto-measure decides (SwiftShader = always off → for visual finish QA always pass finish=1).
 
 ## Seam items (only these)
-1. **Stroke ring** (hGr): offscreen RT (MSAA 4, mips, scale L=min(1,1080/h) dims to 16px multiples) → override white basic material on selected subtree (layer 2 + Lines) → fullscreen ring shader (8-tap ringMax, width 1.5·dpr·scale, halo .26, navy #171b26→white mix) → render after main, before planning-aids. Raw code: analysis/extracted/ux_raw.js §12.
-2. **Keyed-camera capture**: Manipulator._commit camera branch → if camera track has cam-transform item at playhead → write key (position/rotation/focalLengthMm at tS = playhead − item.startS); else if cam-move chain → rebase (_Zt/GOr: recompute item fields so the move starts from the new pose; rotation keep|turn|framing). Raw: tmp_b/drag_commit_SZt.js.
-3. **Timeline magnet + reorder** (q5r/G5r/oje/_ie in tracks_raw.js): 12px radius snap to other items' start/end markers, push obstacles, ghost preview.
-4. **heightCurve editor**: SVG/canvas overlay in segment inspector when cam-path selected (Yhe auto-tangents ∓Δu/3, Kat round .1 clamp .2..max, scrub = seek startS+u·dur).
+1. **Timeline polish** — the largest remaining UX gap (AUDIT_UX §5 has the 16-item checklist; raw code in analysis/tmp_b/timeline_ui_pretty.js + tracks_raw.js PLACEMENT section @42077: q5r magnet 12px + obstacle push, oje overlap, _ie solver, W5r place, trim → speed=arc/dur, keyframe diamonds on transform/rig/cam-transform blocks).
+2. **Segment inspector editors** for rotate/revolve/scale/transform/play (store setters exist: setRotateAxis/setObjectItemSpeed/setRevolveCenter/setScaleFactor/addTransformKeyframe — wire the DOM in ui.js; raw: segment_inspector_pretty.js).
+3. **Lasso** (manipulate.js — rect ∩ world positions, excludes track-driven; lasso cursor nWr 28×28 hotspot 6 24).
+4. **Nav ball** — raw code ALREADY EXTRACTED in analysis/tmp_d/auto_measure.js (lZr complete: 67px pad + zie=12 margin, copyFramebufferToTexture, golden-angle 12-tap blur, compass needle, navBallVector drive) — needs its own module + wiring in main.js frame loop (tick + render, edit-mode only).
 
-## Env gotchas
-- ES-module cache: agent-browser RELOAD does not refetch modules — close + open with a new ?v=N query.
-- three r182: TransformControls is NOT an Object3D (getHelper()); PCFSoftShadowMap deprecated → PCFShadowMap; custom ShaderMaterials need fog:false.
-- eval() gotcha: `ray.intersectObjects` is Raycaster-only (THREE.Ray has intersectPlane/Box/Sphere/Triangle only).
-- Daylight colors: use the DECIMAL ints from the bundle (THREE.Color(int) = hex semantics) — hex comments were corrected once; decimals are ground truth.
-- Sub-agent dumps sanitize `[`→`【】` (bash pipeline eats the literal `[h` sequence) — desanitize when porting.
-- GitLab WAF 403 ~1/3 → retry 2-3×; the mirror remote is ansgareutychisC/flick-3dEditor-mirror (NOT flick-3dEditor).
+## Env gotchas (round-2 additions)
+- MultiEdit/long old_str: line-exact matching fails on invisible whitespace — prefer python replace scripts with assert, or Edit with short anchors.
+- Bash pipelines EAT literal "[h" sequences in OUTPUT (sed/grep display) — the FILES are fine; verify with Read before "fixing" mangled-looking code.
+- agent-browser eval: no THREE global — import('/js/vendor/three.module.js') inside eval, or use plain math / app APIs.
+- Template-literal regexes: `[[_\\s-]]` is WRONG (char class + literal ]); correct: `[_\\s-]` — see finish.js GC.
+- The stroke ring + finish are ONE predicate (strokeEnabled = finishOn) — matching the live app; footprint shader is independent.
+- Saved scenes carry BAKED anchor tangents (in/out) — eval uses them as-is; only painting/editing recomputes via buildTangents. Don't "fix" a fixture's tangents.
+- ?finish=1 on a fresh profile: localStorage gets {enabled:true,source:"manual"} — clear it (agent-browser eval localStorage.clear()) before testing auto-measure.

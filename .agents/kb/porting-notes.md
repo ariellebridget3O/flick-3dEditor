@@ -24,3 +24,12 @@ Detailed gotchas beyond SKILL.md top-level items.
 - humanoid GLB: 55 nodes, Rig root has 180° baked (facing −Z = app forward; main stage adds NO yaw), M_Joints visual spheres stay purple, idle@t=0 default pose height 1.7829m raw.
 - camera GLB = assets/camera-DV-hMEYk.glb, spotlight = assets/spotlight-Cs6bAwrT.glb (both fetched from flick.art CDN while it was reachable; vendored).
 - prop catalog scale: `Uh[key].scale ?? 1` (984/1439 have none); yawDeg on a wrapper group, never baked into scene rotation.
+
+## Round-2 porting notes (2026-11-14)
+- The finish composer's composite uses `depthFunc: AlwaysDepth` + `gl_FragDepth = depth` — it CLEARS the screen and re-writes scene depth so subsequent passes (stroke, planning aids) depth-test correctly. The plain path gets the same depth naturally.
+- Occlusion RTs are RedFormat/HalfFloat (NOT RGBA); scene RT is HalfFloat + MSAA(4) + UnsignedIntType depth texture; occlusion buffer max height 540 (not 1080), scale .5, both debounced 150ms on resize.
+- `dKt(t, now)` = the size latch used by BOTH finish and stroke RTs: returns true when (no RT exists) OR (size stable ≥150ms); alloc only then.
+- SZt's `_je` refusal only fires under an ACTIVE cam-manual (with samples) or cam-path (≥2 anchors) item — and rotate under cam-path is ALLOWED when the path is the first non-still camera item (`every(a => !Fp(a) || a.startS >= r.startS || a.kind === "cam-still")` → null).
+- GOr rebase: `zat` walks the chain BACKWARDS from the active cam-move at progress u, composing via `zat(u, s, 1, aim)` — end-anchored; pan_sweep position is invariant (rotation keep/turn via b2r from the dragged world rotation).
+- EZt (head rotation helper): euler(pitch, yaw, 0, 'YXZ') → quat → XYZ euler. jZt NEGATES pitch for the rig offsets. kje does not.
+- The original undo is an observer history (300ms coalescing) over objects+show; our gesture-bracket equivalent must snapshot BOTH stores and close AFTER the commit writes.
