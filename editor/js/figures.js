@@ -209,11 +209,28 @@ export class HumanoidRig {
   }
 }
 
-// head-look rig offsets (jZt): DEF-neck 40% / DEF-head 60% of the gaze split
+// head-look rig offsets (jZt): DEF-neck 40% / DEF-head 60%; rotation built as
+// euler(pitch·f, yaw·f, 0, 'YXZ') converted to XYZ (EZt), pitch NEGATED.
+const _jzE = new THREE.Euler(), _jzQ = new THREE.Quaternion();
+function ezHeadRotation(yaw, pitch) { // EZt
+  _jzQ.setFromEuler(_jzE.set(pitch, yaw, 0, 'YXZ'));
+  _jzE.setFromQuaternion(_jzQ);
+  return [_jzE.x, _jzE.y, _jzE.z];
+}
 export function headLookOffsets(split) {
-  const k = C.NECK_HEAD_SPLIT;   // .4
-  return {
-    'DEF-neck': { position: [0, 0, 0], rotation: [k * (split.headPitchRad ?? 0), k * split.headYawRad, 0], scale: [1, 1, 1] },
-    'DEF-head': { position: [0, 0, 0], rotation: [(1 - k) * (split.headPitchRad ?? 0), (1 - k) * split.headYawRad, 0], scale: [1, 1, 1] },
-  };
+  const k = C.NECK_HEAD_SPLIT;   // Wat = .4
+  const f = f2 => ({ position: [0, 0, 0], rotation: ezHeadRotation(split.headYawRad * f2, -(split.headPitchRad ?? 0) * f2), scale: [1, 1, 1] });
+  return { 'DEF-neck': f(k), 'DEF-head': f(1 - k) };
+}
+
+// IZt: merge rig-offset maps by SUMMING rotations (not spread-overwrite)
+export function mergeRigOffsets(base, add) {
+  const out = { ...base };
+  for (const [name, j] of Object.entries(add ?? {})) {
+    const a = out[name];
+    out[name] = a
+      ? { ...a, rotation: [a.rotation[0] + j.rotation[0], a.rotation[1] + j.rotation[1], a.rotation[2] + j.rotation[2]] }
+      : j;
+  }
+  return out;
 }

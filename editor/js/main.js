@@ -15,7 +15,7 @@ import {
   evalCameraObject, rigJointsAtTime, evalObjectItems, fovFromFocal, itemsOfTrack, isPersonKind,
   pathStateAt, pathRotation,
 } from './tracks.js';
-import { headLookOffsets, applyHeadRotation, getHeadRotation } from './figures.js';
+import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation } from './figures.js';
 import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
 import { buildUI } from './ui.js';
@@ -238,7 +238,9 @@ export class App {
   resolvers() {
     const self = this;
     return {
-      aim(subjectId, t, offset = 0) {
+      aim(subjectId, t, offset = 0, cameraId = null) {
+        // fallback (W resolver): a subject-less camera item aims at the CAMERA's target object
+        if (!subjectId && cameraId) subjectId = self.objects.get(cameraId)?.targetId ?? null;
         if (!subjectId) return null;
         const m = self.meshById.get(subjectId);
         if (!m) return null;
@@ -478,7 +480,7 @@ export class App {
       const ownAim = [pos.x, pos.y + C.EYE_HEIGHT_K * (obj.scale?.[1] ?? 1), pos.z];
       const split = gazeSplit(curYaw, ownAim, look.target);
       if (obj.kind === 'humanoid') {
-        const merged = { ...(this.rigOffsets.get(id) ?? {}), ...headLookOffsets(split) };
+        const merged = mergeRigOffsets(this.rigOffsets.get(id), headLookOffsets(split));   // IZt additive
         this.rigOffsets.set(id, merged);
         continue;
       }
@@ -564,7 +566,7 @@ export class App {
       const any = evalCameraObject({
         base: { position: obj.position ?? [0, 0, 0], rotation: obj.rotation ?? [0, 0, 0], focalLengthMm: obj.focalLengthMm ?? C.FOCAL_DEFAULT },
         out, items: track.items.map(u => u.item), timeS: this.page.playheadS,
-        aspect: 16 / 9, resolvers,
+        aspect: 16 / 9, resolvers, cameraId: track.characterId,
       });
       // drive marker: while item active, show aim pose (position + quaternion) on the wrapper
       mesh.userData.evalPose = any ? out : null;
@@ -617,7 +619,7 @@ export class App {
     if (this.page.playing) {
       const t = this.page.tickClock();
       const layout = this.layout();
-      if (t >= layout.durationS) { this.page.seek(layout.durationS); this.page.stop(); this.resetToBase(); this.evaluateAt(layout.durationS, dt); }
+      if (t >= layout.durationS) { this.page.seek(layout.durationS); this.page.stop(); this.resetToBase(); }   // stop → stored TRS (no end pose)
       else this.evaluateAt(t, dt);
     } else if (this.manipulator?.scrubbing) {
       this.evaluateAt(this.page.playheadS, dt, true);

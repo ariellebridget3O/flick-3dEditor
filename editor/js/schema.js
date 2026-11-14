@@ -36,18 +36,19 @@ function v2to3(show) {
   return { ...show, tracks };
 }
 // ---- v4→v5 (u6r/d6r): camera shot object → camera fields + one track ----
-function v4to5(t) {
+function v4to5(t) { // u6r — EVERY camera gets focal/shake + a track with a default item
   const objects = { ...t.objects };
   const tracks = [...(t.show?.tracks ?? [])];
   for (const [id, obj] of Object.entries(t.objects)) {
-    if (obj.kind !== 'camera' || !obj.shot) continue;
+    if (obj.kind !== 'camera') continue;
     const shot = obj.shot;
-    const preset = { kind: 'orbit', durationS: 8, angleDeg: 360, heightDeltaUnits: 0, distanceScale: 1, direction: 'ccw', subjectId: null, ...shot.preset };
-    const rail = { a: null, b: null, speedUnitsPerS: 2, followTarget: true, followObjectId: null, ...shot.rail };
-    const s = { shotMode: 'still', ...shot, preset, rail, followObjectId: shot.followObjectId ?? null, focalLengthMm: shot.focalLengthMm ?? C.FOCAL_DEFAULT, shake: shot.shake ?? 'off' };
+    const preset = { kind: 'orbit', durationS: 8, angleDeg: 360, heightDeltaUnits: 0, distanceScale: 1, direction: 'ccw', subjectId: null, ...(shot?.preset ?? {}) };
+    const rail = { a: null, b: null, speedUnitsPerS: 2, followTarget: true, followObjectId: null, ...(shot?.rail ?? {}) };
+    const s = { shotMode: 'still', ...shot, preset, rail, followObjectId: shot?.followObjectId ?? null, focalLengthMm: shot?.focalLengthMm ?? C.FOCAL_DEFAULT, shake: shot?.shake ?? 'off' };
     const show = { name: t.show?.name ?? 'Show', tracks };
-    objects[id] = { ...obj, focalLengthMm: s.focalLengthMm, shake: s.shake, legacyShot: shot, shot: undefined };
-    tracks.push({ id: uuid(), characterId: id, items: [{ ...shotToItem(s, show), id: uuid(), startS: 0 }] });
+    const { shot: _drop, ...rest } = obj;
+    objects[id] = { ...rest, focalLengthMm: s.focalLengthMm, shake: s.shake, ...(shot ? { legacyShot: shot } : {}) };
+    tracks.push({ id: uuid(), characterId: id, items: [{ ...shotToItem(s, show), id: uuid(), startS: 0 }] });   // d6r: still/default → cam-still
   }
   return { ...t, v: 5, objects, show: { ...t.show, tracks } };
 }
@@ -89,16 +90,23 @@ function v5to6(t, propCatalog) {
   return { ...t, v: 6, objects, show: { ...t.show, tracks } };
 }
 // ---- v7→v8 (p6r): transform key rotations unwrapped per axis ----
-function v7to8(t) {
+function v7to8(t) { // p6r — chained unwrap: prev = the UNWRAPPED previous key (multi-wrap accumulates)
+  const wrapDiff = (c, d) => { let n = (d - c) % (2 * Math.PI); if (n > Math.PI) n -= 2 * Math.PI; if (n < -Math.PI) n += 2 * Math.PI; return n; };
+  const unwrap = (c, d) => Math.abs(d - c) <= Math.PI ? d : c + wrapDiff(c, d);   // p6r's o()
   const tracks = (t.show?.tracks ?? []).map(tr => ({
     ...tr,
-    items: (tr.items ?? []).map(it => it.kind !== 'transform' ? it : {
-      ...it,
-      keys: (it.keys ?? []).map((k, i, keys) => {
-        if (i === 0) return k;
-        const prev = keys[i - 1];
-        return { ...k, rotation: k.rotation.map((r, a) => prev.rotation[a] + wrapPi(r - prev.rotation[a])) };
-      }),
+    items: (tr.items ?? []).map(it => {
+      if (it.kind !== 'transform' || !Array.isArray(it.keys)) return it;
+      let prev = null;   // l — the chained unwrapped rotation
+      const keys = it.keys.map(k => {
+        if (!k?.rotation) return k;
+        const rot = prev
+          ? [unwrap(prev[0], k.rotation[0]), unwrap(prev[1], k.rotation[1]), unwrap(prev[2], k.rotation[2])]
+          : k.rotation;
+        prev = rot;
+        return { ...k, rotation: rot };
+      });
+      return { ...it, keys };
     }),
   }));
   return { ...t, v: 8, show: { ...t.show, tracks } };

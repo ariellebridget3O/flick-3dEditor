@@ -298,7 +298,7 @@ export function evalCameraItem(item, elapsedS, durationS, ctx) { // fFr
           const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(out.quaternion);
           return [startPos[0] + fwd.x, startPos[1] + fwd.y, startPos[2] + fwd.z];
         })()
-        : ctx.resolvers.aim(item.subjectId || null, absT, aimOffset);
+        : ctx.resolvers.aim(item.subjectId || null, absT, aimOffset, ctx.cameraId);   // subject-less → camera's targetId
       if (!target) { out.fovDeg = fovDeg; return; }
       const h = {
         kind: item.move, start: startPos, target, direction: item.direction, baseFovDeg: fovDeg,
