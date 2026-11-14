@@ -120,8 +120,8 @@ export class Manipulator {
 
   _commit() { // SZt/kZt split — cameras+targets take the pipeline, everything else commits freely
     const app = this.app;
-    app.show.endEditGesture();
-    if (!this._attached) return;
+    if (!this._attached) { app.show.endEditGesture(); return; }
+    const closeGesture = () => app.show.endEditGesture();   // close AFTER the writes (undo capture)
     const attached = this._attached;
     // ---- multi-select group: restore children to ORIGINAL parents, bake full TRS (GA-unwrapped)
     if (this._multiGroup) {
@@ -160,6 +160,7 @@ export class Manipulator {
     const isCamOrTarget = obj.kind === 'camera' || obj.kind === 'target';
     const outcome = isCamOrTarget ? this._commitSZt(id, obj, attached, world, local, mode)
       : this._commitKZt(id, obj, local);
+    closeGesture();
     if (outcome?.outcome === 'refused') {
       app.toast?.(this._refusalText(outcome.reason));
       // revert to the pre-drag state
@@ -171,6 +172,7 @@ export class Manipulator {
     } else if (outcome?.outcome === 'unbased') {
       app.toast?.('Camera move could not be re-based (' + outcome.reason + ')');
     }
+    return outcome;
   }
 
   // kZt: focused transform segment + playhead inside → write a KEY; else full TRS. NO refusal.

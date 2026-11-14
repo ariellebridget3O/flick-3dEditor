@@ -120,6 +120,7 @@ export class App {
     });
     // share its map
     this._wireMeshMap();
+    this.show.setUndoCompanion(this.objects);   // undo covers objects + show (observer-history parity)
 
     // ---- selection + hover ----
     this.selection = new SelectionFootprints(this.scene);

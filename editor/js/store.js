@@ -127,38 +127,48 @@ export class ShowStore extends StoreBase {
     this.changed();
   }
 
-  // ---- undo ----
+  // ---- undo (observer-history-equivalent: show + companion objects store, gesture-bracketed) ----
+  setUndoCompanion(objectsStore) { this._companion = objectsStore; }
+  _snap() {
+    return { show: JSON.stringify(this.show), objects: this._companion ? JSON.stringify(this._companion.all()) : null };
+  }
   beginEditGesture() {
     if (this._gestureSnapshots) return;
-    this._gestureSnapshots = JSON.stringify(this.show);
+    this._gestureSnapshots = this._snap();
   }
   endEditGesture() {
     if (!this._gestureSnapshots) return;
     const before = this._gestureSnapshots;
-    const after = JSON.stringify(this.show);
+    const after = this._snap();
     this._gestureSnapshots = null;
-    if (before !== after) {
-      this.undoStack.push({ show: before, redo: after });
+    if (before.show !== after.show || before.objects !== after.objects) {
+      this.undoStack.push({ ...before, redoShow: after.show, redoObjects: after.objects });
       if (this.undoStack.length > 200) this.undoStack.shift();
       this.redoStack = [];
       this.changed();
     }
   }
   snapshot() { this.beginEditGesture(); this.endEditGesture(); }
+  _restore(op, dir) {
+    this.show = JSON.parse(dir === 'undo' ? op.show : op.redoShow);
+    if (this._companion && op.objects !== null) {
+      const objs = JSON.parse(dir === 'undo' ? op.objects : op.redoObjects);
+      this._companion.setObjects(objs);
+    }
+    this.changed();
+  }
   undo() {
     const op = this.undoStack.pop();
     if (!op) return false;
-    this.show = JSON.parse(op.show);
     this.redoStack.push(op);
-    this.changed();
+    this._restore(op, 'undo');
     return true;
   }
   redo() {
     const op = this.redoStack.pop();
     if (!op) return false;
-    this.show = JSON.parse(op.redo);
     this.undoStack.push(op);
-    this.changed();
+    this._restore(op, 'redo');
     return true;
   }
 
