@@ -2,10 +2,85 @@
 // Kinds: group, cube, sphere, cylinder, simple_figure, humanoid, camera, target, spotlight, prop.
 import * as THREE from 'three';
 import { C } from './const.js';
-import { buildSimpleFigure, applyHeadRotation, makeLabelSprite, buildHumanoidPlaceholder, prepareHumanoid, HumanoidRig } from './figures.js';
+import { buildSimpleFigure, setFigureColor, applyHeadRotation, makeLabelSprite, buildHumanoidPlaceholder, prepareHumanoid, HumanoidRig } from './figures.js';
 import { fovFromFocal } from './tracks.js';
+import {
+  makePrimitive, bigPrimitiveSwap, nameColor, glowsByName, GLOW_EMISSIVE_HEX, applySoftTerminator,
+} from './finish.js';
 
-const PRIMS = { cube: () => new THREE.BoxGeometry(1, 1, 1), sphere: () => new THREE.SphereGeometry(0.5, 32, 16), cylinder: () => new THREE.CylinderGeometry(0.5, 0.5, 1, 24) };
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3();
+
+// ---------- procedural prop builders (zqt — exact) ----------
+const WALL_H = 2.5, THICK = 0.15;   // vT, s2
+const boxSpec = specs => material => specs.map(s => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(...s.size), material);
+  m.position.set(...(s.at ?? [0, s.size[1] / 2, 0]));
+  return m;
+});                                     // WC
+const legs = ({ legX, legZ, height, thickness }) =>   // Uqt
+  [[legX, legZ], [legX, -legZ], [-legX, legZ], [-legX, -legZ]]
+    .map(([x, z]) => ({ size: [thickness, height, thickness], at: [x, height / 2, z] }));
+const cone = (material, radius, height, segs) => {   // tBe — flat-shaded cone
+  const g = new THREE.ConeGeometry(radius, height, segs).toNonIndexed();
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, material);
+  m.position.y = height / 2;
+  return m;
+};
+const PROC_BUILDERS = {
+  doorway: boxSpec([{ size: [THICK, 2.1, THICK], at: [-0.575, 1.05, 0] }, { size: [THICK, 2.1, THICK], at: [0.575, 1.05, 0] }, { size: [1.3, THICK, THICK], at: [0, 2.175, 0] }]),
+  stairs: boxSpec(Array.from({ length: 6 }, (_, i) => ({ size: [1.2, (i + 1) * 0.2, 0.3], at: [0, (i + 1) * 0.2 / 2, 0.75 - (i + 0.5) * 0.3] }))),
+  wall: boxSpec([{ size: [3, WALL_H, THICK] }]),
+  wall_corner: boxSpec([{ size: [1.5, WALL_H, THICK], at: [0.75 - THICK / 2, WALL_H / 2, 0] }, { size: [THICK, WALL_H, 1.5], at: [-THICK / 2, WALL_H / 2, 0.75] }]),
+  pillar: material => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, WALL_H, 16), material); m.position.y = WALL_H / 2; return [m]; },
+  table: boxSpec([{ size: [1.4, 0.06, 0.8], at: [0, 0.72 + 0.03, 0] }, ...legs({ legX: 0.64, legZ: 0.34, height: 0.72, thickness: 0.06 })]),
+  chair: boxSpec([{ size: [0.45, 0.05, 0.45], at: [0, 0.45, 0] }, { size: [0.45, 0.5, 0.05], at: [0, 0.45 + 0.25, 0.2] }, ...legs({ legX: 0.19, legZ: 0.19, height: 0.45, thickness: 0.04 })]),
+  mountain: material => [cone(material, 4, 6, 5)],
+  tree: material => {
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1.2, 6), material);
+    trunk.position.y = 0.6;
+    const crown = cone(material, 1.2, 3, 6);
+    crown.position.y = 1.2 + 1.5;
+    return [trunk, crown];
+  },
+  rock: material => {
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.6, 0), material);
+    m.scale.set(1, 0.65, 1);
+    const box = new THREE.Box3().setFromObject(m);
+    m.position.y = -box.min.y;
+    return [m];
+  },
+  plane: boxSpec([{ size: [2, 0.05, 2] }]),
+  pyramid: material => [cone(material, 0.85, 1.3, 4)],
+  capsule: material => { const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 12), material); m.position.y = 0.4 + 1 / 2; return [m]; },
+};
+// eat — gray wireframe dims box placeholder (base-anchored)
+const propPlaceholder = (dims = [0.8, 0.8, 0.8]) => {
+  const [w, h, d] = dims;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color: 0x888888, wireframe: true }));
+  m.position.y = h / 2;
+  return m;
+};
+// FNr — strip materials to ONE shared clay material; ONr — center XZ + feet minY
+const CLAY_COLOR = '#e2e0dc';   // pq
+const clayMaterial = () => new THREE.MeshStandardMaterial({ color: CLAY_COLOR, roughness: 1 });
+function applyClay(root) {
+  const mat = clayMaterial();
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    const m = o.material;
+    (Array.isArray(m) ? m : [m]).forEach(x => x.dispose());
+    o.material = mat;
+  });
+}
+function centerAndGround(root) {
+  const box = new THREE.Box3().setFromObject(root);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3());
+  root.position.x -= c.x; root.position.z -= c.z;
+  root.position.y -= box.min.y;
+}
 
 export class ObjectManager {
   constructor(scene, opts) {
@@ -61,8 +136,9 @@ export class ObjectManager {
     mesh.userData.kind = obj.kind;
     if (obj.kind === 'simple_figure') applyHeadRotation(mesh, obj.headRotation);
     if (obj.kind === 'humanoid' || obj.kind === 'simple_figure') this._updateLabel(id, obj);
-    if (obj.kind === 'camera') this._updateFrustum(mesh, obj);
+    if (obj.kind === 'camera') this._updateFrustum(mesh);   // basic; main.js tick refines w/ page focal + aim
     if (obj.kind === 'spotlight') this._updateSpotlight(mesh, obj);
+    this._applyGlowAndColor(mesh, obj);
     if (obj.kind === 'humanoid' && obj.animation) {
       const rig = this.humanoidRigs.get(id);
       if (rig && obj.animation.playing) rig.playClip(obj.animation.clip);
@@ -70,19 +146,51 @@ export class ObjectManager {
     this._hiPolySwap(mesh, obj);
   }
 
-  _hiPolySwap(mesh, obj) { // _Wr: primitives → more segments when max|scale| ≥ 24
+  _applyGlowAndColor(mesh, obj) {
+    // eKt glow flag (primitive lantern names) + emissive clear on un-glow (AWr.N port)
+    const glows = glowsByName(obj);
+    if (mesh.userData.glows && !glows && mesh.isMesh) {
+      for (const m of [mesh.material, mesh.userData.originalMaterial]) {
+        if (m) { m.emissive?.setHex(0); delete m.userData.glowAt; }
+      }
+    }
+    mesh.userData.glows = glows;
+    const primChild = mesh.children?.find(c => c.userData?.__prim);
+    if (primChild) primChild.userData.glows = glows;   // shadow walk reads it on the mesh
+    // A(): color = obj.color ?? Mje(obj); simple_figure → Kqt, group/spotlight skip, else T()
+    const color = obj.color ?? nameColor(obj);
+    if (obj.kind === 'simple_figure') setFigureColor(mesh, color);
+    else if (obj.kind !== 'group' && obj.kind !== 'spotlight') this._applyObjectColor(mesh, color);
+  }
+
+  _applyObjectColor(root, color) {   // T() port — subtree override material, soft-terminator aware
+    const prev = root.userData.colorOverride;
+    if (color === undefined || color === null) {
+      if (!prev) return;
+      root.traverse(o => {
+        if (o.isMesh && o.userData.originalMaterial) { o.material = o.userData.originalMaterial; delete o.userData.originalMaterial; }
+      });
+      prev.dispose();
+      delete root.userData.colorOverride;
+      return;
+    }
+    const mat = prev ?? new THREE.MeshStandardMaterial({ roughness: 1 });
+    if (!prev && root.userData.softTerminator) applySoftTerminator(mat);
+    mat.color.set(color);
+    root.userData.colorOverride = mat;
+    root.traverse(o => {
+      if (o.isMesh) {
+        if (!o.userData.originalMaterial) o.userData.originalMaterial = o.material;
+        o.material = mat;
+      }
+    });
+  }
+
+  _hiPolySwap(mesh, obj) { // _Wr: sphere/cylinder → more segments when max|scale| ≥ 24 (cube never)
     if (!['cube', 'sphere', 'cylinder'].includes(obj.kind)) return;
-    const big = Math.max(...(obj.scale ?? [1, 1, 1]).map(Math.abs)) >= 24;
-    if (mesh.userData.hiPoly === big) return;
-    mesh.userData.hiPoly = big;
-    const child = mesh.children.find(c => c.isMesh && c.userData.__prim);
+    const child = mesh.children.find(c => c.isMesh && c.userData.__prim) ?? (mesh.userData.__prim ? mesh : null);
     if (!child) return;
-    child.geometry.dispose();
-    child.geometry = big
-      ? (obj.kind === 'cube' ? new THREE.BoxGeometry(1, 1, 1, 4, 4, 4)
-        : obj.kind === 'sphere' ? new THREE.SphereGeometry(0.5, 48, 24)
-          : new THREE.CylinderGeometry(0.5, 0.5, 1, 48, 2))
-      : PRIMS[obj.kind]();
+    bigPrimitiveSwap(child, obj.scale ?? [1, 1, 1]);
   }
 
   _create(id, obj) {
@@ -92,11 +200,14 @@ export class ObjectManager {
     switch (obj.kind) {
       case 'group': break;   // invisible parent
       case 'cube': case 'sphere': case 'cylinder': {
-        const mesh = new THREE.Mesh(PRIMS[obj.kind](),
-          new THREE.MeshStandardMaterial({ color: 0xe2e0dc, roughness: 0.9 })); // pq default
+        const mesh = makePrimitive(obj.kind);          // wWr: clay + soft terminator (sphere/cylinder), base-anchored
         mesh.userData.__prim = true;
         mesh.castShadow = mesh.receiveShadow = true;
         g.add(mesh);
+        // live primitives ARE the mesh; our wrapper is a Group — mirror the flags the
+        // color-override / glow / shadow-walk code reads (softTerminator, primitiveKind)
+        g.userData.softTerminator = mesh.userData.softTerminator;
+        g.userData.primitiveKind = mesh.userData.primitiveKind;
         break;
       }
       case 'simple_figure': {
@@ -116,10 +227,12 @@ export class ObjectManager {
         break;
       }
       case 'target': {
-        const t = new THREE.Mesh(new THREE.OctahedronGeometry(0.12),
-          new THREE.MeshBasicMaterial({ color: 0xdd4466, wireframe: true, fog: false })); // B8r dye
-        t.userData.__marker = true;
-        g.add(t);
+        // YWt: torus(.3,.03) ring + sphere(.06), pink, semi-transparent, depthWrite off
+        const mat = new THREE.MeshStandardMaterial({ color: 0xdd4466, roughness: 0.5, transparent: true, opacity: 0.45, depthWrite: false });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.03, 8, 32), mat);
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), mat);
+        ring.userData.__marker = true;
+        g.add(ring, dot);
         break;
       }
       case 'spotlight': {
@@ -151,43 +264,59 @@ export class ObjectManager {
     } catch (e) { console.error('humanoid load failed', e); }
   }
 
-  // ---- camera object (GLB + frustum sub-object) ----
+  // ---- camera object (GLB mie-normalized + urt 16-point frustum) ----
   async _loadCameraGlb(group) {
     if (!this.cameraGlbPromise) this.cameraGlbPromise = this._loadGLB(C.CAMERA_GLB_URL);
     try {
       const gltf = await this.cameraGlbPromise;
       const model = gltf.scene.clone(true);
-      model.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+      // mie: scale so max dim = .55, yaw π, centre at origin
+      const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+      const m = Math.max(size.x, size.y, size.z);
+      if (m > 0) model.scale.multiplyScalar(0.55 / m);
+      model.rotation.y = Math.PI;
+      const box2 = new THREE.Box3().setFromObject(model);
+      model.position.sub(box2.getCenter(new THREE.Vector3()));
       group.add(model);
     } catch (e) {
-      // fallback: simple box cam
-      const box = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.18, 0.3),
-        new THREE.MeshStandardMaterial({ color: 0x444a55, roughness: .6 }));
-      group.add(box);
+      console.warn('camera GLB failed', e.message);
     }
   }
   _buildFrustum(group) {
-    // wireframe quad at −distance ("camera-frustum" sub-object), updated per focal/aspect
+    // $8r/urt: 16-point frustum wireframe ("camera-frustum" sub-object)
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(15), 3));
-    const lines = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x44aaff, fog: false }));
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(16 * 3), 3));
+    const lines = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x44ddaa, transparent: true, opacity: 0.7, fog: false })); // D8r teal
+    lines.name = 'camera-frustum';
     lines.userData.__frustum = true;
     lines.frustumCulled = false;
+    lines.raycast = () => {};
     group.add(lines);
   }
-  _updateFrustum(group, obj) {
+  _updateFrustum(group, opts = {}) {
+    // urt: 16-point frustum. fov/aspect from PAGE focal + recordAspect (BU), distance 3
+    // or max(dist-to-target, .6) when framing (yFr: framesMarkerNow && !meshDragged).
     const lines = group.children.find(c => c.userData.__frustum);
     if (!lines) return;
-    const focal = obj.focalLengthMm ?? C.FOCAL_DEFAULT;
-    const fovDeg = fovFromFocal(focal, 16 / 9);
-    const dist = C.MARKER_DISTANCE;
-    const hh = Math.tan(fovDeg / 2 * Math.PI / 180) * dist;
-    const hw = hh * 16 / 9;
+    const aspect = opts.aspect ?? 16 / 9;
+    const fovDeg = opts.fovDeg ?? 50;
+    let distance = opts.distance ?? C.MARKER_DISTANCE;  // DGr=3
+    if (opts.targetPos) {
+      const d = group.getWorldPosition(_v1).distanceTo(_v2.set(...opts.targetPos));
+      if (d < 1e-4) return;
+      distance = Math.max(d, 0.6);   // LGr
+      if (!opts.meshDragged) { group.lookAt(_v2); group.rotateY(Math.PI); }
+    }
+    const hh = Math.tan(fovDeg / 2 * Math.PI / 180) * distance;   // l2r
+    const hw = hh * aspect;
+    const z = -distance;
+    const corners = [[-hw, -hh, z], [hw, -hh, z], [hw, hh, z], [-hw, hh, z]];
+    const seq = [
+      [0, 0, 0], corners[0], [0, 0, 0], corners[1], [0, 0, 0], corners[2], [0, 0, 0], corners[3],
+      corners[0], corners[1], corners[1], corners[2], corners[2], corners[3], corners[3], corners[0],
+    ];
     const pos = lines.geometry.attributes.position;
-    // apex (camera origin local) → 4 corners at z = −dist
-    pos.setXYZ(0, 0, 0, 0);
-    pos.setXYZ(1, -hw, -hh, -dist); pos.setXYZ(2, hw, -hh, -dist); pos.setXYZ(3, hw, hh, -dist);
-    pos.setXYZ(4, -hw, hh, -dist); pos.setXYZ(5, -hw, -hh, -dist);
+    seq.forEach(([x, y, zz], i) => pos.setXYZ(i, x, y, zz));
     pos.needsUpdate = true;
     lines.geometry.computeBoundingSphere();
   }
@@ -252,37 +381,39 @@ export class ObjectManager {
     sp.lamp.scale.setScalar(1 / Math.max(1e-6, Math.max(...(obj.scale ?? [1, 1, 1]))));
   }
 
-  // ---- props ----
+  // ---- props (v/qqt/Wqt/eat — clay materials, catalog scale/yaw, grounded) ----
   _loadProp(group, obj) {
     const cat = this.propCatalog[obj.propKey];
-    if (!cat) return;
-    if (C.PROCEDURAL_PROPS.includes(obj.propKey)) {
-      // 13 GLB-less procedural props (per prop_manifest diff) — dims-based stand-ins [A:F21]
-      const m = new THREE.Mesh(new THREE.BoxGeometry(...(cat.dims ?? [1, 1, 1])),
-        new THREE.MeshStandardMaterial({ color: 0xe2e0dc, roughness: .9 }));
-      m.position.y = 0;
-      m.castShadow = m.receiveShadow = true;
-      const wrapper = new THREE.Group();
-      wrapper.add(m);
-      wrapper.rotation.y = (cat.yawDeg ?? 0) * Math.PI / 180;
-      group.add(wrapper);
+    const builder = PROC_BUILDERS[obj.propKey];
+    if (builder) {
+      // procedural props (zqt): exact builders, clay material
+      const mat = new THREE.MeshStandardMaterial({ color: CLAY_COLOR, roughness: 1 });
+      for (const m of builder(mat)) group.add(m);
+      group.userData.propBuilt = true;
+      return;
+    }
+    if (!cat || !cat.category) {
+      group.add(propPlaceholder());      // eat() — unknown prop
       return;
     }
     const url = C.PROP_GLB_DIR + cat.category + '/' + obj.propKey + '.glb';
     const holder = new THREE.Group();
-    holder.userData.__propHolder = true;
+    const ph = propPlaceholder(cat.dims);
+    holder.add(ph);
     group.add(holder);
     this._loadGLB(url).then(gltf => {
       if (!group.userData || group.userData.propKey !== obj.propKey) return;
       const model = gltf.scene.clone(true);
-      model.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-      // catalog scale (Uh scale ?? 1) + yaw on a wrapper group (never baked)
+      model.traverse(o => { if (o.isMesh) o.geometry = o.geometry.clone(); });
+      applyClay(model);                   // FNr — ONE shared clay material (roughness 1)
       const s = cat.scale ?? 1;
-      model.scale.setScalar(s);
-      const wrapper = new THREE.Group();
-      wrapper.add(model);
-      wrapper.rotation.y = (cat.yawDeg ?? 0) * Math.PI / 180;
-      holder.add(wrapper);
+      if (s !== 1) model.scale.multiplyScalar(s);
+      const yaw = cat.yawDeg ?? 0;
+      if (yaw !== 0) model.rotateY(yaw * Math.PI / 180);
+      centerAndGround(model);             // ONr — XZ-centre + feet minY
+      holder.remove(ph);
+      ph.geometry.dispose(); ph.material.dispose();
+      holder.add(model);
     }).catch(e => console.warn('prop load failed', obj.propKey, e.message));
   }
 

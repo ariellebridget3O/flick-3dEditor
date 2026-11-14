@@ -97,14 +97,21 @@ export function makeLabelSprite(name) {
 }
 
 // ---------- humanoid pipeline ($Nr/Hhe) ----------
-// placeholder while GLB loads (u5r-equivalent, approximate)
+// placeholder while GLB loads (u5r — exact)
 export function buildHumanoidPlaceholder() {
+  // u5r — exact: capsule body/head + 4 limb capsules, orange (Phe), roughness 1
   const g = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ color: FIG_DEFAULT_FILL, roughness: 1 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.9, 4, 8).translate(0, 0.95, 0), mat);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8).translate(0, 1.62, 0), mat);
-  g.add(body, head);
-  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.18, 0.5, 4, 12), mat);
+  body.position.y = 1.15;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), mat);
+  head.position.y = 1.62;
+  const limb = (r, len) => new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 8), mat);
+  const armL = limb(0.055, 0.55); armL.position.set(-0.27, 1.15, 0);
+  const armR = limb(0.055, 0.55); armR.position.set(0.27, 1.15, 0);
+  const legL = limb(0.07, 0.65); legL.position.set(-0.1, 0.42, 0);
+  const legR = limb(0.07, 0.65); legR.position.set(0.1, 0.42, 0);
+  g.add(body, head, armL, armR, legL, legR);
   return g;
 }
 

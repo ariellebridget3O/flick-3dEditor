@@ -18,8 +18,15 @@ import { headLookOffsets, applyHeadRotation, getHeadRotation } from './figures.j
 import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
 import { buildUI } from './ui.js';
+import {
+  patchSoftTerminator, createFinishComposer, finishCapable,
+  readFinishPref, writeFinishPref, measureFinish, validMeasurementSize,
+  createAutoMeasureScheduler,
+} from './finish.js';
+import { strokeRing } from './stroke.js';
 
 const PLANNING_LAYER = 1;   // aye
+const _bufSize = new THREE.Vector2();
 
 export class App {
   constructor(container, opts = {}) {
@@ -38,6 +45,7 @@ export class App {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;          // t$=1 (PCFSoft deprecated in r182)
+    this.renderer.shadowMap.autoUpdate = false;                // AOr: redraw on fingerprint change only
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(container.clientWidth, container.clientHeight, false);
     container.appendChild(this.renderer.domElement);
@@ -51,6 +59,28 @@ export class App {
     this.planningAids = [];      // objects rendered on layer-1 overlay pass
     this.pathEditPickables = [];
     this.rigJointPickables = [];
+
+    // ---- Finish composer (hKt) + stroke ring (pGr part) ----
+    patchSoftTerminator();      // ShaderChunk patch (module-load equivalent)
+    this.finish = createFinishComposer(this.renderer);
+    this.finishPref = readFinishPref();
+    this.finishNeedsMeasuring = this.finishPref === null;
+    // ?finish=0|1 → manual override (persisted, mirrors a hypothetical settings toggle;
+    // the live app has no visible toggle — localStorage + auto-measure only)
+    const urlFinish = new URLSearchParams(location.search).get('finish');
+    if (urlFinish === '0' || urlFinish === '1') {
+      this.finishPref = { enabled: urlFinish === '1', source: 'manual' };
+      writeFinishPref(this.finishPref);
+      this.finishNeedsMeasuring = false;
+    }
+    this._finishScheduler = createAutoMeasureScheduler();
+    this._frameCount = 0;
+    this._pointerHeld = false;
+    this._lastWheel = -Infinity;
+    for (const t of ['pointerdown', 'pointerup', 'dragend'])
+      window.addEventListener(t, e => { this._pointerHeld = e.type === 'pointerdown'; }, true);
+    window.addEventListener('wheel', () => { this._lastWheel = performance.now(); }, { capture: true, passive: true });
+    this.stroke = strokeRing(this.renderer, this.scene, () => this.finishOn());   // strokeEnabled = m (same predicate as finish)
 
     // ---- environment (Dqr/wOr) ----
     this.env = createEnvironment(this.scene, { renderer: this.renderer, getMeshById: () => this.objectManager.meshById });
@@ -420,6 +450,7 @@ export class App {
   updateCameraMarkers() {
     const layout = this.layout();
     const resolvers = this.resolvers();
+    const activeByCam = new Map();   // cameraId → { targetPos } (framesMarkerNow ≈ xq)
     for (const track of layout.tracks) {
       const obj = this.objects.get(track.characterId);
       if (!obj || obj.kind !== 'camera') continue;
@@ -437,6 +468,29 @@ export class App {
       });
       // drive marker: while item active, show aim pose (position + quaternion) on the wrapper
       mesh.userData.evalPose = any ? out : null;
+      if (any && obj.targetId) {
+        const t = this.meshById.get(obj.targetId);
+        if (t) activeByCam.set(track.characterId, { targetPos: t.getWorldPosition(new THREE.Vector3()).toArray() });
+      }
+    }
+    // UGr.v(): every camera marker — frustum at PAGE focal + record aspect (BU), aim at
+    // target + distance = max(dist, .6) when framing (yFr), distance 3 otherwise.
+    const [rw, rh] = C.ASPECTS[this.page.recordAspect] ?? C.ASPECTS['16:9'];
+    const aspect = rw / rh;
+    const fovDeg = fovFromFocal(this.page.focalLengthMm ?? C.FOCAL_DEFAULT, aspect);
+    for (const [id, obj] of Object.entries(this.objects.all())) {
+      if (obj.kind !== 'camera') continue;
+      const mesh = this.meshById.get(id);
+      if (!mesh) continue;
+      const active = activeByCam.get(id);
+      if (!active) {
+        this.objectManager._updateFrustum(mesh, { aspect, fovDeg });
+      } else {
+        this.objectManager._updateFrustum(mesh, {
+          aspect, fovDeg, targetPos: active.targetPos,
+          meshDragged: !!this.manipulator?.isMeshDragged?.(id),
+        });
+      }
     }
   }
 
@@ -474,12 +528,12 @@ export class App {
     this._navTick(dt);
     // 5. env
     this.env.applyDaylight(this.light);
-    // 6. camera markers
+    // 6. camera markers (UGr.v-equivalent: page focal + record aspect + target aim)
     this.updateCameraMarkers();
     // 7. bounds + fog/near/far
     this.fogNearFar.tick(now);
-    // 8. spotlights already updated in sync; 9. shadow fit
-    this.shadowFit.tick();
+    // 8. spotlights already updated in sync; 9. shadow fit (AOr: redraw only on fingerprint change)
+    this.shadowFit.tickAOr(this.renderer);
     // 10. path editor visuals
     this.pathEditor.tick();
     // 11. selection tick LAST
@@ -487,22 +541,91 @@ export class App {
     this.hover.tick(this.hoverPoint, this.hoverNormal, this.camera, this.container.clientHeight, dt * 1000,
       !this.page.playing && !this.manipulator?.dragging);
 
-    // --- render passes ---
-    this.renderer.autoClear = true;
-    this.camera.layers.set(0);
-    this.renderer.render(this.scene, this.camera);
-    // planning-aids overlay pass (layer 1, no clear color, clear depth)
-    const aids = [...this.planningAids, ...this._collectLines()];
-    if (aids.length) {
-      for (const a of aids) a.layers?.enable?.(PLANNING_LAYER);
-      this.renderer.autoClear = false;
-      this.renderer.clearDepth();
-      this.camera.layers.set(PLANNING_LAYER);
-      this.renderer.render(this.scene, this.camera);
-      for (const a of aids) a.layers?.disable?.(PLANNING_LAYER);
-      this.renderer.autoClear = true;
+    // --- render passes (re/ae port) ---
+    this.renderFrame();
+  }
+
+  finishOn() {   // m(): capability && pref
+    return finishCapable(this.renderer) && !!this.finishPref?.enabled;
+  }
+
+  renderFrame() {
+    const size = this.renderer.getDrawingBufferSize(_bufSize);
+    if (size.x === 0 || size.y === 0) return;
+    const finishOn = this.finishOn();
+    if (!finishOn) this.finish.release();
+    if (finishOn) this.finish.render(this.scene, this.camera);
+    else this.renderer.render(this.scene, this.camera);
+    this._autoMeasure();
+    this.drawOverlays();
+  }
+
+  drawOverlays() {   // ae(): stroke ring THEN planning aids — both depth-test against scene depth
+    this.stroke.drawStroke(this.camera, () => this.editView(),
+      this.objects.selectedIds ?? [], this.hoverId, this.meshById);
+    this.renderPlanningAids();
+  }
+
+  editView() { return this.page.mode === 'edit'; }   // isEditView (C) — stroke/footprints gate
+
+  // Q(): auto-measure after 30 frames, retries every 300 up to 2, skipped while interacting
+  _autoMeasure() {
+    this._frameCount++;
+    if (!this._finishScheduler.frame() || !this.finishNeedsMeasuring) return;
+    if (this.renderer.getContext().isContextLost()) return;
+    if (!finishCapable(this.renderer)) {
+      this._onFinishMeasured(false, { costMs: 0, plainMs: 0, pixels: 0 });
+      return;
     }
+    if (this.page.playing || this._pointerHeld || performance.now() - this._lastWheel < 500) return;
+    const gl = this.renderer.getContext();
+    const w = this.renderer.domElement.width, h = this.renderer.domElement.height;
+    const pixels = w * h;
+    if (!validMeasurementSize(pixels)) return;
+    const px = new Uint8Array(4);
+    const aidsHidden = this._hidePlanningAids();
+    let m;
+    try {
+      m = measureFinish({
+        drawPlain: () => { this.renderer.setRenderTarget(null); this.renderer.render(this.scene, this.camera); },
+        drawFinished: () => this.finish.render(this.scene, this.camera),
+        finishGpu: () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px),
+        pixels,
+      });
+    } finally { aidsHidden(); }
+    const result = this._finishScheduler.report(m);
+    if (result !== null) this._onFinishMeasured(result, m);
+  }
+
+  _onFinishMeasured(enabled, measurement) {
+    this.finishNeedsMeasuring = false;
+    this.finishPref = { enabled, source: 'auto' };
+    writeFinishPref(this.finishPref);
+    this.finishMeasurement = measurement;
+  }
+
+  _hidePlanningAids() {   // Ew: hide visible planning aids, return restore fn
+    const hidden = [];
+    for (const gen of this.planningAids) {
+      const objs = typeof gen === 'function' ? gen() : [gen];
+      for (const o of objs || []) {
+        if (o && o.visible) { o.visible = false; hidden.push(o); }
+      }
+    }
+    return () => { for (const o of hidden) o.visible = true; };
+  }
+
+  renderPlanningAids() {   // EOr: layer-1 pass, autoClear=false, NO depth clear (aids occlude behind scene geometry)
+    const aids = [...this.planningAids, ...this._collectLines()];
+    if (!aids.length) return;
+    for (const a of aids) a.layers?.enable?.(PLANNING_LAYER);
+    const prevAuto = this.renderer.autoClear;
+    this.renderer.autoClear = false;
+    this.camera.layers.set(PLANNING_LAYER);
+    this.renderer.render(this.scene, this.camera);
     this.camera.layers.set(0);
+    for (const a of aids) a.layers?.disable?.(PLANNING_LAYER);
+    this.renderer.autoClear = prevAuto;
   }
 
   _collectLines() {

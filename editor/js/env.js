@@ -320,5 +320,9 @@ export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, m
   return {
     tick() { if (dirty) { dirty = false; fit(); return true; } return false; },
     force() { dirty = true; },
+    // AOr: fingerprint change → shadow map redraw (autoUpdate stays false)
+    tickAOr(renderer) {
+      if (this.tick()) renderer.shadowMap.needsUpdate = true;
+    },
   };
 }
