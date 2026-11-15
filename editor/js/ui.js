@@ -7,6 +7,7 @@ import { normalizeLight } from './env.js';
 import { itemDuration } from './schema.js';
 import { showLayout, ITEM_LABELS, fovFromFocal } from './tracks.js';
 import { MAGNET_PX, maxEnd, placeAvoiding, repackSequential, planMove, moveItemToIndex, clampKeyTime, canDuplicateOnto } from './place.js';
+import { stickFromDelta } from './navball.js';
 
 const $ = id => document.getElementById(id);
 
@@ -106,6 +107,8 @@ export function buildUI(app) {
   // timeline (build first — initializes app._tl used by refreshTimeline)
   buildTimeline(app);
   refreshTimeline(app);
+
+  buildViewportOverlays(app);
 
   // per-frame UI updates
   let lastPlayhead = -1;
@@ -1023,6 +1026,43 @@ const fmtClock = t => {
   return m === 0 ? s.toFixed(2) : `${m}:${s.toFixed(2).padStart(5, '0')}`;
 };
 
+
+// ================= viewport overlays: lasso + nav ball =================
+function buildViewportOverlays(app) {
+  // ---- lasso button + rect box (live rightToolbar/lassoBox) ----
+  const lassoBtn = document.getElementById('btnLasso');
+  const lassoBox = document.getElementById('lassoBox');
+  lassoBtn.onclick = () => app.page.toggleLasso();
+  app.page.subscribe(() => {
+    const active = app.page.editInteraction === 'lasso';
+    lassoBtn.classList.toggle('on', active);
+    lassoBtn.setAttribute('aria-pressed', String(active));
+    const r = app.page.lassoRect;
+    if (active && r && r.w > 0 && r.h > 0) {
+      lassoBox.style.display = 'block';
+      lassoBox.style.left = `${r.x}px`; lassoBox.style.top = `${r.y}px`;
+      lassoBox.style.width = `${r.w}px`; lassoBox.style.height = `${r.h}px`;
+    } else {
+      lassoBox.style.display = 'none';
+    }
+  });
+
+  // ---- nav ball pad drag (RXr port): pointer delta → stick → page.navBallVector ----
+  const pad = document.getElementById('navBallPad');
+  let drag = null;
+  const drive = (x, y) => { if (drag) app.page.setNavBallVector(stickFromDelta(x - drag.x, y - drag.y, drag.radiusPx)); };
+  const end = () => { if (drag) { drag = null; app.page.setNavBallVector(null); } };
+  window.addEventListener('blur', end);
+  pad.addEventListener('pointerdown', e => {
+    const r = pad.getBoundingClientRect();
+    drag = { x: r.left + r.width / 2, y: r.top + r.height / 2, radiusPx: r.width / 2 };
+    try { pad.setPointerCapture(e.pointerId); } catch (_) {}
+    drive(e.clientX, e.clientY);
+  });
+  pad.addEventListener('pointermove', e => drive(e.clientX, e.clientY));
+  pad.addEventListener('pointerup', end);
+  pad.addEventListener('pointercancel', end);
+}
 
 // ================= prop picker =================
 let propCat = null;

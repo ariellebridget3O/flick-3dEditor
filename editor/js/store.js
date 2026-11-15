@@ -410,10 +410,17 @@ export class PageStore extends StoreBase {
     this.playStartPerfT = 0;             // performance.now() at play start
     this.playStartS = 0;
     this.paint = null;                   // {trackId, itemId, selectedAnchor} while path painting
-    this.selectedSegment = null;         // {trackId, itemId} for timeline block selection
+    this.selectedSegment = null;         // {trackId, itemId[, tS]} for timeline block/keyframe selection
     this.keyboardOwner = 'stage';
     this.finishEnabled = false;
+    this.editInteraction = 'idle';      // idle | editingPath | lasso
+    this.lassoRect = null;              // {x,y,w,h} canvas-relative px while lasso-dragging
+    this.navBallVector = null;          // {forward, strafe} -1..1 while dragging the nav ball
   }
+  toggleLasso() { this.editInteraction = this.editInteraction === 'lasso' ? 'idle' : 'lasso'; this.changed(); }
+  setEditInteraction(v) { this.editInteraction = v; this.changed(); }
+  setLassoRect(r) { this.lassoRect = r; this.changed(); }
+  setNavBallVector(v) { this.navBallVector = v; }   // high-frequency: no change event (consumed per-frame)
   seek(s) { this.playheadS = s; this.changed(); }
   play() {
     if (this.playing) return;

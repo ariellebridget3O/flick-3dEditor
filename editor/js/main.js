@@ -25,6 +25,7 @@ import {
   createAutoMeasureScheduler,
 } from './finish.js';
 import { strokeRing } from './stroke.js';
+import { createNavBall } from './navball.js';
 
 const PLANNING_LAYER = 1;   // aye
 const _bufSize = new THREE.Vector2();
@@ -82,6 +83,7 @@ export class App {
       window.addEventListener(t, e => { this._pointerHeld = e.type === 'pointerdown'; }, true);
     window.addEventListener('wheel', () => { this._lastWheel = performance.now(); }, { capture: true, passive: true });
     this.stroke = strokeRing(this.renderer, this.scene, () => this.finishOn());   // strokeEnabled = m (same predicate as finish)
+    this.navBall = createNavBall({ renderer: this.renderer, camera: this.camera, page: this.page, getOrbit: () => this.orbit, keys: () => this._keys });
 
     // ---- environment (Dqr/wOr) ----
     this.env = createEnvironment(this.scene, { renderer: this.renderer, getMeshById: () => this.objectManager.meshById });
@@ -643,6 +645,9 @@ export class App {
     this.hover.tick(this.hoverPoint, this.hoverNormal, this.camera, this.container.clientHeight, dt * 1000,
       !this.page.playing && !this.manipulator?.dragging);
 
+    // 12. nav ball roll (lZr.tick) — after selection so camera state is final
+    this.navBall?.tick(dt);
+
     // --- render passes (re/ae port) ---
     this.renderFrame();
   }
@@ -666,6 +671,7 @@ export class App {
     this.stroke.drawStroke(this.camera, () => this.editView(),
       this.objects.selectedIds ?? [], this.hoverId, this.meshById);
     this.renderPlanningAids();
+    this.navBall?.render();   // lZr.S(): scissored pad w/ blurred backdrop + ball
   }
 
   editView() { return this.page.mode === 'edit'; }   // isEditView (C) — stroke/footprints gate
@@ -737,6 +743,7 @@ export class App {
   }
 
   _navTick(dt) {
+    this.navBall?.driveTick(dt);   // Ye: nav ball pad drag drives the camera
     // orbit
     if (this.orbit.enabled) this.orbit.update();
     // camera floor clamp + polar recompute
