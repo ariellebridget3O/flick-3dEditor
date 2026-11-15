@@ -240,7 +240,7 @@ export function createFogNearFar({ getMeshes, camera, scene, renderer }) {
 
 // ---------- shadow fingerprint + fit (TOr/kOr/Bat) ----------
 export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, meshById }) {
-  let buf = new Float64Array(4096), n = 0, dirty = true;
+  let buf = new Float64Array(4096), n = 0, dirty = true, lastN = -1;
   const push = v => {
     if (n === buf.length) { const b = new Float64Array(buf.length * 2); b.set(buf); buf = b; }
     if (buf[n] !== v) { buf[n] = v; dirty = true; }
@@ -319,13 +319,29 @@ export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, m
       sun.shadow.normalBias = normalBias;
       cam.updateProjectionMatrix();
     }
+    // TOr tail: fingerprint the sun fit itself, then report changed = dirty || count-changed.
+    // NOTE (live parity): the WALK RUNS EVERY CALL — `dirty` only means "values changed since
+    // last walk", never "walk pending". Gating the walk behind dirty (our old bug) meant scene
+    // changes were never detected at all after the first steady frame — shadows never updated.
+    push(sun.position.x); push(sun.position.z); push(w); push(far);
+    const changed = dirty || n !== lastN;
+    dirty = false; lastN = n;
+    return changed;
   }
   return {
-    tick() { if (dirty) { dirty = false; fit(); return true; } return false; },
-    force() { dirty = true; },
-    // AOr: fingerprint change → shadow map redraw (autoUpdate stays false)
+    tick() { return fit(); },          // walk + fit EVERY frame (live TOr closure)
+    force() { dirty = true; },         // next tick reports changed (bump AOr generation)
+    // AOr: generation bump on change → renderer.shadowMap.needsUpdate (+ context-restored)
     tickAOr(renderer) {
-      if (this.tick()) renderer.shadowMap.needsUpdate = true;
+      if (this.tick()) this._gen = (this._gen ?? 0) + 1;
+      if (this._aorGen?.get(renderer) !== this._gen) {
+        if (!this._aorGen) {
+          this._aorGen = new WeakMap();
+          renderer.domElement.addEventListener('webglcontextrestored', () => this._aorGen.delete(renderer));
+        }
+        this._aorGen.set(renderer, this._gen);
+        renderer.shadowMap.needsUpdate = true;
+      }
     },
   };
 }

@@ -139,7 +139,7 @@ export function prepareHumanoid(gltfScene) {
   return root;
 }
 
-// default pose: idle clip at t=0 ($Nr)
+// default pose at rest: b() with the object's animation record ($Nr: idle@0, paused)
 export function poseHumanoidDefault(mixer, clips) {
   const idle = clips.find(c => c.name === 'idle');
   if (!idle) return;
@@ -148,64 +148,80 @@ export function poseHumanoidDefault(mixer, clips) {
   mixer.update(0);
 }
 
-// humanoid rig: mixer + crossfading actions + per-frame clipLocal restore + rig offsets
+// humanoid rig — EXACT port of the live AWr rig manager per-rig state:
+//   l() ctor: eager action per clip, bones map, EMPTY dynamic clipLocal
+//   b() applyClip: clip switching (prev fadeOut Sot, next reset().fadeIn(prev?Sot:0).play()),
+//      then paused/time semantics: playback-with-time → paused + wrapped time;
+//      playback-no-time → unpaused (mixer advances freely, wall-clock);
+//      rest → paused = !animation.playing, time=0 when not playing.
+//   tick: m() restore offset-bearing bones to last pre-offset pose → mixer.update →
+//      g() re-snapshot those bones and apply offsets ADDITIVELY (aKt) on the current pose.
+// clipLocal is NOT a bind snapshot (that design caused the T-pose flicker: three's
+// PropertyMixer change-detection skips writes when the sampled pose is static, so a
+// bind-restore leaves the bone at bind = T-pose for those frames).
+const _aKtE = new THREE.Euler(), _aKtQ = new THREE.Quaternion();
 export class HumanoidRig {
   constructor(root, clips) {
     this.root = root;
     this.mixer = new THREE.AnimationMixer(root);
-    this.clips = clips;
-    this.actions = new Map();
-    this.currentName = null;
-    this.rigOffsets = null;          // characterId-keyed elsewhere; here: joints map to apply post-clip
+    this.actions = new Map();          // l(): eager — one action per clip
+    for (const c of clips) this.actions.set(c.name, this.mixer.clipAction(c));
+    this.currentClip = null;
     this.bones = new Map();
     root.traverse(o => { if (o.isBone) this.bones.set(o.name, o); });
-    // snapshot clipLocal (bind pose) for restore-before-update
-    this.clipLocal = new Map();
-    for (const b of this.bones.values()) {
-      this.clipLocal.set(b, { pos: b.position.clone(), quat: b.quaternion.clone(), scale: b.scale.clone() });
+    this.clipLocal = new Map();        // name → {position,quaternion,scale} — dynamic, per-frame
+  }
+  dispose() {                          // c(): stopAllAction + uncacheRoot
+    this.mixer.stopAllAction();
+    this.mixer.uncacheRoot(this.mixer.getRoot());
+  }
+  // b(): playback = {clip, timeS|null} | null; animation = object record .animation | null
+  applyClip(playback, animation) {
+    const name = playback?.clip ?? animation?.clip;
+    if (name === undefined) return;
+    if (this.currentClip !== name) {
+      const next = this.actions.get(name);
+      if (!next) return;               // live: `continue` — unknown clip is a no-op
+      const prev = this.currentClip ? this.actions.get(this.currentClip) : undefined;
+      if (prev) prev.fadeOut(C.CROSSFADE_S);                       // Sot = .25
+      next.reset().fadeIn(prev ? C.CROSSFADE_S : 0).play();
+      this.currentClip = name;
+    }
+    const action = this.actions.get(name);
+    if (!action) return;
+    if (playback && playback.timeS !== null && playback.timeS !== undefined) {
+      const dur = action.getClip().duration;
+      action.paused = true;
+      action.time = dur > 0 ? ((playback.timeS % dur) + dur) % dur : 0;
+    } else if (playback) action.paused = false;
+    else {
+      action.paused = !animation?.playing;
+      if (!animation?.playing) action.time = 0;
     }
   }
-  playClip(clipName, timeS = null) {
-    if (clipName === this.currentName && timeS === null) return;
-    let action = this.actions.get(clipName);
-    if (!action) {
-      const clip = this.clips.find(c => c.name === clipName);
-      if (!clip) return;
-      action = this.mixer.clipAction(clip);
-      this.actions.set(clipName, action);
-    }
-    if (this.currentName !== clipName) {
-      action.reset();
-      action.play();
-      const prev = this.actions.get(this.currentName);
-      if (prev) prev.crossFadeTo(action, C.CROSSFADE_S, false);   // Sot = .25 s
-      this.currentName = clipName;
-    }
-    if (timeS !== null && timeS !== undefined) {
-      const dur = action.getClip().duration || 1;
-      action.time = timeS % dur;      // wall-clock wrap — no retiming
-    }
-  }
-  applyRigOffsets(joints) { // aKt: additive local offsets applied AFTER mixer.update
-    for (const [name, j] of Object.entries(joints ?? {})) {
-      const b = this.bones.get(name);
-      if (!b) continue;
-      const cl = this.clipLocal.get(b);
-      b.position.set(cl.pos.x + (j.position?.[0] ?? 0), cl.pos.y + (j.position?.[1] ?? 0), cl.pos.z + (j.position?.[2] ?? 0));
-      const e = new THREE.Euler(j.rotation?.[0] ?? 0, j.rotation?.[1] ?? 0, j.rotation?.[2] ?? 0);
-      b.quaternion.copy(cl.quat).multiply(new THREE.Quaternion().setFromEuler(e));
-      b.scale.set(cl.scale.x * (j.scale?.[0] ?? 1), cl.scale.y * (j.scale?.[1] ?? 1), cl.scale.z * (j.scale?.[2] ?? 1));
-    }
-  }
-  restoreClipLocal() { // restore bones to pre-mixer snapshot before mixer.update (avoid drift)
-    for (const [b, cl] of this.clipLocal) {
-      b.position.copy(cl.pos); b.quaternion.copy(cl.quat); b.scale.copy(cl.scale);
-    }
+  // SWr(): hard-finish fades — every action stopFading, enabled = (name === current)
+  finishFades() {
+    for (const [n, a] of this.actions) { a.stopFading(); a.enabled = n === this.currentClip; }
   }
   tick(dt, rigOffsets) {
-    this.restoreClipLocal();
+    // m(): restore offset-bearing bones to their last pre-offset (mixer) pose
+    for (const [name, cl] of this.clipLocal) {
+      const b = this.bones.get(name);
+      if (b) { b.position.copy(cl.position); b.quaternion.copy(cl.quaternion); b.scale.copy(cl.scale); }
+    }
     this.mixer.update(dt);
-    if (rigOffsets) this.applyRigOffsets(rigOffsets);
+    // g(): clear, re-snapshot CURRENT locals for offset joints, then apply aKt additively
+    this.clipLocal.clear();
+    if (rigOffsets) {
+      for (const [name, j] of Object.entries(rigOffsets)) {
+        const b = this.bones.get(name);
+        if (!b) continue;
+        this.clipLocal.set(name, { position: b.position.clone(), quaternion: b.quaternion.clone(), scale: b.scale.clone() });
+        b.position.x += j.position?.[0] ?? 0; b.position.y += j.position?.[1] ?? 0; b.position.z += j.position?.[2] ?? 0;
+        b.quaternion.multiply(_aKtQ.setFromEuler(_aKtE.set(j.rotation?.[0] ?? 0, j.rotation?.[1] ?? 0, j.rotation?.[2] ?? 0)));
+        b.scale.x *= j.scale?.[0] ?? 1; b.scale.y *= j.scale?.[1] ?? 1; b.scale.z *= j.scale?.[2] ?? 1;
+      }
+    }
   }
 }
 

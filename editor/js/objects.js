@@ -82,7 +82,18 @@ function centerAndGround(root) {
   root.position.y -= box.min.y;
 }
 
+// spotlight beam geometries (Mat/Nat): round cone 40-seg, square pyramid 4-seg rotated π/4
+function _spotBeamGeo(segments, yaw) {
+  const g = new THREE.ConeGeometry(1, 1, segments, 1, true);
+  g.rotateY(yaw);
+  g.translate(0, -0.5, 0);
+  g.rotateX(Math.PI / 2);
+  return g;
+}
+const SPOT_BEAM_GEO = { round: _spotBeamGeo(40, 0), square: _spotBeamGeo(4, Math.PI / 4) };
+
 export class ObjectManager {
+  static _cookieCache = new Map();   // Iat: iOr cookie cache (shape:diffusionBucket → DataTexture)
   constructor(scene, opts) {
     this.scene = scene;
     this.meshById = new Map();
@@ -96,6 +107,15 @@ export class ObjectManager {
     this.cameraGlbPromise = null;
     this.spotGlbPromise = null;
     this.onRigReady = opts.onRigReady ?? (() => {});
+    // spotlight tick (oOr): scene-level beam group + shadow-slot budget from GPU caps
+    this.gpu = opts.gpu ?? null;                         // renderer.capabilities
+    this.spotBeamGroup = new THREE.Group();
+    this.scene.add(this.spotBeamGroup);
+    this._spotBeams = new Map();                          // group → beam mesh
+    this._spotSeen = new Set();
+    this.spotShadowSlots = this.gpu                       // e6r(gpu)
+      ? Math.max(0, Math.min(Math.floor((this.gpu.maxTextures - 4) / 2), this.gpu.maxVaryings - 8))
+      : 0;
   }
 
   roots() { return [...this.meshById.values()].filter(m => !m.userData.__childOf); }
@@ -137,11 +157,10 @@ export class ObjectManager {
     if (obj.kind === 'simple_figure') applyHeadRotation(mesh, obj.headRotation);
     if (obj.kind === 'humanoid' || obj.kind === 'simple_figure') this._updateLabel(id, obj);
     if (obj.kind === 'camera') this._updateFrustum(mesh);   // basic; main.js tick refines w/ page focal + aim
-    if (obj.kind === 'spotlight') this._updateSpotlight(mesh, obj);
     this._applyGlowAndColor(mesh, obj);
     if (obj.kind === 'humanoid' && obj.animation) {
       const rig = this.humanoidRigs.get(id);
-      if (rig && obj.animation.playing) rig.playClip(obj.animation.clip);
+      if (rig) rig.applyClip(null, obj.animation);   // b() — applies even at rest
     }
     this._hiPolySwap(mesh, obj);
   }
@@ -323,7 +342,7 @@ export class ObjectManager {
     lines.geometry.computeBoundingSphere();
   }
 
-  // ---- spotlight (sOr + oOr) ----
+  // ---- spotlight (sOr + oOr + iOr — EXACT) ----
   _buildSpotlight(group, obj) {
     const light = new THREE.SpotLight(0xffffff, 0, 0, this._beamAngle(obj.scale), 0, C.SPOT_DECAY);
     light.position.set(0, 0, 0);
@@ -334,18 +353,12 @@ export class ObjectManager {
     light.shadow.bias = C.SPOT_BIAS;
     light.shadow.normalBias = C.SPOT_NORMALBIAS;
     group.add(light, light.target);
-    // lamp: GLB or fallback cylinder
+    // lamp: GLB or fallback cylinder (beams are managed by spotTick in a scene-level group)
     const lampHolder = new THREE.Group();
     lampHolder.userData.__lamp = true;
     group.add(lampHolder);
     this._loadSpotGlb(lampHolder);
-    // beam cone (planning aid)
-    const beam = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 40, 1, true).rotateX(-Math.PI / 2).translate(0, 0, -0.5),
-      new THREE.MeshBasicMaterial({ color: C.SPOT_BEAM_COLOR, transparent: true, opacity: 0.05, depthWrite: false, side: THREE.DoubleSide, fog: false, blending: THREE.AdditiveBlending }));
-    beam.userData.__beam = true;
-    beam.visible = false;
-    group.add(beam);
-    group.userData.spotlight = { light, lamp: lampHolder, beam };
+    group.userData.spotlight = { light, lamp: lampHolder };
   }
   async _loadSpotGlb(holder) {
     if (!this.spotGlbPromise) this.spotGlbPromise = this._loadGLB(C.SPOTLIGHT_GLB_URL);
@@ -360,27 +373,94 @@ export class ObjectManager {
       holder.add(lamp);
     }
   }
-  _beamAngle(scale) { // Rhe: clamp(avg(|scale|)·16°, 3°, 55°)
+  _beamAngle(scale) { // Rhe: clamp(avg(|scale|)·16°, 3°, 55°) — DEGREES FIRST, then radians
     const s = (Math.abs(scale?.[0] ?? 1) + Math.abs(scale?.[1] ?? 1) + Math.abs(scale?.[2] ?? 1)) / 3;
-    return Math.min(C.FRUSTUM_ANGLE_MAX, Math.max(C.FRUSTUM_ANGLE_MIN, s * C.FRUSTUM_ANGLE_K * Math.PI / 180));
+    const deg = Math.min(C.FRUSTUM_ANGLE_MAX, Math.max(C.FRUSTUM_ANGLE_MIN, s * C.FRUSTUM_ANGLE_K));
+    return deg * Math.PI / 180;
   }
-  _updateSpotlight(group, obj) {
-    const sp = group.userData.spotlight;
-    if (!sp) return;
-    const s = obj.spotlight ?? C.SPOT_DEFAULTS;
-    sp.light.angle = this._beamAngle(obj.scale);
-    sp.light.intensity = (s.intensity ?? 70) / 100 * C.SPOT_INTENSITY_K * Math.PI; // ×2.4; three r155+ physical units
-    sp.light.penumbra = 0.05 + 0.9 * ((s.diffusion ?? 30) / 100);
-    sp.light.castShadow = (s.intensity ?? 70) > 0;
-    // beam cone visual: length 7, radius 7·tan(m), opacity by intensity/diffusion
-    const beam = sp.beam;
-    beam.visible = (s.intensity ?? 70) > 0;
-    const half = sp.light.angle;
-    const L = C.SPOT_BEAM_LEN;
-    beam.scale.set(Math.tan(half) * L, Math.tan(half) * L, L);
-    beam.material.opacity = 0.02 + 0.07 * ((s.intensity ?? 70) / 100) * (1 - (s.diffusion ?? 30) / 200);
-    // lamp counter-scaled by object scale
-    sp.lamp.scale.setScalar(1 / Math.max(1e-6, Math.max(...(obj.scale ?? [1, 1, 1]))));
+  // iOr(): diffusion/shape cookie on the shadow-casting light's map (128×128, Nearest, cached)
+  static spotCookie(shape, diffusion) {
+    const n = Math.round(diffusion / C.SPOT_DIFFUSION_STEPS * C.SPOT_COOKIE_SIZE);
+    const key = `${shape}:${n}`;
+    let tex = ObjectManager._cookieCache.get(key);
+    if (tex) return tex;
+    const Yx = C.SPOT_COOKIE_SIZE, nre = C.SPOT_NRE;
+    const a = new Uint8Array(Yx * Yx * 4);
+    const o = n / C.SPOT_DIFFUSION_STEPS * C.SPOT_COOKIE_RADIUS_K * nre;
+    const l = nre - o / 2, c2 = nre + o / 2;
+    for (let u = 0; u < Yx; u++) for (let h = 0; h < Yx; h++) {
+      const f = (h + 0.5) / Yx * 2 - 1, m = (u + 0.5) / Yx * 2 - 1;
+      const g = shape === 'square' ? Math.max(Math.abs(f), Math.abs(m)) : Math.hypot(f, m);
+      const b = c2 > l ? (g - l) / (c2 - l) : (g < l ? 0 : 1);
+      const y = Math.min(1, Math.max(0, b));
+      const v = Math.round(255 * (1 - y * y * (3 - 2 * y)));
+      const x = (u * Yx + h) * 4;
+      a[x] = a[x + 1] = a[x + 2] = v; a[x + 3] = 255;
+    }
+    tex = new THREE.DataTexture(a, Yx, Yx);
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
+    tex.needsUpdate = true;
+    ObjectManager._cookieCache.set(key, tex);
+    return tex;
+  }
+  // oOr() tick: per-frame spotlight light + beam management (object-store order = shadow-slot order)
+  spotTick(objects) {
+    this._spotSeen.clear();
+    let c = 0;
+    const decPos = new THREE.Vector3(), decQuat = new THREE.Quaternion(), decScale = new THREE.Vector3();
+    for (const id of Object.keys(objects)) {                 // roots() in store insertion order
+      const d = this.meshById.get(id);
+      if (!d || d.userData.kind !== 'spotlight') continue;
+      const u = d.userData.spotlight;
+      if (!u) continue;
+      this._spotSeen.add(d);
+      const h = objects[id].spotlight ?? C.SPOT_DEFAULTS;    // BR(): settings
+      const f = h.diffusion / 100;
+      d.updateWorldMatrix(true, false);
+      d.matrixWorld.decompose(decPos, decQuat, decScale);
+      const m = this._beamAngle(decScale);                    // Rhe: user beam angle
+      const g = c++ < this.spotShadowSlots;                   // shadow slot
+      const b = u.light;
+      b.intensity = h.intensity * C.SPOT_INTENSITY_K;         // ×2.4 — NO /100, NO ×π
+      b.castShadow = g;
+      if (g) {
+        b.map = ObjectManager.spotCookie(h.shape ?? 'round', h.diffusion ?? 30);
+        b.angle = Math.atan(Math.tan(m) / C.SPOT_NRE);        // widened cone; cookie crops to the user beam
+        b.penumbra = 0;
+        b.shadow.radius = C.SPOT_SHADOW_RADIUS_K + f * C.SPOT_SHADOW_RADIUS_DIFF_K;   // 1 + f·6
+      } else {
+        b.map = null;
+        b.angle = m;
+        b.penumbra = C.SPOT_PENUMBRA_MIN + f * C.SPOT_PENUMBRA_DIFF_K;               // .05 + f·.9
+      }
+      u.lamp.scale.set(1 / (decScale.x || 1), 1 / (decScale.y || 1), 1 / (decScale.z || 1));
+      // beam cone (world TRS, separate scene group)
+      let beam = this._spotBeams.get(d);
+      if (!beam) {
+        beam = new THREE.Mesh(SPOT_BEAM_GEO.round, new THREE.MeshBasicMaterial({
+          color: C.SPOT_BEAM_COLOR, transparent: true, depthWrite: false,
+          side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false,
+        }));
+        beam.raycast = () => {};
+        this._spotBeams.set(d, beam);
+        this.spotBeamGroup.add(beam);
+      }
+      beam.geometry = SPOT_BEAM_GEO[g ? (h.shape ?? 'round') : 'round'];
+      beam.position.copy(decPos);
+      beam.quaternion.copy(decQuat);
+      const v = C.SPOT_BEAM_LEN * Math.tan(m) * (g && h.shape === 'square' ? Math.SQRT2 : 1);
+      beam.scale.set(v, v, C.SPOT_BEAM_LEN);
+      beam.visible = d.visible && h.intensity > 0;
+      beam.material.opacity = C.SPOT_BEAM_OPACITY_MIN
+        + C.SPOT_BEAM_OPACITY_K * (h.intensity / 100) * (1 - f / 2);
+    }
+    // remove beams of gone spotlights
+    for (const [d, beam] of this._spotBeams) {
+      if (this._spotSeen.has(d)) continue;
+      this.spotBeamGroup.remove(beam);
+      beam.material.dispose();
+      this._spotBeams.delete(d);
+    }
   }
 
   // ---- props (v/qqt/Wqt/eat — clay materials, catalog scale/yaw, grounded) ----
@@ -462,6 +542,7 @@ export class ObjectManager {
         if (!o.userData.__fromGlb) o.material?.dispose?.();
       }
     });
+    this.humanoidRigs.get(id)?.dispose?.();               // c(): stopAllAction + uncacheRoot
     this.humanoidRigs.delete(id);
     const lbl = this.labels.get(id);
     if (lbl) { lbl.material.map?.dispose(); lbl.material.dispose(); this.labels.delete(id); }

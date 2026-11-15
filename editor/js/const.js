@@ -98,8 +98,14 @@ export const C = {
   SPOT_BEAM_LEN: 7,          // jat
   SPOT_BEAM_COLOR: 16769955, // YFr = 0xFFE3A3
   SPOT_LAMP_COLOR: 2895152,  // nOr
-  SPOT_DEFAULTS: { shape: 'round', intensity: 70, diffusion: 30 }, // XWt
-  SPOT_INTENSITY_K: 2.4,     // _8r (prior audit; applied in oOr tick)
+  SPOT_DEFAULTS: { shape: 'round', intensity: 70, diffusion: 30 }, // QWt
+  SPOT_INTENSITY_K: 2.4,     // W8r — raw ×2.4 (no /100, no ×π)
+  SPOT_SHADOW_RADIUS_K: 1,       // GFr — shadow.radius for casting lights
+  SPOT_SHADOW_RADIUS_DIFF_K: 6,  // qFr — + diffusion/100·6
+  SPOT_PENUMBRA_MIN: 0.05,       // ZFr — non-casting penumbra
+  SPOT_PENUMBRA_DIFF_K: 0.9,     // KFr — + diffusion/100·.9
+  SPOT_BEAM_OPACITY_MIN: 0.02,   // QFr
+  SPOT_BEAM_OPACITY_K: 0.07,     // JFr
 
   // ---------- simple_figure (Zqt; RIr/sA/PP/Nie/FIr/OIr/LIr/Pie/DIr) ----------
   FIG_HEIGHT: 1.75,          // jP (old IP)

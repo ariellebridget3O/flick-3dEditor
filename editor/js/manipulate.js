@@ -2,7 +2,6 @@
 // + drag commit pipeline (SZt port) + keyboard (Hzr port).
 import * as THREE from 'three';
 import { TransformControls } from './vendor/controls/TransformControls.js';
-import { applyCustomGizmo } from './gizmo.js';
 import { C, smoothstep } from './const.js';
 import { isPersonKind, camMovePose, unwrapEulerVs, subjectlessItem, CAM_ITEM_KINDS } from './tracks.js';
 import { itemDuration } from './schema.js';
@@ -62,9 +61,12 @@ export class Manipulator {
     this.transform.addEventListener('objectChange', () => this._onObjectChange());
     // mode mapping F(): translate default; camera scale → translate; track-driven → translate
     this.transform.setMode('translate');
-    // custom gizmo meshes (Mzr exact): one-sided shafts+cones, plane discs, ring set, centre
-    // sphere/box w/ dark shell, negative-axis pickers dropped, hover amber (bzr)
-    applyCustomGizmo(this.transform);
+    // restyle: axis colours (h$) — traverse helper children and tint by name
+    helper.traverse(o => {
+      if (o.material?.color && /X/i.test(o.name)) o.material.color.setHex(0xe5534b);
+      else if (o.material?.color && /Y/i.test(o.name)) o.material.color.setHex(0x55b35e);
+      else if (o.material?.color && /Z/i.test(o.name)) o.material.color.setHex(0x4a86e8);
+    });
   }
 
   attachToSelection() {
@@ -188,9 +190,9 @@ export class Manipulator {
   // captureFocusedTransformPose: selected segment is a transform item covering the playhead
   _captureFocusedTransformPose(id, local) {
     const app = this.app;
-    const seg = app.page.selectedSegment;
+    const seg = app.show.selectedSegment;
     if (!seg) return false;
-    const track = app.show.show.tracks.find(t => t.id === seg.trackId);
+    const track = app.show.tracks().find(t => t.id === seg.trackId);
     const item = track?.items.find(x => x.id === seg.itemId);
     if (!track || item?.kind !== 'transform') return false;
     if (track.characterId !== id) return false;
@@ -303,9 +305,9 @@ export class Manipulator {
   // captureFocusedCameraPose: focused cam-transform segment covering the playhead → key
   _captureFocusedCameraPose(id, obj, world) {
     const app = this.app;
-    const seg = app.page.selectedSegment;
+    const seg = app.show.selectedSegment;
     if (!seg) return false;
-    const track = app.show.show.tracks.find(t => t.id === seg.trackId);
+    const track = app.show.tracks().find(t => t.id === seg.trackId);
     const item = track?.items.find(x => x.id === seg.itemId);
     if (!track || item?.kind !== 'cam-transform' || track.characterId !== id) return false;
     const tS = app.page.playheadS - item.startS;
@@ -466,68 +468,13 @@ export class Manipulator {
     const el = app.renderer.domElement;
     el.addEventListener('contextmenu', e => e.preventDefault());
 
-    // ---- lasso (br/Nr/ua/jt port): drag rect → select projected positions ----
-    this._lasso = null;   // {x, y} pointer start while editInteraction==='lasso'
-    const LASSO_THRESHOLD = 8;   // Sye
-    const lassoCursor = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><ellipse cx="13" cy="9" rx="8" ry="5.5"/><path d="M13 14.5 C12 19 9 21 6 24"/></g><g fill="none" stroke="#000" stroke-width="1.4" stroke-linecap="round"><ellipse cx="13" cy="9" rx="8" ry="5.5"/><path d="M13 14.5 C12 19 9 21 6 24"/></g></svg>')}") 6 24, crosshair`;
-    const lassoRectFrom = (p0, cx, cy) => {   // dt(): normalized rect, canvas-relative
-      const r = el.getBoundingClientRect();
-      const x0 = p0.x - r.left, y0 = p0.y - r.top;
-      const x1 = cx - r.left, y1 = cy - r.top;
-      app.page.setLassoRect({ x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) });
-    };
-    // jt(): select every mesh whose projected world position lands inside the rect
-    const _wp = new THREE.Vector3();
-    const lassoSelect = (p0, p1) => {
-      const r = el.getBoundingClientRect();
-      const x0 = Math.min(p0.x, p1.x) - r.left, x1 = Math.max(p0.x, p1.x) - r.left;
-      const y0 = Math.min(p0.y, p1.y) - r.top, y1 = Math.max(p0.y, p1.y) - r.top;
-      const objs = app.objects.all();
-      const aimed = new Set(
-        Object.values(objs).filter(o => o.kind === 'camera' && o.targetId)
-          .map(o => o.targetId).filter(id => objs[id]?.kind === 'target'));   // Xu: target kind gate (stale targetIds ignored)
-      const ids = [];
-      for (const [id, mesh] of app.objectManager.meshById) {
-        if (!objs[id]?.kind || aimed.has(id)) continue;
-        mesh.getWorldPosition(_wp).project(app.camera);
-        if (_wp.z > 1) continue;
-        const sx = (_wp.x * 0.5 + 0.5) * r.width;
-        const sy = (-_wp.y * 0.5 + 0.5) * r.height;
-        if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) ids.push(id);
-      }
-      app.objects.select(ids);
-    };
-    // editInteraction watcher: lasso on → disable orbit + set cursor (live disposers subscription)
-    app.page.subscribe(() => {
-      if (app.page.editInteraction === 'lasso') {
-        if (this._orbitWasEnabled === undefined) this._orbitWasEnabled = app.orbit.enabled;
-        app.orbit.enabled = false;
-        app.container.style.cursor = lassoCursor;
-      } else if (this._orbitWasEnabled !== undefined) {
-        app.orbit.enabled = this._orbitWasEnabled;
-        app.container.style.cursor = '';
-        this._orbitWasEnabled = undefined;
-        this._lasso = null;
-        app.page.lassoRect = null;
-      }
-    });
-
     el.addEventListener('pointerdown', e => {
       if (e.button !== 0) return;
-      if (app.page.editInteraction === 'lasso') {
-        this._lasso = { x: e.clientX, y: e.clientY };
-        lassoRectFrom(this._lasso, e.clientX, e.clientY);
-        this._downPos = null;
-        try { el.setPointerCapture(e.pointerId); } catch (_) {}
-        return;
-      }
       this._downPos = [e.clientX, e.clientY];
       this._downTime = performance.now();
       this._downMoved = false;
     });
     el.addEventListener('pointermove', e => {
-      if (this._lasso) { lassoRectFrom(this._lasso, e.clientX, e.clientY); return; }
-      if (app.page.editInteraction === 'lasso') return;   // no hover picking while lasso cursor is up
       if (this._downPos && Math.hypot(e.clientX - this._downPos[0], e.clientY - this._downPos[1]) > C.CLICK_SLOP_PX)
         this._downMoved = true;
       // hover picking (throttled, CGr budget)
@@ -549,21 +496,7 @@ export class Manipulator {
       }
     });
     el.addEventListener('pointerup', e => {
-      if (e.button !== 0) return;
-      if (this._lasso) {
-        const start = this._lasso;
-        this._lasso = null;
-        app.page.lassoRect = null;
-        if (el.hasPointerCapture?.(e.pointerId)) { try { el.releasePointerCapture(e.pointerId); } catch (_) {} }
-        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > LASSO_THRESHOLD) {
-          lassoSelect(start, { x: e.clientX, y: e.clientY });
-          app.page.setEditInteraction('idle');   // one-shot: back to idle after a completed drag
-        } else {
-          app.page.changed();
-        }
-        return;
-      }
-      if (!this._downPos) return;
+      if (e.button !== 0 || !this._downPos) return;
       const moved = this._downMoved;
       const [x, y] = this._downPos;
       this._downPos = null;
@@ -615,15 +548,21 @@ export class Manipulator {
       else if (mod && k === 'v') { app.objects.paste(app.show); }
       else if (mod && k === 'g') { e.preventDefault(); app.objects.groupOrUngroup(); }
       else if (k === 'delete' || k === 'backspace') {
-        for (const id of app.objects.selectedIds) {
-          app.show.detachReferences(id);
-          app.objects.remove(id);
+        if (app.page.paint) {
+          // live keymap: path editing → deletePathAnchor(selectedAnchor)
+          const p = app.page.paint;
+          if (p.selectedAnchor !== null && p.selectedAnchor !== undefined) {
+            app.show.deletePathAnchor(p.trackId, p.itemId, p.selectedAnchor);
+            app.pathEditor.selectAnchor(null);
+          }
+        } else {
+          for (const id of app.objects.selectedIds) {
+            app.show.detachReferences(id);
+            app.objects.remove(id);
+          }
         }
       }
-      else if (k === 'escape') {
-        if (app.page.paint) app.pathEditor.finishPaint();
-        if (app.page.editInteraction === 'lasso') app.page.setEditInteraction('idle');
-      }
+      else if (k === 'escape') { if (app.page.paint) app.pathEditor.finishPaint(); }
       else if (k === 'enter') { if (app.page.paint) app.pathEditor.finishPaint(); }
       else if (k === 'f') { if (app.objects.selectedId) app.focusObject(app.objects.selectedId); }
       else if (k === 'x' || k === 'z' || k === 'c') {

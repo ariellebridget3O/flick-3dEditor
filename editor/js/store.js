@@ -3,14 +3,6 @@
 import { uuid, packItems, itemDuration } from './schema.js';
 import { arcLength, polylineOf, buildTangents } from './curves.js';
 import { C } from './const.js';
-import { moveItemToIndex, canDuplicateOnto, dropSelfRefs, moveKey } from './place.js';
-
-const TAKE_RANGE_MIN_S = 0.1;   // eie — min take-range width
-// rx().durationS — raw show length = max item endS (no span floor)
-const showDurationS = show => Math.max(0, ...(show.tracks ?? []).flatMap(t =>
-  t.items.map(it => it.startS + itemDuration(it))));
-
-const KEY_EPS = 0.001;   // ym
 
 function emit(listeners) { for (const fn of listeners) fn(); }
 
@@ -54,7 +46,7 @@ export class ObjectStore extends StoreBase {
     this.changed();
   }
   select(ids) {
-    this.selectedIds = [...ids];   // live setSelection has no clamp (WWr caps footprint DRAW only)
+    this.selectedIds = ids.slice(0, C.SEL_MAX);
     this.selectedId = this.selectedIds[this.selectedIds.length - 1] ?? null;
     this.changed();
   }
@@ -120,49 +112,10 @@ export class ShowStore extends StoreBase {
     this.show = { name: 'Show', tracks: [] };
     this.undoStack = [];
     this.redoStack = [];
-    this._gestureSnapshots = null; // [sceneRef, showRef] at outermost gesture start
-    this._gestureDepth = 0;         // nestable brackets: undo pushed when depth returns to 0
+    this._gestureSnapshots = null; // [sceneRef, showRef] at gesture start
   }
   setShow(show) { this.show = show; this.undoStack = []; this.redoStack = []; this.changed(); }
   tracks() { return this.show.tracks; }
-
-  // ---- take range (setTakeRange @5548675 + She @4320286, eie/tie) ----
-  // eie=.1 — minimum range width in seconds; tie(startS,endS) validity (>= eie - 1e-6)
-  setTakeRange(e) {
-    if (this._takeLocked?.()) return false;            // live: recording !== null refuses
-    if (!e) {                                          // null clears the range
-      this.beginEditGesture();
-      if (this.show.range !== undefined) delete this.show.range;
-      this.endEditGesture();
-      this.changed();
-      return true;
-    }
-    const r2 = a => Math.round(a * 100) / 100;         // round to 0.01 s
-    const a = r2(Math.max(0, Math.min(e.startS, e.endS)));
-    const b = r2(Math.max(e.startS, e.endS));
-    if (!(b - a >= TAKE_RANGE_MIN_S - 1e-6)) return false;   // tie(r,s)
-    this.beginEditGesture();
-    this.show.range = { startS: a, endS: b };
-    this.endEditGesture();
-    this.changed();
-    return true;
-  }
-  // She(show, durationS) — the effective play/film span; range clamped to the show, else full
-  takeSpan(durationS) {
-    const n = this.show.range;
-    if (n) {
-      const r = Math.min(Math.max(n.startS, 0), durationS);
-      const s = Math.min(Math.max(n.endS, 0), durationS);
-      if (s - r >= TAKE_RANGE_MIN_S - 1e-6) return { fromS: r, toS: s };
-    }
-    return { fromS: 0, toS: durationS };
-  }
-  filmedARange() {                                     // live filmedARange: fromS>0 || toS<duration
-    const d = showDurationS(this.show);
-    const { fromS, toS } = this.takeSpan(d);
-    return fromS > 0 || toS < d;
-  }
-  durationS() { return showDurationS(this.show); }
   trackOf(characterId) { return this.show.tracks.find(t => t.characterId === characterId); }
   ensureTrack(characterId) {
     let tr = this.trackOf(characterId);
@@ -180,16 +133,14 @@ export class ShowStore extends StoreBase {
     return { show: JSON.stringify(this.show), objects: this._companion ? JSON.stringify(this._companion.all()) : null };
   }
   beginEditGesture() {
-    this._gestureDepth = (this._gestureDepth ?? 0) + 1;
-    if (this._gestureDepth === 1) this._gestureSnapshots = this._snap();   // snapshot at the OUTERMOST begin only
+    if (this._gestureSnapshots) return;
+    this._gestureSnapshots = this._snap();
   }
   endEditGesture() {
-    if (this._gestureDepth > 0) this._gestureDepth--;
-    if (this._gestureDepth > 0) return;   // still inside an outer gesture — no undo push yet
+    if (!this._gestureSnapshots) return;
     const before = this._gestureSnapshots;
-    this._gestureSnapshots = null;
-    if (!before) return;
     const after = this._snap();
+    this._gestureSnapshots = null;
     if (before.show !== after.show || before.objects !== after.objects) {
       this.undoStack.push({ ...before, redoShow: after.show, redoObjects: after.objects });
       if (this.undoStack.length > 200) this.undoStack.shift();
@@ -255,51 +206,33 @@ export class ShowStore extends StoreBase {
       const i = t.items.findIndex(x => x.id === itemId);
       if (i < 0) return;
       const it = t.items[i];
-      const dur = Math.min(120, Math.max(0.1, durationS));   // store clamps [.1, 120] (Ije/QZt); UI floor .05 is the drag stop (WAr)
       if (it.kind === 'path' || it.kind === 'cam-path') {
         // trim recomputes speed = arc/duration (MR(nx(anchors))/dur)
         const arc = it.anchors.length >= 2 ? arcLength(polylineOf(it.anchors)) : 0;
-        t.items[i] = { ...it, speedUnitsPerS: Math.max(C.SPEED_STORE_FLOOR, arc / dur) };
+        t.items[i] = { ...it, speedUnitsPerS: Math.max(C.SPEED_STORE_FLOOR, arc / Math.max(0.05, durationS)) };
       } else {
-        t.items[i] = { ...it, durationS: dur };
+        t.items[i] = { ...it, durationS: Math.max(0.05, durationS) };
       }
     });
   }
-  // duplicateItem (live 4-arg form): kind-compat gate + DHr self-ref drop + startS
-  duplicateItemTo(trackId, itemId, toTrackId, startS = 0) {
+  duplicateItemTo(trackId, itemId, toTrackId) {
     const tr = this.show.tracks.find(t => t.id === trackId);
     const it = tr?.items.find(x => x.id === itemId);
     if (!it) return null;
-    const dest = this.show.tracks.find(t => t.id === toTrackId);
-    if (!dest) return null;
-    const owner = this._companion ? this._companion.get(dest.characterId) : null;
-    if (!owner || !canDuplicateOnto(it, owner.kind)) return null;   // live Art(): missing owner refuses all kinds
-    const copy = dropSelfRefs({ ...JSON.parse(JSON.stringify(it)), id: uuid(), startS: Math.max(0, startS) }, dest.characterId);
-    this._commit(toTrackId, t => { t.items = [...t.items, copy]; });
+    const copy = { ...JSON.parse(JSON.stringify(it)), id: uuid() };
+    this._commit(toTrackId, t => t.items.push(copy));
     return copy;
-  }
-  // kGt: move item to slot index (startS inherits the slot's original start)
-  reorderItem(trackId, itemId, toIndex) {
-    this._commit(trackId, t => { t.items = moveItemToIndex(t.items, itemId, toIndex); });
   }
 
   // ---- keyframe capture (addTransformKeyframe/addCameraKeyframe/setCameraItemFields — SZt/kZt) ----
-  _replaceKeyAt(itemId, key, kinds, { mergeJoints = false } = {}) {
+  _replaceKeyAt(itemId, key, kinds) {
     return t => {
       const i = t.items.findIndex(x => x.id === itemId);
       if (i < 0 || !kinds.includes(t.items[i].kind)) return;
-      const it = t.items[i];
-      const sameTS = k => Math.abs(k.tS - key.tS) <= KEY_EPS;
-      const existing = (it.keys ?? []).find(sameTS);
-      let newKey = key;
-      if (mergeJoints && existing) newKey = { tS: existing.tS, joints: { ...existing.joints, ...key.joints } };
-      // transform keys inherit headRotation from the key they replace
-      if (!mergeJoints && kinds.includes('transform') && !key.headRotation && existing?.headRotation) {
-        newKey = { ...key, headRotation: existing.headRotation };
-      }
-      const keys = [...(it.keys ?? []).filter(k => !sameTS(k)), newKey].sort((a, b) => a.tS - b.tS);
-      // durationS always grows to the last key (live behavior)
-      t.items[i] = { ...it, keys, durationS: Math.max(it.durationS ?? 0, keys[keys.length - 1].tS) };
+      const keys = [...(t.items[i].keys ?? [])].filter(k => Math.abs(k.tS - key.tS) > 0.001); // ym
+      keys.push(key);
+      keys.sort((a, b) => a.tS - b.tS);
+      t.items[i] = { ...t.items[i], keys };
     };
   }
   addTransformKeyframe(trackId, itemId, key) {   // Bzt keys (position/rotation/scale/headRotation)
@@ -307,33 +240,6 @@ export class ShowStore extends StoreBase {
   }
   addCameraKeyframe(trackId, itemId, key) {      // cam-transform keys (position/rotation/focalLengthMm)
     this._commit(trackId, this._replaceKeyAt(itemId, key, ['cam-transform']));
-  }
-  addRigKeyframe(trackId, itemId, key) {         // rig keys merge joints at the same tS
-    this._commit(trackId, this._replaceKeyAt(itemId, key, ['rig-transform'], { mergeJoints: true }));
-  }
-  _removeKeyAt(itemId, tS, kinds) {
-    return t => {
-      const i = t.items.findIndex(x => x.id === itemId);
-      if (i < 0 || !kinds.includes(t.items[i].kind)) return;
-      t.items[i] = { ...t.items[i], keys: (t.items[i].keys ?? []).filter(k => Math.abs(k.tS - tS) > KEY_EPS) };
-    };
-  }
-  removeTransformKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['transform'])); }
-  removeCameraKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['cam-transform'])); }
-  removeRigKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['rig-transform'])); }
-  // xbe — move the key at fromTS to toTS
-  moveTransformKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['transform']); }
-  moveCameraKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['cam-transform']); }
-  moveRigKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['rig-transform']); }
-  _moveKeyAt(trackId, itemId, fromTS, toTS, kinds) {
-    this._commit(trackId, t => {
-      const i = t.items.findIndex(x => x.id === itemId);
-      if (i < 0 || !kinds.includes(t.items[i].kind)) return;
-      t.items[i] = { ...t.items[i], keys: moveKey(t.items[i].keys ?? [], fromTS, toTS) };
-    });
-  }
-  findItem(seg) {
-    return this.show.tracks.find(t => t.id === seg.trackId)?.items.find(i => i.id === seg.itemId);
   }
   setCameraItemFields(trackId, itemId, fields) { // OHr-equivalent patch for camera item kinds
     const CAM_KINDS = ['cam-still', 'cam-move', 'cam-path', 'cam-follow', 'cam-transform', 'cam-manual'];
@@ -352,20 +258,26 @@ export class ShowStore extends StoreBase {
     });
   }
   appendPathAnchor(trackId, itemId, pos) {
+    let idx = -1;
     this._commit(trackId, t => {
       const it = t.items.find(x => x.id === itemId);
       if (!it) return;
       const pts = it.anchors.map(a => a.pos); pts.push([...pos]);
       it.anchors = buildTangents(pts);
+      idx = it.anchors.length - 1;
     });
+    return idx;                                   // caller selects the new anchor (live: selectPathAnchor)
   }
   insertPathAnchor(trackId, itemId, index, pos) {
+    let idx = -1;
     this._commit(trackId, t => {
       const it = t.items.find(x => x.id === itemId);
       if (!it) return;
       const pts = it.anchors.map(a => a.pos); pts.splice(index + 1, 0, [...pos]);
       it.anchors = buildTangents(pts);
+      idx = index + 1;
     });
+    return idx;
   }
   movePathAnchor(trackId, itemId, index, pos) {
     this._commit(trackId, t => {
@@ -457,21 +369,11 @@ export class PageStore extends StoreBase {
     this.playStartPerfT = 0;             // performance.now() at play start
     this.playStartS = 0;
     this.paint = null;                   // {trackId, itemId, selectedAnchor} while path painting
-    this.selectedSegment = null;         // {trackId, itemId[, tS]} for timeline block/keyframe selection
+    this.selectedSegment = null;         // {trackId, itemId} for timeline block selection
     this.keyboardOwner = 'stage';
     this.finishEnabled = false;
-    this.editInteraction = 'idle';      // idle | editingPath | lasso
-    this.lassoRect = null;              // {x,y,w,h} canvas-relative px while lasso-dragging
-    this.navBallVector = null;          // {forward, strafe} -1..1 while dragging the nav ball
   }
-  toggleLasso() { this.editInteraction = this.editInteraction === 'lasso' ? 'idle' : 'lasso'; this.changed(); }
-  setEditInteraction(v) { this.editInteraction = v; this.changed(); }
-  setLassoRect(r) { this.lassoRect = r; this.changed(); }
-  setNavBallVector(v) { this.navBallVector = v; }   // high-frequency: no change event (consumed per-frame)
-  seek(s) {
-    if (this.playing) this.stop();   // live seekPerformance stops playback first
-    this.playheadS = s; this.changed();
-  }
+  seek(s) { this.playheadS = s; this.changed(); }
   play() {
     if (this.playing) return;
     this.playing = true;

@@ -49,7 +49,10 @@ export class PathEditor {
 
   // ---- enter/exit paint ----
   enterPaint(trackId, itemId) {
+    // live enterPathEdit: selectedSegment + performancePaint + editInteraction="editingPath"
+    this.app.page.selectedSegment = { trackId, itemId };
     this.app.page.paint = { trackId, itemId, selectedAnchor: null };
+    this.app.page.editInteraction = 'editingPath';
     this.app.page.keyboardOwner = 'stage';
     this.selectedAnchor = null;
     this.rebuild();
@@ -60,6 +63,7 @@ export class PathEditor {
     const p = this.paint;
     if (item && item.anchors.length < 2 && p) this.app.show.removeItem(p.trackId, p.itemId);
     this.app.page.paint = null;
+    this.app.page.editInteraction = null;
     this.group.visible = false;
     this._clearPickables();
     this.app.page.changed();
@@ -72,8 +76,17 @@ export class PathEditor {
     if (!mesh || !p) return;
     const wp = mesh.getWorldPosition(new THREE.Vector3());
     const item = this._item();
-    if (item && item.anchors.length === 0)
-      this.app.show.appendPathAnchor(p.trackId, p.itemId, [wp.x, wp.y, wp.z]);
+    if (item && item.anchors.length === 0) {
+      const idx = this.app.show.appendPathAnchor(p.trackId, p.itemId, [wp.x, wp.y, wp.z]);
+      if (idx >= 0) this.selectAnchor(idx);
+    }
+  }
+  selectAnchor(idx) { // selectPathAnchor: show tangent handles + rebuild
+    if (!this.paint) return;
+    this.paint.selectedAnchor = idx;
+    this.selectedAnchor = idx;
+    this.rebuild();
+    this.app.page.changed();
   }
 
   // ---- floor clicks while painting (§3.3) ----
@@ -87,10 +100,12 @@ export class PathEditor {
     if (pick.type === 'pathEdit') return;
     const pos = this._anchorPosFor(point, item.anchors.length - 1);
     const [idx, dist] = nearestSegmentXZ(item.anchors, pos);
+    let newIdx;
     if (item.anchors.length >= 2 && dist < C.PATH_INSERT_THRESHOLD)
-      this.app.show.insertPathAnchor(p.trackId, p.itemId, idx, pos);
+      newIdx = this.app.show.insertPathAnchor(p.trackId, p.itemId, idx, pos);
     else
-      this.app.show.appendPathAnchor(p.trackId, p.itemId, pos);
+      newIdx = this.app.show.appendPathAnchor(p.trackId, p.itemId, pos);
+    if (newIdx >= 0) this.selectAnchor(newIdx);   // live: append/insert → selectPathAnchor(new)
   }
 
   onShowChanged() { if (this.paint) this.rebuild(); }
@@ -186,7 +201,7 @@ export class PathEditor {
       if (pick?.type !== 'pathEdit') return;
       const ud = pick.hit.object.userData;
       app.orbit.enabled = false;
-      el.setPointerCapture(e.pointerId);
+      try { el.setPointerCapture(e.pointerId); } catch (_) { /* synthetic ids */ }
       moved = { ud, start: [e.clientX, e.clientY], hit: pick.hit };
     }, true);
 
@@ -235,12 +250,7 @@ export class PathEditor {
       if (!moved.dragging) {
         // click-without-move → select anchor (shows tangent handles)
         const ud = moved.ud;
-        if (ud.pathAnchorIndex !== undefined) {
-          this.paint.selectedAnchor = ud.pathAnchorIndex;
-          this.selectedAnchor = ud.pathAnchorIndex;
-          this.rebuild();
-          app.page.changed();
-        }
+        if (ud.pathAnchorIndex !== undefined) this.selectAnchor(ud.pathAnchorIndex);
       } else app.show.snapshot(); // make the drag undoable as one op
       moved = null;
       app.orbit.enabled = true;
