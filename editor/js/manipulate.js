@@ -6,6 +6,7 @@ import { applyCustomGizmo } from './gizmo.js';
 import { C, smoothstep } from './const.js';
 import { isPersonKind, camMovePose, unwrapEulerVs, subjectlessItem, CAM_ITEM_KINDS } from './tracks.js';
 import { itemDuration } from './schema.js';
+import { syncToolHighlight } from './ui.js';
 
 // kv: lookAt rotation (yaw+pitch) from position → target (rotateY π — camera faces −Z)
 const _lkM = new THREE.Matrix4(), _lkQ = new THREE.Quaternion(), _lkE = new THREE.Euler();
@@ -612,8 +613,12 @@ export class Manipulator {
       if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? app.show.redo() : app.show.undo(); }
       else if (mod && k === 'y') { e.preventDefault(); app.show.redo(); }
       else if (mod && k === 'c') { app.objects.copy(); }
-      else if (mod && k === 'v') { app.objects.paste(app.show); }
-      else if (mod && k === 'g') { e.preventDefault(); app.objects.groupOrUngroup(); }
+      else if (mod && k === 'v') { app.show.beginEditGesture(); try { app.objects.paste(app.show); } finally { app.show.endEditGesture(); } }
+      else if (mod && k === 'g') {
+        e.preventDefault();
+        app.show.beginEditGesture();
+        try { app.objects.groupOrUngroup(); } finally { app.show.endEditGesture(); }
+      }
       else if (k === 'delete' || k === 'backspace') {
         if (app.page.paint) {
           // live keymap: path editing → deletePathAnchor(selectedAnchor)
@@ -623,10 +628,13 @@ export class Manipulator {
             app.pathEditor.selectAnchor(null);
           }
         } else {
-          for (const id of app.objects.selectedIds) {
-            app.show.detachReferences(id);
-            app.objects.remove(id);
-          }
+          app.show.beginEditGesture();
+          try {
+            for (const id of app.objects.selectedIds) {
+              app.show.detachReferences(id);
+              app.objects.remove(id);
+            }
+          } finally { app.show.endEditGesture(); }
         }
       }
       else if (k === 'escape') {
@@ -641,6 +649,7 @@ export class Manipulator {
         if (k === 'z' && !mod) { this.transform.setMode('translate'); }
         if (k === 'x' && !mod) { this.transform.setMode('rotate'); }
         if (k === 'c' && !mod) { this.transform.setMode('scale'); }
+        syncToolHighlight(app);   // toolbar reflects keyboard mode changes too
       }
     });
     window.addEventListener('keyup', e => app._keys.delete(e.key.toLowerCase()));

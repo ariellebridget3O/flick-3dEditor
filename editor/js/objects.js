@@ -438,7 +438,7 @@ export class ObjectManager {
       if (!beam) {
         beam = new THREE.Mesh(SPOT_BEAM_GEO.round, new THREE.MeshBasicMaterial({
           color: C.SPOT_BEAM_COLOR, transparent: true, depthWrite: false,
-          side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false,
+          side: THREE.DoubleSide, blending: THREE.AdditiveBlending,   // live: no fog flag — beams ARE fogged
         }));
         beam.raycast = () => {};
         this._spotBeams.set(d, beam);

@@ -127,8 +127,8 @@ export const C = {
   },
   FRAME_CHROME_PX: 96,       // KGt (old qGt) — x2 for top+bottom
   FRUSTUM_ANGLE_K: 16,       // Rhe: clamp(avg(|scale|)*16°, 3, 55)
-  FRUSTUM_ANGLE_MIN: 3,      // QWt
-  FRUSTUM_ANGLE_MAX: 55,     // JWt
+  FRUSTUM_ANGLE_MIN: 3,      // eGt
+  FRUSTUM_ANGLE_MAX: 55,     // tGt (JWt=16 is the ×16 multiplier, QWt = spotlight defaults)
   FRUSTUM_K_YAW: 16,         // (Rhe constant)
   MARKER_DISTANCE: 3,        // DGr frustum quad distance
   HEIGHT_MIN: 0.2,           // lBe (old dBe)

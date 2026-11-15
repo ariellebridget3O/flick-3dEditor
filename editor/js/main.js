@@ -142,7 +142,8 @@ export class App {
     this.rigOffsets = new Map();
     this.playbackClips = new Map();   // id → {clip, timeS}
     this._restEval = false;           // live performanceSeekS model: seek-posed rest keeps evaluating (pinned)
-    this._lastRestT = 0;              // last playhead seen at rest (seek detector)
+    this._restSeekPending = false;    // a seek was observed at rest — pose it even when t is unchanged
+    this._seenSeekEpoch = 0;          // last PageStore.seekEpoch consumed
 
     // ---- clock ----
     this.clock = new THREE.Clock();
@@ -155,7 +156,17 @@ export class App {
     // store subscriptions → resync + autosave
     this.objects.subscribe(() => { this._syncObjects(); this.markAutosave(); });
     this.show.subscribe(() => { this._layoutDirty = true; this.pathEditor.onShowChanged(); this.markAutosave(); });
-    this.page.subscribe(() => this.markAutosave());
+    this.page.subscribe(() => {
+      this.markAutosave();
+      // live performanceSeekS model: ANY seek at rest (ruler click, diamond click, keyframe jump)
+      // poses the scene — even when the playhead VALUE is unchanged (e.g. clicking the ruler
+      // gutter at t=0 after load). Detected via the seek epoch, NOT page.changed (paint-exit
+      // and mode switches also fire changed() but must not pose the scene).
+      if (this.page.seekEpoch !== this._seenSeekEpoch) {
+        this._seenSeekEpoch = this.page.seekEpoch;
+        if (!this.page.playing) this._restSeekPending = true;
+      }
+    });
     // live AWr: objects-store mutation → b() — UNCONDITIONAL (live qt(()=>{objects.get(), b()})):
     // always consults the current playbackClips map, so pinned playback state survives edits
     // (mid-playback object edits don't restart clips) and rest-state records apply immediately.
@@ -204,7 +215,8 @@ export class App {
     this.shadowFit.force();
     this.fogNearFar.fitNow();
     this._restEval = false;                          // loadShow: seek pose cleared
-    this._lastRestT = this.page.playheadS;
+    this._restSeekPending = false;
+    this._seenSeekEpoch = this.page.seekEpoch ?? 0;
     this.playbackClips = new Map();                  // no stale playback state across loads
     return true;
   }
@@ -563,7 +575,7 @@ export class App {
     // steady rest also recomputes rig offsets at t=0 (live else-branch: setRigOffsets(q(track,0)))
     this._restOffsetsT0();
     this._restEval = false;
-    this._lastRestT = this.page.playheadS;
+    this._restSeekPending = false;
   }
 
   _restOffsetsT0() { // rig offsets evaluated at t=0 for every track (live rest branch)
@@ -644,25 +656,27 @@ export class App {
     // 2. playback
     if (this.page.playing) {
       this._restEval = false;
+      this._restSeekPending = false;
       const t = this.page.tickClock();
       const layout = this.layout();
       if (t >= layout.durationS) { this.page.seek(layout.durationS); this.page.stop(); this.resetToBase(); }   // stop → stored TRS (no end pose)
       else this.evaluateAt(t, dt);
     } else if (this.manipulator?.scrubbing) {
-      this.evaluateAt(this.page.playheadS, dt, true);
+      // live scrub: seekPerformance per pointermove → tick ue(t, dt) — rate-limited yaw (Wzt 8rad/s),
+      // NOT the capture-path instant snap; clips pinned by b()
+      this.evaluateAt(this.page.playheadS, dt, false);
       this._restEval = true;                          // pose persists after scrub release (pinned)
-      this._lastRestT = this.page.playheadS;
     } else {
       // at rest — live performanceSeekS model:
-      //  · a seek at rest → poseNow (evaluate + SWr finishFades + rig.tick(0)), then the scene
-      //    KEEPS evaluating at the seek time every tick with PINNED clip times (frozen poses)
-      //    until stop/load clears it;
-      //  · steady rest (no seek) → only rig offsets recompute at t=0; meshes stay at store TRS.
+      //  · a seek at rest (page change: ruler click, diamond click, keyframe jump) → poseNow
+      //    (evaluate + SWr finishFades + rig.tick(0)), then the scene KEEPS evaluating at the
+      //    seek time every tick with PINNED clip times (frozen poses) until stop/load clears it;
+      //  · steady rest (no page events) → only rig offsets recompute at t=0; meshes stay at store TRS.
       const t = this.page.playheadS;
       if (this._restEval) {
         this.evaluateAt(t, dt, false);
-      } else if (t !== this._lastRestT) {
-        this._lastRestT = t;
+      } else if (this._restSeekPending) {
+        this._restSeekPending = false;
         this._restEval = true;
         this.evaluateAt(t, 0, true);
         for (const [, rig] of this.objectManager.humanoidRigs) rig.finishFades();

@@ -66,25 +66,28 @@ export class ObjectStore extends StoreBase {
     const src = this.objects[id];
     if (!src) return null;
     const idMap = new Map();
-    const newId = this._dupOne(src, idMap);
+    const newId = this._dupOne(src, idMap, id);
     // cameras duplicate with their target (Die)
     if (src.kind === 'camera' && src.targetId && this.objects[src.targetId]) {
-      const tid = this._dupOne(this.objects[src.targetId], idMap);
+      const tid = this._dupOne(this.objects[src.targetId], idMap, src.targetId);
       this.update(newId, { targetId: tid });
     }
     if (showStore) showStore.cloneTracksFor(idMap);
     return newId;
   }
-  _dupOne(src, idMap) {
+  _dupOne(src, idMap, srcId) {
     const nid = uuid();
-    idMap.set(src.id, nid);
+    idMap.set(srcId ?? src.id, nid);   // scene-loaded records may lack inline .id — the store key is authoritative
     // offset duplicate slightly
     const pos = src.position ? [src.position[0] + 0.5, src.position[1], src.position[2]] : src.position;
     this.objects[nid] = { ...src, id: nid, name: src.name ? `${src.name} copy` : src.name, position: pos };
     return nid;
   }
   copy() {
-    this.clipboard = this.selectedIds.map(id => JSON.parse(JSON.stringify(this.objects[id]))).filter(Boolean);
+    // carry the store key as .id so paste()'s idMap (and track cloning) matches (scene JSON has key-only ids)
+    this.clipboard = this.selectedIds
+      .map(id => { const c = JSON.parse(JSON.stringify(this.objects[id])); return c ? { ...c, id } : null; })
+      .filter(Boolean);
     return this.clipboard.length;
   }
   paste(showStore) {
@@ -476,7 +479,9 @@ export class PageStore extends StoreBase {
   setNavBallVector(v) { this.navBallVector = v; }   // high-frequency: no change event (consumed per-frame)
   seek(s) {
     if (this.playing) this.stop();   // live seekPerformance stops playback first
-    this.playheadS = s; this.changed();
+    this.playheadS = s;
+    this.seekEpoch = (this.seekEpoch ?? 0) + 1;   // observable "a seek happened" signal (same-t seeks included)
+    this.changed();
   }
   play() {
     if (this.playing) return;

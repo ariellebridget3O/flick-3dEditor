@@ -59,11 +59,19 @@ export function buildUI(app) {
     $('sceneName').value = data?.row?.name ?? data?.show?.name ?? 'Scene';
     e.target.value = '';
   };
+  // scene-name edits persist into the saved scene (show.name)
+  $('sceneName').onchange = e => {
+    app.show.beginEditGesture();
+    try {
+      app.show.show.name = e.target.value.trim() || 'Scene';
+      app.show.changed();
+    } finally { app.show.endEditGesture(); }
+  };
   $('btnSave').onclick = () => {
     const blob = new Blob([JSON.stringify(app.currentSceneJSON(), null, 1)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url; link.download = 'scene.json'; link.click();
+    link.href = url; link.download = `${($('sceneName').value || 'scene').replace(/[^\w-]+/g, '_')}.json`; link.click();
     URL.revokeObjectURL(url);
   };
 
@@ -72,20 +80,25 @@ export function buildUI(app) {
     const b = e.target.closest('button'); if (!b) return;
     const tool = b.dataset.tool;
     if (tool === 'delete') {
-      for (const id of app.objects.selectedIds) { app.show.detachReferences(id); app.objects.remove(id); }
+      app.show.beginEditGesture();
+      try { for (const id of app.objects.selectedIds) { app.show.detachReferences(id); app.objects.remove(id); } }
+      finally { app.show.endEditGesture(); }
     } else {
       app.manipulator.transform.setMode(tool);
       app.objects.changed();
     }
   });
 
-  // add palette
+  // add palette (gesture-bracketed so add is undoable)
   document.querySelector('.add-grid').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const kind = b.dataset.add;
     if (kind === 'prop') { openPropPicker(app); return; }
     const a = app;
-    const id = a.objects.add({
+    a.show.beginEditGesture();
+    let id;
+    try {
+    id = a.objects.add({
       kind,
       name: kind === 'humanoid' ? 'Human' : kind === 'simple_figure' ? 'Figure' : kind.charAt(0).toUpperCase() + kind.slice(1),
       position: [0, kind === 'humanoid' || kind === 'simple_figure' || kind === 'cube' || kind === 'sphere' || kind === 'cylinder' ? 0 : 1, 0],
@@ -94,6 +107,7 @@ export function buildUI(app) {
       ...(kind === 'camera' ? { focalLengthMm: 50, shake: 'off' } : {}),
       ...(kind === 'spotlight' ? { spotlight: { shape: 'round', intensity: 70, diffusion: 30 } } : {}),
     });
+    } finally { a.show.endEditGesture(); }
     a.objects.select([id]);
     a.focusObject(id);
   });
@@ -236,11 +250,16 @@ function refreshSelectionUI(app) {
     tb.style.left = `${Math.max(8, Math.min(host.clientWidth - 160, b.cx - 70))}px`;
     tb.style.top = `${Math.max(8, b.y0 - 44)}px`;
   }
-  // tool active state
-  [...tb.children].forEach(b => b.classList.toggle('on',
-    b.dataset.tool === app.manipulator?.transform?.mode));
+  // tool active state (sync AFTER any mode forcing above — keyboard z/x/c also call this)
+  syncToolHighlight(app);
   app.manipulator?.attachToSelection();
   refreshInspector(app);
+}
+export function syncToolHighlight(app) {   // toolbar reflects the gizmo's actual mode
+  const tb = document.getElementById('editToolbar');
+  if (!tb) return;
+  [...tb.children].forEach(b => b.classList.toggle('on',
+    b.dataset.tool === app.manipulator?.transform?.mode));
 }
 
 // ================= inspector =================
@@ -258,8 +277,8 @@ function refreshInspector(app) {
   let html = `<div class="insp-kind">${obj.kind}</div>
     <label class="row">Name<input type="text" id="inspName" value="${escAttr(obj.name ?? '')}"></label>
     ${vec('position', obj.position ?? [0, 0, 0], 0.1)}
-    ${vec('rotation', obj.rotation ?? [0, 0, 0], 0.05)}
-    ${vec('scale', obj.scale ?? [1, 1, 1], 0.05)}`;
+    ${obj.kind !== 'camera' ? vec('rotation', obj.rotation ?? [0, 0, 0], 0.05) : ''}
+    ${obj.kind !== 'camera' ? vec('scale', obj.scale ?? [1, 1, 1], 0.05) : ''}`;
   if (obj.kind === 'camera') {
     html += `<label class="row">Focal mm<input type="number" step="1" min="14" max="200" value="${obj.focalLengthMm ?? 50}" data-k="focalLengthMm"></label>
       <label class="row">Shake<select data-k="shake">${C.SHAKE_VALUES.map(s => `<option ${obj.shake === s ? 'selected' : ''}>${s}</option>`).join('')}</select></label>`;
@@ -280,28 +299,37 @@ function refreshInspector(app) {
   }
   if (obj.kind === 'prop') html += `<div class="row readonly">prop: ${obj.propKey}</div>`;
   // actions
+  // action buttons gated by kind (live: clips are humanoids-only, camera actions camera-only)
+  const isPerson = obj.kind === 'humanoid' || obj.kind === 'simple_figure';
+  const isCam = obj.kind === 'camera';
   html += `<div class="insp-actions">
-    <button data-act="walk">＋ Walk path</button>
-    <button data-act="campath">＋ Camera path</button>
-    <button data-act="clip">＋ Clip</button>
-    <button data-act="cammove">＋ Camera move</button>
+    ${isPerson ? '<button data-act="walk">＋ Walk path</button>' : ''}
+    ${isCam ? '<button data-act="campath">＋ Camera path</button>' : ''}
+    ${obj.kind === 'humanoid' ? '<button data-act="clip">＋ Clip</button>' : ''}
+    ${isCam ? '<button data-act="cammove">＋ Camera move</button>' : ''}
     <button data-act="focus">Focus</button>
     <button data-act="dup">Duplicate</button>
     <button data-act="del">Delete</button>
   </div>`;
   body.innerHTML = html;
 
+  // object-store mutations are gesture-bracketed so undo covers them (live observer history)
+  const objectOp = fn => {
+    app.show.beginEditGesture();
+    try { fn(); } finally { app.show.endEditGesture(); }
+  };
   body.querySelectorAll('input, select').forEach(inp => {
     inp.onchange = () => {
       const k = inp.dataset.k;
       if (!k) return;
       const v = parseFloat(inp.value);
+      objectOp(() => {
       if (k === 'position0') app.objects.update(id, { position: withIdx(obj.position, 0, v) });
       else if (k === 'position1') app.objects.update(id, { position: withIdx(obj.position, 1, v) });
       else if (k === 'position2') app.objects.update(id, { position: withIdx(obj.position, 2, v) });
       else if (k.startsWith('rotation')) app.objects.update(id, { rotation: withIdx(obj.rotation, +k.slice(-1), v) });
       else if (k.startsWith('scale')) app.objects.update(id, { scale: withIdx(obj.scale, +k.slice(-1), v) });
-      else if (k === 'focalLengthMm') app.objects.update(id, { focalLengthMm: Math.min(200, Math.max(14, v)) });
+      else if (k === 'focalLengthMm') { app.objects.update(id, { focalLengthMm: Math.min(200, Math.max(14, v)) }); if (obj.kind === 'camera') app.page.focalLengthMm = Math.min(200, Math.max(14, v)); }
       else if (k === 'shake') app.objects.update(id, { shake: inp.value });
       else if (k === 'spotlight.shape') app.objects.update(id, { spotlight: { ...obj.spotlight, shape: inp.value } });
       else if (k === 'spotlight.intensity') app.objects.update(id, { spotlight: { ...obj.spotlight, intensity: clampNum(v, 0, 100) } });
@@ -309,30 +337,31 @@ function refreshInspector(app) {
       else if (k === 'animation.clip') app.objects.update(id, { animation: { clip: inp.value, playing: obj.animation?.playing ?? true } });   // live setObjectAnimation: playing ?? true
       else if (k === 'animation.playing') app.objects.update(id, { animation: { clip: obj.animation?.clip ?? 'idle', playing: inp.checked } });
       app.objects.changed();
+      });
     };
   });
   const nameEl = body.querySelector('#inspName');
-  if (nameEl) nameEl.onchange = () => app.objects.update(id, { name: nameEl.value });
+  if (nameEl) nameEl.onchange = () => objectOp(() => app.objects.update(id, { name: nameEl.value }));
   body.querySelector('.insp-actions')?.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const act = b.dataset.act;
     if (act === 'focus') app.focusObject(id);
-    if (act === 'del') { app.show.detachReferences(id); app.objects.remove(id); }
-    if (act === 'dup') { const nid = app.objects.duplicate(id, app.show); if (nid) app.objects.select([nid]); }
-    if (act === 'walk') {
+    if (act === 'del') objectOp(() => { app.show.detachReferences(id); app.objects.remove(id); });
+    if (act === 'dup') objectOp(() => { const nid = app.objects.duplicate(id, app.show); if (nid) app.objects.select([nid]); });
+    if (act === 'walk' && isPerson) {
       const item = app.show.addPathItem(id, app.page.playheadS);
       app.pathEditor.enterPaint(app.show.trackOf(id).id, item.id);
       app.pathEditor.seedFirstAnchor();
     }
-    if (act === 'campath') {
+    if (act === 'campath' && isCam) {
       const item = app.show.addItem(id, { kind: 'cam-path', anchors: [], speedUnitsPerS: 2, aim: 'travel' });
       app.pathEditor.enterPaint(app.show.trackOf(id).id, item.id);
       app.pathEditor.seedFirstAnchor();
     }
-    if (act === 'clip') {
+    if (act === 'clip' && obj.kind === 'humanoid') {
       app.show.addItem(id, { kind: 'clip', clip: 'idle', durationS: C.ITEM_DEFAULT_DUR });
     }
-    if (act === 'cammove') {
+    if (act === 'cammove' && isCam) {
       app.show.addItem(id, { kind: 'cam-move', move: 'orbit', direction: 'ccw', angleDeg: 360, durationS: CAM_MOVE_PRESETS.orbit.durationS, heightDeltaUnits: 0, distanceScale: 1 });
     }
     refreshTimeline(app);
@@ -341,17 +370,26 @@ function refreshInspector(app) {
 const withIdx = (arr, i, v) => { const a = [...(arr ?? [0, 0, 0])]; a[i] = v; return a; };
 const clampNum = (v, a, b) => Math.min(b, Math.max(a, v));
 const fmt = v => Number.isFinite(v) ? Math.round(v * 1000) / 1000 : 0;
-const escAttr = s => String(s).replace(/"/g, '&quot;');
+const escAttr = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // ================= hierarchy =================
 export function refreshHierarchy(app) {
   const el = document.getElementById('hierarchy');
   if (!el) return;
   const objs = app.objects.all();
-  const names = Object.entries(objs).map(([id, o]) => ({ id, o, depth: o.parentId ? 1 : 0 }));
-  el.innerHTML = names.map(({ id, o, depth }) =>
-    `<div class="hier-row ${app.objects.selectedIds.includes(id) ? 'sel' : ''}" data-id="${id}" style="padding-left:${8 + depth * 14}px">
-      <span class="hier-kind k-${o.kind}"></span>${escAttr(o.name ?? o.kind)}</div>`).join('');
+  // tree order: roots in insertion order, each immediately followed by its children (indented)
+  const rows = [];
+  const seen = new Set();
+  const emit = (id, o, depth) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    rows.push(`<div class="hier-row ${app.objects.selectedIds.includes(id) ? 'sel' : ''}" data-id="${id}" style="padding-left:${8 + depth * 14}px">
+      <span class="hier-kind k-${o.kind}"></span>${escAttr(o.name ?? o.kind)}</div>`);
+    for (const [cid, c] of Object.entries(objs)) if (c.parentId === id) emit(cid, c, depth + 1);
+  };
+  for (const [id, o] of Object.entries(objs)) if (!o.parentId || !objs[o.parentId]) emit(id, o, 0);
+  for (const [id, o] of Object.entries(objs)) emit(id, o, 0);   // orphans/late parents — safety net
+  el.innerHTML = rows.join('');
   el.querySelectorAll('.hier-row').forEach(r => r.onclick = () => app.objects.select([r.dataset.id]));
 }
 

@@ -86,31 +86,6 @@ function makeSkyDome() {
   return mesh;
 }
 
-// ---------- spotlight diffusion cookie (iOr) ----------
-const cookieCache = new Map();
-export function diffusionCookie(shape, diffusion) {
-  const step = Math.round(diffusion / 100 * C.SPOT_DIFFUSION_STEPS);
-  const key = `${shape}:${step}`;
-  if (cookieCache.has(key)) return cookieCache.get(key);
-  const S = C.SPOT_COOKIE_SIZE, data = new Uint8Array(S * S * 4);
-  const r0 = step / C.SPOT_DIFFUSION_STEPS * C.SPOT_COOKIE_RADIUS_K * C.SPOT_NRE;
-  const lo = C.SPOT_NRE - r0 / 2, hi = C.SPOT_NRE + r0 / 2;
-  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    const u = (x + .5) / S * 2 - 1, v = (y + .5) / S * 2 - 1;
-    const d = shape === 'square' ? Math.max(Math.abs(u), Math.abs(v)) : Math.hypot(u, v);
-    const raw = hi > lo ? (d - lo) / (hi - lo) : (d < lo ? 0 : 1);
-    const k = Math.min(1, Math.max(0, raw));
-    const val = Math.round(255 * (1 - k * k * (3 - 2 * k)));
-    const i = (y * S + x) * 4;
-    data[i] = data[i + 1] = data[i + 2] = val; data[i + 3] = 255;
-  }
-  const tex = new THREE.DataTexture(data, S, S);
-  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
-  tex.needsUpdate = true;
-  cookieCache.set(key, tex);
-  return tex;
-}
-
 // ---------- environment (wOr) ----------
 export function createEnvironment(scene, settings) {
   const sky = makeSkyDome();
@@ -252,8 +227,8 @@ export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, m
   function walk(obj, glow) {
     // f(): id, visible, position(3), quaternion(4 incl w), scale(3) — full TRS or stale shadows
     // live: camera/target kinds and Sprites are excluded (no fingerprint churn while dragging markers)
-    if (FINGERPRINT_SKIP_KINDS.has(obj.userData?.kind) || obj.isSprite) return;
     if (!obj) return;
+    if (FINGERPRINT_SKIP_KINDS.has(obj.userData?.kind) || obj.isSprite) return;
     push(obj.id); push(obj.visible ? 1 : 0);
     if (obj.position) { push(obj.position.x); push(obj.position.y); push(obj.position.z); }
     if (obj.quaternion) { push(obj.quaternion.x); push(obj.quaternion.y); push(obj.quaternion.z); push(obj.quaternion.w); }
