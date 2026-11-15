@@ -190,9 +190,9 @@ export class Manipulator {
   // captureFocusedTransformPose: selected segment is a transform item covering the playhead
   _captureFocusedTransformPose(id, local) {
     const app = this.app;
-    const seg = app.show.selectedSegment;
+    const seg = app.page.selectedSegment;
     if (!seg) return false;
-    const track = app.show.tracks().find(t => t.id === seg.trackId);
+    const track = app.show.show.tracks.find(t => t.id === seg.trackId);
     const item = track?.items.find(x => x.id === seg.itemId);
     if (!track || item?.kind !== 'transform') return false;
     if (track.characterId !== id) return false;
@@ -305,9 +305,9 @@ export class Manipulator {
   // captureFocusedCameraPose: focused cam-transform segment covering the playhead → key
   _captureFocusedCameraPose(id, obj, world) {
     const app = this.app;
-    const seg = app.show.selectedSegment;
+    const seg = app.page.selectedSegment;
     if (!seg) return false;
-    const track = app.show.tracks().find(t => t.id === seg.trackId);
+    const track = app.show.show.tracks.find(t => t.id === seg.trackId);
     const item = track?.items.find(x => x.id === seg.itemId);
     if (!track || item?.kind !== 'cam-transform' || track.characterId !== id) return false;
     const tS = app.page.playheadS - item.startS;

@@ -3,6 +3,9 @@
 import { uuid, packItems, itemDuration } from './schema.js';
 import { arcLength, polylineOf, buildTangents } from './curves.js';
 import { C } from './const.js';
+import { moveItemToIndex, canDuplicateOnto, dropSelfRefs, moveKey } from './place.js';
+
+const KEY_EPS = 0.001;   // ym
 
 function emit(listeners) { for (const fn of listeners) fn(); }
 
@@ -215,24 +218,41 @@ export class ShowStore extends StoreBase {
       }
     });
   }
-  duplicateItemTo(trackId, itemId, toTrackId) {
+  // duplicateItem (live 4-arg form): kind-compat gate + DHr self-ref drop + startS
+  duplicateItemTo(trackId, itemId, toTrackId, startS = 0) {
     const tr = this.show.tracks.find(t => t.id === trackId);
     const it = tr?.items.find(x => x.id === itemId);
     if (!it) return null;
-    const copy = { ...JSON.parse(JSON.stringify(it)), id: uuid() };
-    this._commit(toTrackId, t => t.items.push(copy));
+    const dest = this.show.tracks.find(t => t.id === toTrackId);
+    if (!dest) return null;
+    const owner = this._companion ? this._companion.get(dest.characterId) : null;
+    if (!owner || !canDuplicateOnto(it, owner.kind)) return null;   // live Art(): missing owner refuses all kinds
+    const copy = dropSelfRefs({ ...JSON.parse(JSON.stringify(it)), id: uuid(), startS: Math.max(0, startS) }, dest.characterId);
+    this._commit(toTrackId, t => { t.items = [...t.items, copy]; });
     return copy;
+  }
+  // kGt: move item to slot index (startS inherits the slot's original start)
+  reorderItem(trackId, itemId, toIndex) {
+    this._commit(trackId, t => { t.items = moveItemToIndex(t.items, itemId, toIndex); });
   }
 
   // ---- keyframe capture (addTransformKeyframe/addCameraKeyframe/setCameraItemFields — SZt/kZt) ----
-  _replaceKeyAt(itemId, key, kinds) {
+  _replaceKeyAt(itemId, key, kinds, { mergeJoints = false } = {}) {
     return t => {
       const i = t.items.findIndex(x => x.id === itemId);
       if (i < 0 || !kinds.includes(t.items[i].kind)) return;
-      const keys = [...(t.items[i].keys ?? [])].filter(k => Math.abs(k.tS - key.tS) > 0.001); // ym
-      keys.push(key);
-      keys.sort((a, b) => a.tS - b.tS);
-      t.items[i] = { ...t.items[i], keys };
+      const it = t.items[i];
+      const sameTS = k => Math.abs(k.tS - key.tS) <= KEY_EPS;
+      const existing = (it.keys ?? []).find(sameTS);
+      let newKey = key;
+      if (mergeJoints && existing) newKey = { tS: existing.tS, joints: { ...existing.joints, ...key.joints } };
+      // transform keys inherit headRotation from the key they replace
+      if (!mergeJoints && kinds.includes('transform') && !key.headRotation && existing?.headRotation) {
+        newKey = { ...key, headRotation: existing.headRotation };
+      }
+      const keys = [...(it.keys ?? []).filter(k => !sameTS(k)), newKey].sort((a, b) => a.tS - b.tS);
+      // durationS always grows to the last key (live behavior)
+      t.items[i] = { ...it, keys, durationS: Math.max(it.durationS ?? 0, keys[keys.length - 1].tS) };
     };
   }
   addTransformKeyframe(trackId, itemId, key) {   // Bzt keys (position/rotation/scale/headRotation)
@@ -240,6 +260,33 @@ export class ShowStore extends StoreBase {
   }
   addCameraKeyframe(trackId, itemId, key) {      // cam-transform keys (position/rotation/focalLengthMm)
     this._commit(trackId, this._replaceKeyAt(itemId, key, ['cam-transform']));
+  }
+  addRigKeyframe(trackId, itemId, key) {         // rig keys merge joints at the same tS
+    this._commit(trackId, this._replaceKeyAt(itemId, key, ['rig-transform'], { mergeJoints: true }));
+  }
+  _removeKeyAt(itemId, tS, kinds) {
+    return t => {
+      const i = t.items.findIndex(x => x.id === itemId);
+      if (i < 0 || !kinds.includes(t.items[i].kind)) return;
+      t.items[i] = { ...t.items[i], keys: (t.items[i].keys ?? []).filter(k => Math.abs(k.tS - tS) > KEY_EPS) };
+    };
+  }
+  removeTransformKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['transform'])); }
+  removeCameraKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['cam-transform'])); }
+  removeRigKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['rig-transform'])); }
+  // xbe — move the key at fromTS to toTS
+  moveTransformKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['transform']); }
+  moveCameraKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['cam-transform']); }
+  moveRigKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['rig-transform']); }
+  _moveKeyAt(trackId, itemId, fromTS, toTS, kinds) {
+    this._commit(trackId, t => {
+      const i = t.items.findIndex(x => x.id === itemId);
+      if (i < 0 || !kinds.includes(t.items[i].kind)) return;
+      t.items[i] = { ...t.items[i], keys: moveKey(t.items[i].keys ?? [], fromTS, toTS) };
+    });
+  }
+  findItem(seg) {
+    return this.show.tracks.find(t => t.id === seg.trackId)?.items.find(i => i.id === seg.itemId);
   }
   setCameraItemFields(trackId, itemId, fields) { // OHr-equivalent patch for camera item kinds
     const CAM_KINDS = ['cam-still', 'cam-move', 'cam-path', 'cam-follow', 'cam-transform', 'cam-manual'];
