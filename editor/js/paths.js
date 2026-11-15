@@ -52,7 +52,7 @@ export class PathEditor {
     // live enterPathEdit: selectedSegment + performancePaint + editInteraction="editingPath"
     this.app.page.selectedSegment = { trackId, itemId };
     this.app.page.paint = { trackId, itemId, selectedAnchor: null };
-    this.app.page.editInteraction = 'editingPath';
+    this.app.page.setEditInteraction('editingPath');
     this.app.page.keyboardOwner = 'stage';
     this.selectedAnchor = null;
     this.rebuild();
@@ -63,7 +63,7 @@ export class PathEditor {
     const p = this.paint;
     if (item && item.anchors.length < 2 && p) this.app.show.removeItem(p.trackId, p.itemId);
     this.app.page.paint = null;
-    this.app.page.editInteraction = null;
+    this.app.page.setEditInteraction('idle');
     this.group.visible = false;
     this._clearPickables();
     this.app.page.changed();

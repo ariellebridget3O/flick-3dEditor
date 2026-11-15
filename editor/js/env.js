@@ -247,11 +247,13 @@ export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, m
     n++;
   };
   const casterKinds = new Set(C.SHADOW_CASTER_KINDS);
+  const FINGERPRINT_SKIP_KINDS = new Set(['camera', 'target']);   // live SOr — markers excluded from the walk
   const box = new THREE.Box3(), tmpBox = new THREE.Box3();
   function walk(obj, glow) {
-    // fingerprint every mesh; set cast/receive; apply night glow emissive
-    if (!obj) return;
     // f(): id, visible, position(3), quaternion(4 incl w), scale(3) — full TRS or stale shadows
+    // live: camera/target kinds and Sprites are excluded (no fingerprint churn while dragging markers)
+    if (FINGERPRINT_SKIP_KINDS.has(obj.userData?.kind) || obj.isSprite) return;
+    if (!obj) return;
     push(obj.id); push(obj.visible ? 1 : 0);
     if (obj.position) { push(obj.position.x); push(obj.position.y); push(obj.position.z); }
     if (obj.quaternion) { push(obj.quaternion.x); push(obj.quaternion.y); push(obj.quaternion.z); push(obj.quaternion.w); }
@@ -323,7 +325,7 @@ export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, m
     // NOTE (live parity): the WALK RUNS EVERY CALL — `dirty` only means "values changed since
     // last walk", never "walk pending". Gating the walk behind dirty (our old bug) meant scene
     // changes were never detected at all after the first steady frame — shadows never updated.
-    push(sun.position.x); push(sun.position.z); push(w); push(far);
+    push(sun.position.x); push(sun.position.y); push(sun.position.z); push(w); push(far);   // m(e.position) + w + far
     const changed = dirty || n !== lastN;
     dirty = false; lastN = n;
     return changed;

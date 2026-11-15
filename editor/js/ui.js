@@ -6,6 +6,9 @@ import { C, CLIPS, CAM_MOVES, CAM_MOVE_PRESETS } from './const.js';
 import { normalizeLight } from './env.js';
 import { itemDuration } from './schema.js';
 import { showLayout, ITEM_LABELS, fovFromFocal } from './tracks.js';
+import { MAGNET_PX, maxEnd, placeAvoiding, repackSequential, planMove, moveItemToIndex, clampKeyTime, canDuplicateOnto } from './place.js';
+import { createRangeTool, renderTakeRange, wireRangeToolGlobal } from './takerange.js';
+import { stickFromDelta } from './navball.js';
 
 const $ = id => document.getElementById(id);
 
@@ -37,6 +40,7 @@ export function buildUI(app) {
     const b = e.target.closest('button'); if (!b) return;
     [...$('viewSwitch').children].forEach(x => x.classList.toggle('on', x === b));
     app.page.stageView = b.dataset.v;
+    app.page.changed();          // nav ball pad / lasso button visibility ride this
     updateFrameGuide(app);
   });
   $('modeSwitch').addEventListener('click', e => {
@@ -101,10 +105,12 @@ export function buildUI(app) {
   });
   app.show.subscribe(() => refreshTimeline(app));
   refreshSelectionUI(app);
+
+  // timeline (build first — initializes app._tl used by refreshTimeline)
+  buildTimeline(app);
   refreshTimeline(app);
 
-  // timeline
-  buildTimeline(app);
+  buildViewportOverlays(app);
 
   // per-frame UI updates
   let lastPlayhead = -1;
@@ -112,7 +118,7 @@ export function buildUI(app) {
     const t = app.page?.playheadS ?? 0;
     if (Math.abs(t - lastPlayhead) > 0.005) {
       lastPlayhead = t;
-      $('timeBadge').textContent = t.toFixed(2);
+      $('timeBadge').textContent = fmtClock(t);
       updatePlayhead(app, t);
     }
   }, 100);
@@ -300,7 +306,7 @@ function refreshInspector(app) {
       else if (k === 'spotlight.shape') app.objects.update(id, { spotlight: { ...obj.spotlight, shape: inp.value } });
       else if (k === 'spotlight.intensity') app.objects.update(id, { spotlight: { ...obj.spotlight, intensity: clampNum(v, 0, 100) } });
       else if (k === 'spotlight.diffusion') app.objects.update(id, { spotlight: { ...obj.spotlight, diffusion: clampNum(v, 0, 100) } });
-      else if (k === 'animation.clip') app.objects.update(id, { animation: { clip: inp.value, playing: obj.animation?.playing ?? false } });
+      else if (k === 'animation.clip') app.objects.update(id, { animation: { clip: inp.value, playing: obj.animation?.playing ?? true } });   // live setObjectAnimation: playing ?? true
       else if (k === 'animation.playing') app.objects.update(id, { animation: { clip: obj.animation?.clip ?? 'idle', playing: inp.checked } });
       app.objects.changed();
     };
@@ -388,35 +394,83 @@ function refreshCameras(app) {
   }
 }
 
-// ================= timeline =================
-function buildTimeline(app) {
-  const lanes = document.getElementById('tlLanes');
-  const ruler = document.getElementById('tlRuler');
-  let pps = 60;   // px per second (min 60)
-  app._tl = { pps };
+// ================= timeline (exact port of the live drag/trim/keyframe system) =================
+// Placement solver: place.js (q5r/_ie/kGt/lje). Drag machine: nCr pointer flow.
+// Trim: right-edge handle → store trimItem (path/cam-path keeps speed=arc/dur).
+// Keyframe diamonds: SCr flow (drag=B2r clamp + xbe move, click=select+seek).
+const MIN_DUR = 0.05;          // WAr
+const DRAG_THRESH_PX = 4;      // zAr
+const KF_DRAG_THRESH_PX = 3;   // kCr
+const KF_MARGIN_PX = 7;        // f2e
+const KEY_EPS = 0.001;         // ym
 
-  // seek by ruler click/drag
+const OBJECT_ITEM_KINDS = new Set(['rotate', 'revolve', 'scale', 'transform', 'rig-transform']); // $2r (aN)
+const CAMERA_ITEM_KINDS = new Set(['cam-still', 'cam-move', 'cam-path', 'cam-follow', 'cam-transform', 'cam-manual']); // V2r (Fp)
+const KF_KINDS = new Set(['transform', 'rig-transform', 'cam-transform']); // Zzt
+
+function buildTimeline(app) {
+  app._tl = { pps: 60, magnet: true, interaction: null, rangeTool: createRangeTool() };
+  wireRangeToolGlobal(app);
+  const ruler = document.getElementById('tlRuler');
+
+  // seek by ruler click/drag (clamped to span) — drives manipulator.scrubbing so the
+  // frame loop's scrub branch evaluates (live: seekPerformance + frame-tick evaluation)
   let seeking = false;
   const seekAt = e => {
     const r = ruler.getBoundingClientRect();
-    const t = Math.max(0, (e.clientX - r.left) / pps);   // ruler scrolls with tlBody — no scrollLeft term
+    const gutter = LANE_GUTTER();
+    const t = Math.max(0, (e.clientX - r.left - gutter) / app._tl.pps);
     const layout = showLayout(app.show.show);
-    app.page.seek(Math.min(t, layout.durationS + 5));
-    app.evaluateAt?.(app.page.playheadS, 1 / 60, true);
+    app.page.seek(Math.min(t, Math.max(10, layout.durationS + 5)));
   };
-  ruler.addEventListener('pointerdown', e => { seeking = true; ruler.setPointerCapture(e.pointerId); seekAt(e); });
+  ruler.addEventListener('pointerdown', e => {
+    if (app._tl.rangeTool?.on) return;   // range tool owns the ruler (live PGt covers it)
+    seeking = true;
+    app.manipulator.scrubbing = true;
+    try { ruler.setPointerCapture(e.pointerId); } catch (_) {}   // synthetic-event safe
+    seekAt(e);
+  });
   ruler.addEventListener('pointermove', e => seeking && seekAt(e));
-  ruler.addEventListener('pointerup', () => seeking = false);
+  const rulerUp = () => { seeking = false; app.manipulator.scrubbing = false; };
+  ruler.addEventListener('pointerup', rulerUp);
+  ruler.addEventListener('pointercancel', rulerUp);
 
   // ctrl+wheel zoom anchored at cursor
   document.getElementById('tlBody').addEventListener('wheel', e => {
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     const f = Math.exp(-e.deltaY * (Math.abs(e.deltaY) < 10 ? 0.02 : 0.005));
-    pps = Math.max(60, pps * f);
-    app._tl.pps = pps;
+    app._tl.pps = Math.max(60, app._tl.pps * f);
     refreshTimeline(app);
   }, { passive: false });
+
+  // magnet toggle (live header iconBtn)
+  const magBtn = document.createElement('button');
+  magBtn.id = 'btnMagnet';
+  magBtn.className = 'ghost small magnet-btn on';
+  magBtn.textContent = '🧲';
+  magBtn.title = 'Snap to nearby blocks (hold Ctrl/Cmd to bypass while dragging)';
+  magBtn.setAttribute('aria-pressed', 'true');
+  magBtn.onclick = () => {
+    app._tl.magnet = !app._tl.magnet;
+    magBtn.classList.toggle('on', app._tl.magnet);
+    magBtn.setAttribute('aria-pressed', String(app._tl.magnet));
+  };
+  const tlTitle = document.querySelector('.tl-title');
+  if (tlTitle) tlTitle.after(magBtn);
+
+  // take-range toggle (live header: iconBtn "range", disabled while a take films — never offline)
+  const rangeBtn = document.createElement('button');
+  rangeBtn.id = 'btnRange';
+  rangeBtn.className = 'ghost small range-btn';
+  rangeBtn.textContent = '⇥';
+  rangeBtn.title = 'Take range — drag on the timeline to set what gets filmed';
+  rangeBtn.setAttribute('aria-pressed', 'false');
+  rangeBtn.onclick = () => {
+    app._tl.rangeTool.on = !app._tl.rangeTool.on;
+    refreshTimeline(app);
+  };
+  magBtn.after(rangeBtn);
 
   $('btnAddTrack').onclick = () => {
     const objs = Object.entries(app.objects.all()).filter(([id, o]) =>
@@ -431,51 +485,122 @@ function buildTimeline(app) {
 
 const isPersonKindO = k => k === 'humanoid' || k === 'simple_figure';
 
+// block color category (live blockHuman/blockObject/blockCamera)
+function blockCategory(it, isWalker) {
+  if (CAMERA_ITEM_KINDS.has(it.kind)) return 'cat-cam';
+  if (OBJECT_ITEM_KINDS.has(it.kind) || (it.kind === 'path' && !isWalker)) return 'cat-obj';
+  return 'cat-human';
+}
+
+function blockLabel(it, isWalker) {
+  switch (it.kind) {
+    case 'path': return isWalker ? 'Walk' : 'Move';
+    case 'play': return 'Play';
+    case 'clip': return it.clip ?? 'Clip';
+    case 'rotate': return 'Rotate';
+    case 'revolve': return 'Revolve';
+    case 'scale': return (it.factor ?? 1) >= 1 ? 'Scale up' : 'Scale down';
+    case 'transform': return 'Transform';
+    case 'rig-transform': return 'Pose';
+    case 'cam-still': return 'Camera still';
+    case 'cam-move': return it.move ?? 'move';
+    case 'cam-path': return 'Camera path';
+    case 'cam-follow': return 'Follow';
+    case 'cam-transform': return 'Camera transform';
+    case 'cam-manual': return 'Manual';
+    default: return ITEM_LABELS[it.kind] ?? it.kind;
+  }
+}
+
+// trim eligibility (live `be` gate): clip, path, object items, camera except cam-manual, dur>0
+const trimmable = it => (it.kind === 'clip' || it.kind === 'path' ||
+  OBJECT_ITEM_KINDS.has(it.kind) || (CAMERA_ITEM_KINDS.has(it.kind) && it.kind !== 'cam-manual'))
+  && itemDuration(it) > 0;
+
+// markers = start/end of every OTHER block across ALL tracks (live U())
+function allMarkers(layout, excludeId) {
+  const s = new Set();
+  for (const tr of layout.tracks) for (const u of tr.items) {
+    if (u.item.id !== excludeId) { s.add(u.startS); s.add(u.endS); }
+  }
+  return [...s];
+}
+
 export function refreshTimeline(app) {
   const lanes = document.getElementById('tlLanes');
   const ruler = document.getElementById('tlRuler');
   if (!lanes || !app.show) return;
+  if (!app._tl) app._tl = { pps: 60, magnet: true, interaction: null };
+  if (app._tl?.interaction) { updatePlayhead(app, app.page.playheadS); return; }   // live drag: no re-render
   const pps = app._tl?.pps ?? 60;
+  const magnet = app._tl?.magnet ?? true;
   const layout = showLayout(app.show.show);
   const span = Math.max(10, layout.durationS + 5);
   const W = span * pps;
+  app._tl.span = span;
 
-  // ruler ticks
+  // ruler ticks (steps GAr, min label width 80px qAr)
   const steps = [.5, 1, 2, 5, 10, 15, 30, 60];
   const step = steps.find(s => s * pps >= 80) ?? 60;
+  const gutter = LANE_GUTTER();
   let ticks = '';
   for (let t = 0; t <= span; t += step) {
-    const x = t * pps;
-    ticks += `<div class="tick" style="left:${x}px"><span>${fmtTime(t)}</span></div>`;
+    ticks += `<div class="tick" style="left:${gutter + t * pps}px"><span>${fmtTime(t)}</span></div>`;
   }
-  ruler.style.width = `${W}px`;
-  ruler.innerHTML = ticks + `<div class="tl-playhead" id="playheadLine" style="left:0px"></div>`;
+  // +gutter so the last tick (at gutter + span*pps) and its label fit the scroll area
+  // (P3: last-label clip at the scroll edge)
+  ruler.style.width = `${W + gutter}px`;
+  ruler.innerHTML = ticks + `<div class="tl-playhead" id="playheadLine" style="left:${gutter}px"></div>`;
+
+  // take-range button state (live iconBtnActive on toolOn)
+  const rangeBtn = document.getElementById('btnRange');
+  if (rangeBtn) {
+    rangeBtn.classList.toggle('on', !!app._tl.rangeTool?.on);
+    rangeBtn.setAttribute('aria-pressed', String(!!app._tl.rangeTool?.on));
+  }
 
   // lanes
-  const kinds = Object.entries(app.objects.all()).filter(([, o]) => isPersonKindO(o.kind) || o.kind === 'camera');
-  lanes.style.width = `${W}px`;
+  lanes.style.width = `${W + gutter}px`;   // match the ruler (last-tick room)
   lanes.innerHTML = layout.tracks.map(tr => {
     const obj = app.objects.get(tr.characterId);
     const name = obj ? (obj.name ?? obj.kind) : '?';
-    const blocks = tr.items.map(u => {
-      const it = u.item;
-      const dur = u.endS - u.startS;
-      const label = it.kind === 'cam-move' ? (it.move ?? 'move')
-        : it.kind === 'clip' ? it.clip
-          : it.kind === 'path' ? 'Walk'
-            : ITEM_LABELS[it.kind] ?? it.kind;
-      const selCls = app.page.selectedSegment?.itemId === it.id ? ' sel' : '';
-      return `<div class="blk kind-${it.kind}${selCls}" data-track="${tr.trackId}" data-item="${it.id}"
-        style="left:${u.startS * pps}px;width:${Math.max(3, dur * pps)}px">${escAttr(label)}</div>`;
-    }).join('');
+    const isWalker = isPersonKindO(obj?.kind);
+    const blocks = tr.items.map(u => blockHTML(app, u, tr, pps, isWalker)).join('');
+    const addLeft = maxEnd(tr.items.map(u => u.item)) * pps;
     return `<div class="lane ${obj?.kind === 'camera' ? 'cam' : ''}" data-track="${tr.trackId}">
       <div class="lane-head">${escAttr(name)}<button class="lane-del" data-track="${tr.trackId}">✕</button></div>
-      <div class="lane-body">${blocks}
-        <button class="lane-add" data-track="${tr.trackId}" data-char="${tr.characterId}">＋</button>
+      <div class="lane-body" data-track-id="${tr.trackId}" data-char="${tr.characterId}">${blocks}
+        <button class="lane-add" data-track="${tr.trackId}" data-char="${tr.characterId}" style="left:${addLeft}px">＋</button>
       </div></div>`;
   }).join('') || '<div class="hint">No tracks — select a Human/Camera and add actions from Properties</div>';
 
-  // interactions
+  wireTimelineInteractions(app, lanes, pps, magnet, layout);
+  updatePlayhead(app, app.page.playheadS);
+  renderTakeRange(app);   // _Tr ruler label + wTr lane overlay (box/grips/ghost/guides/draw)
+  refreshHierarchy(app);
+  refreshCameras(app);
+}
+
+function blockHTML(app, u, tr, pps, isWalker) {
+  const it = u.item;
+  const dur = u.endS - u.startS;
+  const w = Math.max(3, dur * pps);   // p2e min width
+  const sel = app.page.selectedSegment?.itemId === it.id;
+  const painting = app.page.paint?.itemId === it.id;
+  const kf = KF_KINDS.has(it.kind) && (it.keys?.length ?? 0) > 0;
+  const seg = app.page.selectedSegment;
+  const diamonds = kf ? `<span class="kf-layer">${it.keys.map(k =>
+    `<span class="kf-diamond${seg?.itemId === it.id && seg?.tS !== undefined && Math.abs(seg.tS - k.tS) <= KEY_EPS ? ' selected' : ''}" data-ts="${k.tS}" title="Keyframe — click to select, drag to move" style="left:${clampPx(k.tS * pps, w)}px"></span>`).join('')}</span>` : '';
+  const handle = trimmable(it) && !painting ? '<span class="trim-handle" title="Drag to change duration"></span>' : '';
+  return `<div class="blk ${blockCategory(it, isWalker)}${sel ? ' sel' : ''}${painting ? ' painting' : ''}"
+    data-track="${tr.trackId}" data-item="${it.id}" data-start="${u.startS}" data-end="${u.endS}"
+    style="left:${u.startS * pps}px;width:${w}px">
+    <span class="blk-label">${escAttr(blockLabel(it, isWalker))}</span>${diamonds}${handle}</div>`;
+}
+
+const clampPx = (x, w) => Math.min(Math.max(x, KF_MARGIN_PX), Math.max(w - KF_MARGIN_PX, KF_MARGIN_PX));
+
+function wireTimelineInteractions(app, lanes, pps, magnet, layout) {
   lanes.querySelectorAll('.lane-del').forEach(b => b.onclick = e => {
     e.stopPropagation();
     app.show.removeTrack(b.dataset.track);
@@ -483,65 +608,296 @@ export function refreshTimeline(app) {
   });
   lanes.querySelectorAll('.lane-add').forEach(b => b.onclick = e => {
     e.stopPropagation();
-    const char = b.dataset.char;
-    const obj = app.objects.get(char);
-    const menu = document.createElement('div');
-    menu.className = 'ctx-menu';
-    const items = obj?.kind === 'camera'
-      ? [['cam-still', 'Camera still'], ['cam-move', 'Camera move'], ['cam-path', 'Camera path'], ['cam-follow', 'Follow'], ['cam-transform', 'Camera transform']]
-      : [['path', 'Walk path'], ['clip', 'Clip'], ['transform', 'Transform'], ['rotate', 'Rotate'], ['revolve', 'Revolve'], ['scale', 'Scale']];
-    menu.innerHTML = items.map(([k, l]) => `<button data-kind="${k}">${l}</button>`).join('');
-    document.body.appendChild(menu);
-    const r = b.getBoundingClientRect();
-    menu.style.left = `${r.left}px`; menu.style.top = `${r.bottom + 4}px`;
-    menu.onclick = ev => {
-      const btn = ev.target.closest('button'); if (!btn) return;
-      const kind = btn.dataset.kind;
-      menu.remove();
-      addItemKind(app, char, kind, app.page.playheadS);
-      refreshTimeline(app);
-    };
-    setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
+    openAddMenu(app, b);
   });
-  lanes.querySelectorAll('.blk').forEach(b => {
-    b.onclick = e => {
-      e.stopPropagation();
-      app.page.selectedSegment = { trackId: b.dataset.track, itemId: b.dataset.item };
+  lanes.querySelectorAll('.blk').forEach(b => wireBlock(app, b, pps, magnet, layout, lanes));
+}
+
+function openAddMenu(app, btn) {
+  const char = btn.dataset.char;
+  const obj = app.objects.get(char);
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  const items = obj?.kind === 'camera'
+    ? [['cam-still', 'Camera still'], ['cam-move', 'Camera move'], ['cam-path', 'Camera path'], ['cam-follow', 'Follow'], ['cam-transform', 'Camera transform']]
+    : [['path', 'Walk path'], ['clip', 'Clip'], ['transform', 'Transform'], ['rotate', 'Rotate'], ['revolve', 'Revolve'], ['scale', 'Scale']];
+  menu.innerHTML = items.map(([k, l]) => `<button data-kind="${k}">${l}</button>`).join('');
+  document.body.appendChild(menu);
+  const r = btn.getBoundingClientRect();
+  menu.style.left = `${r.left}px`; menu.style.top = `${r.bottom + 4}px`;
+  menu.onclick = ev => {
+    const b = ev.target.closest('button'); if (!b) return;
+    menu.remove();
+    addItemKind(app, char, b.dataset.kind, app.page.playheadS);
+    refreshTimeline(app);
+  };
+  setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
+}
+
+// ---- block drag: move / reorder / alt-duplicate (nCr pointer flow, q5r/_ie solvers) ----
+function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
+  const trackId = blockEl.dataset.track, itemId = blockEl.dataset.item;
+
+  blockEl.onclick = e => {
+    e.stopPropagation();
+    if (app._tl.justDragged) { app._tl.justDragged = false; return; }  // live L.current suppress
+    app.page.selectedSegment = { trackId, itemId };
+    refreshTimeline(app);
+    refreshSegInspector(app);
+  };
+
+  blockEl.onpointerdown = e => {
+    if (e.target.closest('.trim-handle')) return;                  // trim handle owns the gesture
+    if (e.target.closest('.kf-diamond')) return;                   // diamonds own the gesture
+    if (e.button !== 0) return;
+    if (app.page.paint?.itemId === itemId) return;                  // live: painting blocks are not draggable (se gates on paintingItemId)
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}   // synthetic-event safe
+    const it = app.show.show.tracks.find(t => t.id === trackId)?.items.find(i => i.id === itemId);
+    if (!it) return;
+    const startXPx = e.clientX, startYPx = e.clientY;
+    const startS0 = +blockEl.dataset.start, endS0 = +blockEl.dataset.end;
+    const durationS = endS0 - startS0;
+    const duplicating = e.altKey;
+    let dragging = false;
+    let plan = { kind: 'idle' };
+    let curStart = startS0, guidesS = [], previewStarts = new Map(), toTrackId = trackId;
+
+    const laneBodyOf = id => lanes.querySelector(`.lane-body[data-track-id="${id}"]`);
+    const renderGuides = (laneBody, gs) => {
+      laneBody.querySelectorAll('.snap-guide').forEach(g => g.remove());
+      for (const g of gs) {
+        const el = document.createElement('span');
+        el.className = 'snap-guide';
+        el.style.left = `${g * pps}px`;
+        laneBody.appendChild(el);
+      }
+    };
+    const setGhost = (laneBody, startS, dur) => {
+      // live duplicate ghost: ghost renders in the TARGET lane (V?.toTrackId === ae.id);
+      // lane gets `laneDuplicateTarget` only when a DIFFERENT lane passes the domain gate
+      lanes.querySelectorAll('.ghost-blk,.ghost-caret').forEach(g => g.remove());
+      lanes.querySelectorAll('.lane-body.dup-target').forEach(l => l.classList.remove('dup-target'));
+      if (!laneBody) return;
+      if (laneBody.dataset.trackId !== trackId && compatibleFor(laneBody.dataset.trackId)) {
+        laneBody.classList.add('dup-target');
+      }
+      const el = document.createElement('span');
+      el.className = dur > 0 ? 'ghost-blk' : 'ghost-caret';
+      el.style.left = `${startS * pps}px`;
+      if (dur > 0) el.style.width = `${Math.max(3, dur * pps)}px`;
+      laneBody.appendChild(el);
+    };
+    // domain gate (live `se`: resolve + yGt) for a candidate target lane id
+    const compatibleFor = tid => {
+      const tt = app.show.show.tracks.find(t => t.id === tid);
+      const obj = tt ? app.objects.get(tt.characterId) : null;
+      return !!(tt && obj && canDuplicateOnto(it, obj.kind));
+    };
+    // live nCr `se`: alt-pointerdown opens the duplicate ghost IMMEDIATELY (before any
+    // threshold), in the SOURCE lane at the block's own position (E called with toTrackId=t.id)
+    if (duplicating) setGhost(laneBodyOf(trackId), startS0, durationS);
+
+    const mv = ev => {
+      const dx = ev.clientX - startXPx, dy = ev.clientY - startYPx;
+      const dist = duplicating ? Math.hypot(dx, dy) : Math.abs(dx);
+      if (!dragging && dist < DRAG_THRESH_PX) return;
+      if (!dragging) {
+        dragging = true;
+        app._tl.interaction = 'drag';
+        blockEl.classList.add('dragging');
+      }
+      const desiredStart = startS0 + dx / pps;
+      const useMagnet = magnet && !(ev.metaKey || ev.ctrlKey);   // live: meta/ctrl bypasses
+      const radiusS = useMagnet ? MAGNET_PX / pps : 0;
+
+      if (duplicating) {
+        // target lane from pointer position (live elementFromPoint on [data-track-id]); keep the LAST hit on a miss
+        const hit = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-track-id]');
+        if (hit instanceof HTMLElement && hit.dataset.trackId) toTrackId = hit.dataset.trackId;
+        const targetTrack = app.show.show.tracks.find(t => t.id === toTrackId);
+        const targetObj = targetTrack ? app.objects.get(targetTrack.characterId) : null;
+        const compatible = !!(targetTrack && targetObj && canDuplicateOnto(it, targetObj.kind));   // missing owner refuses (Art with undefined kind)
+        const tItems = targetTrack?.items ?? [];
+        const placed = compatible ? placeAvoiding({
+          desiredStartS: desiredStart, durationS,
+          obstacles: tItems.map(x => ({ startS: x.startS, endS: x.startS + itemDuration(x) })),
+          markersS: allMarkers(layout, null),
+          radiusS, fallbackStartS: maxEnd(tItems),
+        }) : null;
+        if (placed) {
+          curStart = placed.startS; guidesS = placed.guidesS;
+          setGhost(laneBodyOf(toTrackId), curStart, durationS);
+          // live: guides render in the lane that OWNS the drag (F belongs to the source
+          // lane's component); the ghost follows the pointer into the target lane
+          renderGuides(laneBodyOf(trackId), guidesS);
+        } else {
+          setGhost(null);
+          renderGuides(laneBodyOf(trackId), []);
+        }
+        return;
+      }
+
+      // plain drag: q5r move-or-reorder plan against own track
+      const tr = app.show.show.tracks.find(t => t.id === trackId);
+      plan = planMove({
+        items: tr.items, draggedId: itemId,
+        desiredStartS: desiredStart, durationS,
+        markersS: allMarkers(layout, itemId),
+        radiusS, fallbackStartS: startS0,
+      });
+      const laneBody = laneBodyOf(trackId);
+      if (plan.kind === 'move') {
+        curStart = plan.startS; guidesS = plan.guidesS;
+        previewStarts = new Map();
+        blockEl.style.transform = `translateX(${(curStart - startS0) * pps}px)`;
+        laneBody.querySelectorAll('.blk').forEach(b => { if (b !== blockEl) b.style.transform = ''; });
+      } else {
+        // reorder: dragged block follows the RAW desired start; siblings preview the packed layout (live lje(kGt)) 
+        previewStarts = new Map(repackSequential(moveItemToIndex(tr.items, itemId, plan.toIndex))
+          .map(x => [x.id, x.startS]));
+        laneBody.querySelectorAll('.blk').forEach(b => {
+          if (b === blockEl) return;
+          const ps = previewStarts.get(b.dataset.item);
+          const base = +b.dataset.start;
+          b.style.transform = (ps !== undefined && ps !== base) ? `translateX(${(ps - base) * pps}px)` : '';
+        });
+        curStart = Math.max(0, desiredStart);   // live: F.startS = Math.max(0, pe) for reorder plans
+        blockEl.style.transform = `translateX(${(curStart - startS0) * pps}px)`;
+        guidesS = [];
+      }
+      renderGuides(laneBody, guidesS);
+    };
+
+    const up = () => {
+      window.removeEventListener('pointermove', mv);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+      lanes.querySelectorAll('.snap-guide,.ghost-blk,.ghost-caret').forEach(g => g.remove());
+      lanes.querySelectorAll('.lane-body.dup-target').forEach(l => l.classList.remove('dup-target'));
+      if (!dragging) return;
+      app._tl.justDragged = true;
+      app._tl.interaction = null;
+      if (duplicating) {
+        app.show.duplicateItemTo(trackId, itemId, toTrackId, curStart);
+      } else if (plan.kind === 'reorder') {
+        app.show.reorderItem(trackId, itemId, plan.toIndex);
+      } else if (plan.kind === 'move') {
+        app.show.moveItem(trackId, itemId, plan.startS);
+      }
+      app.show.changed();
       refreshTimeline(app);
       refreshSegInspector(app);
     };
-    b.onpointerdown = e => { // drag to move
-      if (e.target !== b) return;
-      const startX = e.clientX;
-      const trackId = b.dataset.track, itemId = b.dataset.item;
+    const cancel = () => {
+      window.removeEventListener('pointermove', mv);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+      lanes.querySelectorAll('.snap-guide,.ghost-blk,.ghost-caret').forEach(g => g.remove());
+      lanes.querySelectorAll('.lane-body.dup-target').forEach(l => l.classList.remove('dup-target'));
+      if (dragging) { app._tl.interaction = null; refreshTimeline(app); }
+    };
+    window.addEventListener('pointermove', mv);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
+  };
+
+  // ---- trim handle (live Q/q flow: right-edge drag → duration / path speed) ----
+  const handle = blockEl.querySelector('.trim-handle');
+  if (handle) {
+    handle.onpointerdown = e => {
+      e.stopPropagation();
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}   // synthetic-event safe
+      const startXPx = e.clientX, startS = +blockEl.dataset.start, endS0 = +blockEl.dataset.end;
+      const it0 = app.show.show.tracks.find(t => t.id === trackId)?.items.find(i => i.id === itemId);
+      if (!it0) return;
+      app._tl.interaction = 'trim';
+      app.show.beginEditGesture();
+      const mv = ev => {
+        const dS = (ev.clientX - startXPx) / pps;
+        const newDur = Math.max(MIN_DUR, endS0 + dS - startS);
+        if (Number.isNaN(newDur)) return;
+        app.show.trimItem(trackId, itemId, newDur);       // live per-move commit (clip/speed/object/camera)
+        blockEl.style.width = `${Math.max(3, newDur * pps)}px`;   // live width while render suppressed
+      };
+      const finish = () => {
+        window.removeEventListener('pointermove', mv);
+        window.removeEventListener('pointerup', finish);
+        window.removeEventListener('pointercancel', finish);
+        app.show.endEditGesture();
+        app._tl.interaction = null;
+        refreshTimeline(app);
+        refreshSegInspector(app);
+      };
+      window.addEventListener('pointermove', mv);
+      window.addEventListener('pointerup', finish);      // was `up` (undefined) — froze the timeline
+      window.addEventListener('pointercancel', finish);
+    };
+    handle.onclick = e => e.stopPropagation();   // no segment select after a trim (live onClick stopPropagation)
+  }
+
+  // ---- keyframe diamonds (SCr flow) ----
+  blockEl.querySelectorAll('.kf-diamond').forEach(d => {
+    d.onpointerdown = e => {
+      e.stopPropagation();
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}   // synthetic-event safe
+      const fromTS = +d.dataset.ts;
+      const startS = +blockEl.dataset.start;
+      const w = parseFloat(blockEl.style.width);
       const it = app.show.show.tracks.find(t => t.id === trackId)?.items.find(i => i.id === itemId);
       if (!it) return;
-      const startS = it.startS;
-      let moved = false;
+      let moved = false, previewTS = fromTS;
       const mv = ev => {
-        if (Math.abs(ev.clientX - startX) < 4 && !moved) return;
+        const dx = ev.clientX - e.clientX;
+        if (!moved && Math.abs(dx) < KF_DRAG_THRESH_PX) return;
         moved = true;
-        const d = (ev.clientX - startX) / pps;
-        app.show.moveItem(trackId, itemId, Math.max(0, startS + d));
-        refreshTimeline(app);
+        previewTS = clampKeyTime(it.keys ?? [], fromTS, fromTS + dx / pps, itemDuration(it));  // B2r
+        d.style.left = `${clampPx(previewTS * pps, w)}px`;
       };
-      const up = () => {
+      const up = ev => {
         window.removeEventListener('pointermove', mv);
         window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', finishKey);   // don't leak the cancel listener
+        ev.stopPropagation();
+        if (moved) {
+          if (it.kind === 'cam-transform') app.show.moveCameraKeyframe(trackId, itemId, fromTS, previewTS);
+          else if (it.kind === 'rig-transform') app.show.moveRigKeyframe(trackId, itemId, fromTS, previewTS);
+          else app.show.moveTransformKeyframe(trackId, itemId, fromTS, previewTS);
+        } else {
+          app.page.selectedSegment = { trackId, itemId, tS: fromTS };   // selectKeyframe
+          app.page.seek(startS + fromTS);                                 // seekPerformance
+        }
+        app.show.changed();
+        refreshTimeline(app);
+        refreshSegInspector(app);
+      };
+      const finishKey = () => {
+        window.removeEventListener('pointermove', mv);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', finishKey);
       };
       window.addEventListener('pointermove', mv);
       window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', finishKey);
     };
+    d.onclick = e => e.stopPropagation();   // live: block click must not clobber the keyframe selection
   });
-  updatePlayhead(app, app.page.playheadS);
-  refreshHierarchy(app);
-  refreshCameras(app);
+}
+
+// solver-placed add (live Z(): _ie with obstacles + magnet + markers, fallback = end)
+function placeNewItem(app, charId, desiredStartS, durationS) {
+  const tr = app.show.trackOf(charId);
+  const items = tr?.items ?? [];
+  const layout = showLayout(app.show.show);
+  const pps = 1; // seconds-domain math; markers in seconds
+  return appendPlace(items, durationS, desiredStartS);   // live placeItemS → W5r: obstacles yes, magnet/markers no
 }
 
 function addItemKind(app, charId, kind, startS) {
   const obj = app.objects.get(charId);
   const add = item => {
-    const it = app.show.addItem(charId, item);
+    const dur = item.durationS ?? C.ITEM_DEFAULT_DUR;
+    const placed = placeNewItem(app, charId, startS, dur);
+    const it = app.show.addItem(charId, { ...item, startS: placed });
     if (kind === 'path' || kind === 'cam-path') {
       app.pathEditor.enterPaint(app.show.trackOf(charId).id, it.id);
       app.pathEditor.seedFirstAnchor();
@@ -608,9 +964,31 @@ function refreshSegInspector(app) {
   if (it.kind === 'cam-follow') {
     html += `<label>Object<select id="segFollow"><option value="">—</option>${objOpts(it.objectId)}</select></label>`;
   }
+  // ---- segment editors for object kinds (live setRotateAxis/setObjectItemSpeed/setRevolveCenter/setScaleFactor) ----
+  if (it.kind === 'rotate') {
+    html += `<label>Axis<select id="segAxis">${['x', 'y', 'z'].map(a => `<option ${it.axis === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
+      <label>Speed °/s<input type="number" id="segDeg" step="15" value="${it.degPerS ?? 90}"></label>`;
+  }
+  if (it.kind === 'revolve') {
+    html += `<label>Center<select id="segCenter"><option value="">—</option>${objOpts(it.centerObjectId)}</select></label>
+      <label>Speed °/s<input type="number" id="segDeg" step="15" value="${it.degPerS ?? 60}"></label>`;
+  }
+  if (it.kind === 'scale') {
+    html += `<label>Factor<input type="number" id="segFactor" min="0.1" step="0.1" value="${it.factor ?? 2}"></label>`;
+  }
   if (it.kind === 'transform' || it.kind === 'cam-transform' || it.kind === 'rig-transform') {
-    html += `<div class="hint">${it.keys?.length ?? 0} keys · drag the object while this segment is selected to capture a key at the playhead</div>
+    const keys = it.keys ?? [];
+    const selectedTS = seg.tS;
+    html += `<div class="hint">${keys.length} keys · drag the object while this segment is selected to capture a key at the playhead</div>
       <button class="primary small" id="segKey">⦿ Key at playhead</button>`;
+    if (keys.length) {
+      html += `<div class="key-list">${keys.map(k =>
+        `<div class="key-row${selectedTS !== undefined && Math.abs(k.tS - selectedTS) <= KEY_EPS ? ' sel' : ''}" data-ts="${k.tS}">
+          <span>◆ ${k.tS.toFixed(2)}s</span>
+          <button class="ghost small key-jump" data-ts="${k.tS}">↦</button>
+          <button class="ghost small key-del" data-ts="${k.tS}">✕</button>
+        </div>`).join('')}</div>`;
+    }
   }
   el.innerHTML = html;
   el.querySelector('#segDel').onclick = () => { app.show.removeItem(seg.trackId, seg.itemId); app.page.selectedSegment = null; refreshTimeline(app); el.style.display = 'none'; };
@@ -631,8 +1009,12 @@ function refreshSegInspector(app) {
   bind('#segDist', 'onchange', e => patch({ distanceScale: clampNum(+e.target.value, 0.1, 4) }));
   bind('#segDur', 'onchange', e => app.show.trimItem(seg.trackId, seg.itemId, +e.target.value));
   bind('#segEdit', 'onclick', () => app.pathEditor.enterPaint(seg.trackId, seg.itemId));
+  bind('#segAxis', 'onchange', e => patch({ axis: e.target.value }));
+  bind('#segDeg', 'onchange', e => { const v = +e.target.value; if (!Number.isNaN(v)) patch({ degPerS: v }); });
+  bind('#segCenter', 'onchange', e => patch({ centerObjectId: e.target.value || null }));
+  bind('#segFactor', 'onchange', e => { const v = +e.target.value; if (!Number.isNaN(v) && v > 0) patch({ factor: v }); });
   bind('#segKey', 'onclick', () => {
-    // capture key at playhead (captureFocused*Pose minimal port)
+    // captureFocused*Pose (minimal port — exact store API)
     const t = app.page.playheadS - it.startS;
     const char = tr.characterId;
     const obj = app.objects.get(char);
@@ -646,18 +1028,101 @@ function refreshSegInspector(app) {
     };
     if (it.kind === 'cam-transform') key.focalLengthMm = obj.focalLengthMm ?? 50;
     if (it.kind === 'rig-transform') key.joints = {};
-    const keys = [...(it.keys ?? []).filter(k => Math.abs(k.tS - key.tS) > 0.001), key].sort((a, b) => a.tS - b.tS);
-    patch({ keys, durationS: Math.max(it.durationS ?? 0, key.tS) });
+    if (it.kind === 'transform') app.show.addTransformKeyframe(seg.trackId, seg.itemId, key);
+    else if (it.kind === 'cam-transform') app.show.addCameraKeyframe(seg.trackId, seg.itemId, key);
+    else app.show.addRigKeyframe(seg.trackId, seg.itemId, key);
+    refreshTimeline(app);
+    refreshSegInspector(app);
+  });
+  // key list: jump / delete (deleteSelectedKeyframe equivalent per-key)
+  const selRow = el.querySelector('.key-row.sel');
+  if (selRow) selRow.scrollIntoView({ block: 'nearest' });
+  el.querySelectorAll('.key-jump').forEach(b => b.onclick = () => {
+    const tS = +b.dataset.ts;
+    app.page.selectedSegment = { trackId: seg.trackId, itemId: seg.itemId, tS };
+    app.page.seek(it.startS + tS);
+    refreshTimeline(app); refreshSegInspector(app);
+  });
+  el.querySelectorAll('.key-del').forEach(b => b.onclick = () => {
+    const tS = +b.dataset.ts;
+    if (it.kind === 'rig-transform') app.show.removeRigKeyframe(seg.trackId, seg.itemId, tS);
+    else if (it.kind === 'cam-transform') app.show.removeCameraKeyframe(seg.trackId, seg.itemId, tS);
+    else app.show.removeTransformKeyframe(seg.trackId, seg.itemId, tS);
+    const sel = app.page.selectedSegment;
+    if (sel?.tS !== undefined && Math.abs(sel.tS - tS) <= KEY_EPS) app.page.selectedSegment = { trackId: seg.trackId, itemId: seg.itemId };
+    refreshTimeline(app); refreshSegInspector(app);
   });
 }
 
 function updatePlayhead(app, t) {
   const line = document.getElementById('playheadLine');
+  const badge = document.getElementById('timeBadge');
   const pps = app._tl?.pps ?? 60;
-  if (line) line.style.left = `${t * pps}px`;
+  if (line) line.style.left = `${LANE_GUTTER() + t * pps}px`;
+  if (badge) badge.textContent = fmtClock(t);
+  // keyframe diamonds: active when the playhead sits exactly on the key (local time)
+  document.querySelectorAll('.blk').forEach(b => {
+    const layer = b.querySelector('.kf-layer');
+    if (!layer) return;
+    const startS = +b.dataset.start;
+    const local = t - startS;
+    layer.querySelectorAll('.kf-diamond').forEach(d => {
+      d.classList.toggle('active', Math.abs(+d.dataset.ts - local) <= KEY_EPS);
+    });
+  });
 }
 
+// lane gutter width (must match --lane-gutter in CSS)
+const LANE_GUTTER = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lane-gutter')) || 110;
+
+// YAr — live clock format: 12.34 under a minute, 1:02.34 above
 const fmtTime = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+const fmtClock = t => {
+  const cs = Math.round(t * 100);
+  const m = Math.floor(cs / 6000), s = cs % 6000 / 100;
+  return m === 0 ? s.toFixed(2) : `${m}:${s.toFixed(2).padStart(5, '0')}`;
+};
+
+
+// ================= viewport overlays: lasso + nav ball =================
+function buildViewportOverlays(app) {
+  // ---- lasso button + rect box (live rightToolbar/lassoBox) + nav ball pad visibility ----
+  const lassoBtn = document.getElementById('btnLasso');
+  const lassoBox = document.getElementById('lassoBox');
+  const pad = document.getElementById('navBallPad');
+  lassoBtn.onclick = () => app.page.toggleLasso();
+  app.page.subscribe(() => {
+    const inEdit = app.page.mode === 'edit' && app.page.stageView !== 'cameras' && !app.page.playing;
+    pad.style.display = inEdit ? '' : 'none';           // live mounts the pad only in edit view
+    lassoBtn.style.display = inEdit ? '' : 'none';
+    const active = app.page.editInteraction === 'lasso';
+    lassoBtn.classList.toggle('on', active);
+    lassoBtn.setAttribute('aria-pressed', String(active));
+    const r = app.page.lassoRect;
+    if (active && r && r.w > 0 && r.h > 0) {
+      lassoBox.style.display = 'block';
+      lassoBox.style.left = `${r.x}px`; lassoBox.style.top = `${r.y}px`;
+      lassoBox.style.width = `${r.w}px`; lassoBox.style.height = `${r.h}px`;
+    } else {
+      lassoBox.style.display = 'none';
+    }
+  });
+
+  // ---- nav ball pad drag (RXr port): pointer delta → stick → page.navBallVector ----
+  let drag = null;
+  const drive = (x, y) => { if (drag) app.page.setNavBallVector(stickFromDelta(x - drag.x, y - drag.y, drag.radiusPx)); };
+  const end = () => { if (drag) { drag = null; app.page.setNavBallVector(null); } };
+  window.addEventListener('blur', end);
+  pad.addEventListener('pointerdown', e => {
+    const r = pad.getBoundingClientRect();
+    drag = { x: r.left + r.width / 2, y: r.top + r.height / 2, radiusPx: r.width / 2 };
+    try { pad.setPointerCapture(e.pointerId); } catch (_) {}
+    drive(e.clientX, e.clientY);
+  });
+  pad.addEventListener('pointermove', e => drive(e.clientX, e.clientY));
+  pad.addEventListener('pointerup', end);
+  pad.addEventListener('pointercancel', end);
+}
 
 // ================= prop picker =================
 let propCat = null;

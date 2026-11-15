@@ -25,6 +25,7 @@ import {
   createAutoMeasureScheduler,
 } from './finish.js';
 import { strokeRing } from './stroke.js';
+import { createNavBall } from './navball.js';
 
 const PLANNING_LAYER = 1;   // aye
 const _bufSize = new THREE.Vector2();
@@ -82,6 +83,7 @@ export class App {
       window.addEventListener(t, e => { this._pointerHeld = e.type === 'pointerdown'; }, true);
     window.addEventListener('wheel', () => { this._lastWheel = performance.now(); }, { capture: true, passive: true });
     this.stroke = strokeRing(this.renderer, this.scene, () => this.finishOn());   // strokeEnabled = m (same predicate as finish)
+    this.navBall = createNavBall({ renderer: this.renderer, camera: this.camera, page: this.page, getOrbit: () => this.orbit, keys: () => this._keys });
 
     // ---- environment (Dqr/wOr) ----
     this.env = createEnvironment(this.scene, { renderer: this.renderer, getMeshById: () => this.objectManager.meshById });
@@ -115,7 +117,7 @@ export class App {
       gpu: this.renderer.capabilities,                 // e6r: spotlight shadow-slot budget
       onRigReady: (id, rig) => {
         const obj = this.objects.get(id);
-        rig.applyClip(null, obj?.animation ?? { clip: 'idle', playing: false }); // $Nr: idle@0 at rest
+        rig.applyClip(this.playbackClips.get(id) ?? null, obj?.animation ?? { clip: 'idle', playing: false }); // $Nr: idle@0 at rest
         this.shadowFit.force();
       },
     });
@@ -139,7 +141,7 @@ export class App {
     this.headLooks = new Map();
     this.rigOffsets = new Map();
     this.playbackClips = new Map();   // id → {clip, timeS}
-    this._restEval = false;           // live performanceSeekS model: seek-posed rest keeps evaluating
+    this._restEval = false;           // live performanceSeekS model: seek-posed rest keeps evaluating (pinned)
     this._lastRestT = 0;              // last playhead seen at rest (seek detector)
 
     // ---- clock ----
@@ -154,10 +156,10 @@ export class App {
     this.objects.subscribe(() => { this._syncObjects(); this.markAutosave(); });
     this.show.subscribe(() => { this._layoutDirty = true; this.pathEditor.onShowChanged(); this.markAutosave(); });
     this.page.subscribe(() => this.markAutosave());
-    // live AWr: objects-store mutation → b() — apply animation records to rigs even at rest
-    // (this is what makes inspector clip/pose changes take effect immediately)
+    // live AWr: objects-store mutation → b() — UNCONDITIONAL (live qt(()=>{objects.get(), b()})):
+    // always consults the current playbackClips map, so pinned playback state survives edits
+    // (mid-playback object edits don't restart clips) and rest-state records apply immediately.
     this.objects.subscribe(() => {
-      if (this.page.playing || this.manipulator?.scrubbing) return;
       for (const [id, rig] of this.objectManager.humanoidRigs) {
         rig.applyClip(this.playbackClips.get(id) ?? null, this.objects.get(id)?.animation ?? null);
       }
@@ -203,6 +205,7 @@ export class App {
     this.fogNearFar.fitNow();
     this._restEval = false;                          // loadShow: seek pose cleared
     this._lastRestT = this.page.playheadS;
+    this.playbackClips = new Map();                  // no stale playback state across loads
     return true;
   }
   currentSceneJSON() {
@@ -413,9 +416,7 @@ export class App {
       const obj = this.objects.get(track.characterId);
       const mesh = this.meshById.get(track.characterId);
       if (!obj || !mesh || !isPersonKind(obj.kind)) continue;
-      // live ue(): playbackClips always carries timeS:null — actions advance freely on the
-      // wall clock; only clip NAMES switch at item boundaries (time is pinned only at rest)
-      if (obj.kind === 'humanoid') clips.set(track.characterId, { clip: state.clip, timeS: null });
+      if (obj.kind === 'humanoid') clips.set(track.characterId, { clip: state.clip, timeS: state.clipTimeS });
       if (this.manipulator?.isMeshDragged(mesh)) continue;
       const p = state.position;
       if (!p) continue;
@@ -649,12 +650,12 @@ export class App {
       else this.evaluateAt(t, dt);
     } else if (this.manipulator?.scrubbing) {
       this.evaluateAt(this.page.playheadS, dt, true);
-      this._restEval = true;                          // pose persists after scrub release
+      this._restEval = true;                          // pose persists after scrub release (pinned)
       this._lastRestT = this.page.playheadS;
     } else {
       // at rest — live performanceSeekS model:
-      //  · a seek at rest → poseNow (evaluate + SWr finishFades + rig.tick(0)), then the
-      //    scene KEEPS evaluating at the seek time every tick (clips advance on wall clock)
+      //  · a seek at rest → poseNow (evaluate + SWr finishFades + rig.tick(0)), then the scene
+      //    KEEPS evaluating at the seek time every tick with PINNED clip times (frozen poses)
       //    until stop/load clears it;
       //  · steady rest (no seek) → only rig offsets recompute at t=0; meshes stay at store TRS.
       const t = this.page.playheadS;
@@ -691,6 +692,9 @@ export class App {
     this.hover.tick(this.hoverPoint, this.hoverNormal, this.camera, this.container.clientHeight, dt * 1000,
       !this.page.playing && !this.manipulator?.dragging);
 
+    // 12. nav ball roll (lZr.tick) — after selection so camera state is final
+    this.navBall?.tick(dt);
+
     // --- render passes (re/ae port) ---
     this.renderFrame();
   }
@@ -714,6 +718,7 @@ export class App {
     this.stroke.drawStroke(this.camera, () => this.editView(),
       this.objects.selectedIds ?? [], this.hoverId, this.meshById);
     this.renderPlanningAids();
+    this.navBall?.render();   // lZr.S(): scissored pad w/ blurred backdrop + ball
   }
 
   editView() { return this.page.mode === 'edit'; }   // isEditView (C) — stroke/footprints gate
@@ -785,6 +790,7 @@ export class App {
   }
 
   _navTick(dt) {
+    this.navBall?.driveTick(dt);   // Ye: nav ball pad drag drives the camera
     // orbit
     if (this.orbit.enabled) this.orbit.update();
     // camera floor clamp + polar recompute
@@ -799,7 +805,10 @@ export class App {
   }
 
   _wasd(dt) {
+    // live `ne()` gate: default control mode + edit + no play session (keyboardOwner = stage
+    // equivalent); in unreal mode WASD only works while pointer-locked free-look (not ported)
     if (!this._keys || this.page.mode !== 'edit' || this.page.keyboardOwner !== 'stage') return;
+    if (this.page.controlMode !== 'default') return;
     const k = this._keys;
     let f = 0, s = 0, u = 0;
     if (k.has('w')) f += 1; if (k.has('s')) f -= 1;

@@ -158,10 +158,8 @@ export class ObjectManager {
     if (obj.kind === 'humanoid' || obj.kind === 'simple_figure') this._updateLabel(id, obj);
     if (obj.kind === 'camera') this._updateFrustum(mesh);   // basic; main.js tick refines w/ page focal + aim
     this._applyGlowAndColor(mesh, obj);
-    if (obj.kind === 'humanoid' && obj.animation) {
-      const rig = this.humanoidRigs.get(id);
-      if (rig) rig.applyClip(null, obj.animation);   // b() — applies even at rest
-    }
+    // NOTE: rig clip application lives in main.js's objects-store subscription (live b()),
+    // which always consults the current playbackClips map — pinning survives mid-playback edits.
     this._hiPolySwap(mesh, obj);
   }
 
@@ -379,8 +377,9 @@ export class ObjectManager {
     return deg * Math.PI / 180;
   }
   // iOr(): diffusion/shape cookie on the shadow-casting light's map (128×128, Nearest, cached)
+  // live: n = round(diffusion/100 × Eat) — an 0..10 bucket index (NOT scaled to texture pixels)
   static spotCookie(shape, diffusion) {
-    const n = Math.round(diffusion / C.SPOT_DIFFUSION_STEPS * C.SPOT_COOKIE_SIZE);
+    const n = Math.round(diffusion / 100 * C.SPOT_DIFFUSION_STEPS);
     const key = `${shape}:${n}`;
     let tex = ObjectManager._cookieCache.get(key);
     if (tex) return tex;

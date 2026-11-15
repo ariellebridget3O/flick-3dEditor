@@ -139,15 +139,6 @@ export function prepareHumanoid(gltfScene) {
   return root;
 }
 
-// default pose at rest: b() with the object's animation record ($Nr: idle@0, paused)
-export function poseHumanoidDefault(mixer, clips) {
-  const idle = clips.find(c => c.name === 'idle');
-  if (!idle) return;
-  const action = mixer.clipAction(idle);
-  action.play();
-  mixer.update(0);
-}
-
 // humanoid rig — EXACT port of the live AWr rig manager per-rig state:
 //   l() ctor: eager action per clip, bones map, EMPTY dynamic clipLocal
 //   b() applyClip: clip switching (prev fadeOut Sot, next reset().fadeIn(prev?Sot:0).play()),
@@ -189,7 +180,7 @@ export class HumanoidRig {
     }
     const action = this.actions.get(name);
     if (!action) return;
-    if (playback && playback.timeS !== null && playback.timeS !== undefined) {
+    if (playback && playback.timeS !== null) {
       const dur = action.getClip().duration;
       action.paused = true;
       action.time = dur > 0 ? ((playback.timeS % dur) + dur) % dur : 0;
