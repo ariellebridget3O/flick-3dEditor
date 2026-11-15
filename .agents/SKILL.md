@@ -28,12 +28,22 @@
 15. **Undo parity**: the gesture snapshot must cover objects+show (setUndoCompanion) and endEditGesture must run AFTER the commit writes — otherwise drags aren't undoable.
 
 ## Editor architecture (quick map)
-`main.js` App: viewport (COr) + env (wOr) + finish (hKt, finish.js) + stroke (stroke.js) + orbit + fogNearFar (pZt) + shadowFit (TOr + AOr needsUpdate) + objectManager (AWr) + selection (pGr footprints) + hover (CGr) + manipulator (pWr+ozr, SZt/kZt commit) + pathEditor (UGr) + frame loop (ticks → renderFrame: finishOn ? finish.render : renderer.render → _autoMeasure → drawOverlays: stroke → aids (no clearDepth)).
-`tracks.js` eval: showLayout (rx) → evalCharacterTrack (eEe) / evalObjectItems (Q: base-TRS seeded + ne path apply + GA unwrap) / evalCameraObject (dZt→fFr, aim falls back to camera.targetId); `curves.js` mT (sqrt-chordal)/nx/MR/oq/Yae/khe/ZA + j2r (chord projection); `schema.js` f6r migrations + prt + lje packing; `store.js` 3 stores + gesture undo (objects+show companion).
+`main.js` App: viewport (COr) + env (wOr) + finish (hKt, finish.js) + stroke (stroke.js) + navBall (lZr, navball.js — tick/driveTick/render) + orbit + fogNearFar (pZt) + shadowFit (TOr + AOr needsUpdate) + objectManager (AWr) + selection (pGr footprints) + hover (CGr) + manipulator (pWr+ozr, SZt/kZt commit + lasso br/Nr/ua/jt) + pathEditor (UGr) + frame loop (ticks → renderFrame: finishOn ? finish.render : renderer.render → _autoMeasure → drawOverlays: stroke → aids (no clearDepth) → navBall.render).
+`tracks.js` eval: showLayout (rx) → evalCharacterTrack (eEe) / evalObjectItems (Q: base-TRS seeded + ne path apply + GA unwrap) / evalCameraObject (dZt→fFr, aim falls back to camera.targetId); `curves.js` mT (sqrt-chordal)/nx/MR/oq/Yae/khe/ZA + j2r (chord projection); `place.js` timeline placement solver (q5r/_ie/kGt/lje/Xne/oje/W5r + B2r/xbe + bGt/a$/yGt/Art/DHr — review-certified EXACT); `schema.js` f6r migrations + prt + lje packing; `store.js` 3 stores + DEPTH-COUNTED gesture undo (nestable brackets; push at depth 0) + keyframe family; `ui.js` timeline (solver drag/trim/diamonds/magnet/duplicate) + viewport overlays (lasso button/box, nav ball pad).
 Mesh ownership: store→sync at rest; playback while performing; manipulator while dragging; reset from store on stop.
 
 ## kb/
 - `kb/porting-notes.md` — detailed port gotchas (browser eval patterns, prop library quirks).
+
+## Round-3 additions
+21. **Gesture undo is depth-counted** — beginEditGesture++ / endEditGesture-- and the undo push happens at depth 0. `_commit` self-brackets, so an outer bracket (drag pointerdown→up) swallows per-move commits into ONE entry. Any new drag flow: bracket it AND handle pointercancel (an uncleared `app._tl.interaction` freezes timeline re-render).
+22. **WWr=32 is the footprint-DRAW cap, not a selection cap** — live setSelection is unclamped. Constants can serve a DIFFERENT subsystem than their name suggests; always check the consumer.
+23. **Browsers fire `click` after `pointerup`** — synthetic-event tests must dispatch BOTH, and inner-gesture targets (diamonds, trim handles) need their own `onclick stopPropagation` or the parent block's click handler clobbers state (a P0 that pure pointer-event tests were blind to).
+24. **agent-browser mouse events don't carry held modifiers** — for Alt-drag etc., dispatch PointerEvents with `altKey:true` on the element; guard `setPointerCapture` with try/catch (synthetic pointerIds throw).
+25. **Ruler/lane gutter alignment**: lanes have a sticky N-px header gutter — EVERY absolutely-positioned timeline child (ticks, playhead, guides) and EVERY px→time conversion must add the gutter. A pre-existing 110px misalignment hid for two rounds because tests only checked numbers, not visual alignment.
+26. **Port-3000 review serving**: Next.js at /home/z/my-project (fullstack-dev skill init) + `public/editor` SYMLINK to this repo + full-viewport iframe on `/`. Editor edits are instantly live (no copy). `window.__app` is inside the iframe — test the direct `/editor/index.html` URL instead.
+27. **`updateTrackItems` in the live app ALWAYS repacks (lje) after mutation** — that's the collision resolver; reorder = kGt (slot-start inheritance, gaps preserved) + lje. My `_commit`'s packItems is the same contract — keep it.
+28. **The live alt-drag duplicate is SAME-DOMAIN only** (yGt requires the a$ remap to preserve the action): walker→walker yes, path→camera NO (remap exists only for the actions palette). Missing destination owner → refuse everything.
 
 ## Round-2 additions
 16. **Procedural props** are the zqt builders (exact, in objects.js); only these 13 keys have no GLB; everything with a catalog URL is clay-rendered; `eat()` is the gray wireframe placeholder (dims box, base-anchored).

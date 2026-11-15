@@ -84,12 +84,23 @@ Legend: **EXACT** = byte/port-exact from bundle (values verified in headless rou
 | cam-path heightCurve editor UI | SKIP (backlog) | data eval + display work |
 
 ## UI shell
-| Layout, timeline (ruler seek **without scrollLeft double-count**), lanes, blocks, drag move, trim → speed=arc/dur, segment inspector, add palette, hierarchy, selection toolbar | PORT | trim handles / magnet / keyframe diamonds / reorder = backlog |
+| Layout, timeline (ruler seek, gutter-aligned), lanes, blocks, **solver drag (q5r/_ie/kGt/lje exact)**, trim handles → speed=arc/dur, **keyframe diamonds (SCr exact)**, magnet + guides, alt-drag duplicate (Art/DHr), segment inspector (rotate/revolve/scale/transform editors), add palette, hierarchy, selection toolbar | EXACT | place.js solver audited EXACT by review |
 | Keyboard (⌘Z/⇧⌘Z/⌘Y, ⌘C/⌘V, ⌘G, Del, Esc/Enter, F, Z/X/C) | PORT | Space→Rehearse backlog |
 | Autosave (1s debounce, restore on load) | PORT | round-trip verified |
-| 2D plan canvas, nav ball (code extracted), PIP, recording/takes, multi-scene tabs, chat | SKIP | D11/backlog |
+| 2D plan canvas, PIP, recording/takes, multi-scene tabs, chat | SKIP | D11/backlog |
+| **Nav ball (lZr/RXr/zzr/Ye exact)**: 67px pad, blurred backdrop (golden-angle 12-tap), rolling icosahedron, drag-drive 4m/s | EXACT | review: constants + math EXACT |
+| **Lasso (br/Nr/ua/jt exact)**: editInteraction mode, nWr cursor, rect overlay, projected selection (Xu aimed-target skip), one-shot >8px, Esc | EXACT | review: EXACT (P3s fixed) |
 
 ## Runtime verification log (headless Chrome)
+### Round 3 (2026-11-15)
+- Timeline solver: reorder drag dance→desired 6.47 (overlap) → kGt insertion toIndex 1 + lje pack → [walk@0, dance@8.47, transform@12.47] exact; free move dance→desired 21.14 **magnet-snapped to 20.944** (transform end marker, guide rendered at px 1257); alt-drag path Alpha→Beta lane: ghost + snap to 4.47 + duplicate committed (speed preserved); path→camera lane refused (Art same-domain gate, no ghost).
+- Trim: dance +2s drag → durationS 6.0 w/ live width; walk +2s → speed 0.3455 = arc(2.236)/6.472 exact (speed=arc/dur).
+- Diamonds: click tS 2 → seek 14.472 (12.472+2) + seg {tS:2} **survives the block click** (stopPropagation, real click event tested); drag tS 2→3 keys [0,3,4]; clamp tS 0→+3.33 stops at 2.99 (B2r neighbor −0.01); active/selected classes verified.
+- Trim undo: 5-move drag = **1 undo entry** (gesture depth-counting); duration clamps 500→120, 0.01→0.1 (Ije/QZt).
+- add-menu: addItem at 0.5 w/ obstacles [0,4],[6,126] → placed in the free gap **[4,6)** (W5r appendPlace nearest-candidate).
+- Lasso: tight rect 480-530×240-280 → [Walker, Podium] (OrbitCam excluded, outside); 6.4px drag stays in lasso (no select); Esc exits; orbit disabled during, restored after.
+- Nav ball: pad drag (971,134→195) stick forward −0.99997 at rim; camera −2m along view axis exact (driveTick 0.5s manual [7.11,5.74,9.49]→[8.23,6.49,10.97]); roll: 0.9rad orbit → pad region 20.2% pixel change; pixel palette = white icosa facets + frosted backdrop.
+- Regression: playback moves walker; moveItem → 1 undo; undo restores; lasso toggle; navTick. Final VLM: 6/6 ACCEPT (playhead-through-gold-diamond pixel-exact).
 ### Round 2 (2026-11-14)
 - Finish composer: day clay+SSAO VLM PASS (contact + crease AO, uniform clay, no artifacts); night lantern glow pixel-verified at mathematically projected screen pos (255,210,164); stroke ring VLM-confirmed (white silhouette loop); auto-measure 99ms software cost → disabled + persisted {enabled:false,source:"auto"}.
 - Clay props 21/21; primitives: soft-terminator defines, name colors, big-swap (scale 30), glow flags all verified.

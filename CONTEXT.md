@@ -7,8 +7,9 @@ Round-2 user emphasis: the OVERALL RENDERING PATH must be reproduced exactly (th
 
 ## Status
 - Round 1 (2026-11-13): full editor implementation + E2E (see git log / FIDELITY round-1).
-- Round 2 (2026-11-14) COMPLETE: rendering path exact (finish composer + stroke ring + clay props + all object/marker builders), 3-module exactness audit (analysis/AUDIT_{TRACKS,UX,ENV_UI}.md), all 4 P0 + ~18 P1 fixes, all E2E-verified (FIDELITY round-2 log). Remaining gaps are prioritized in PLAN.md backlog (timeline polish, inspector editors, lasso, nav ball, shake, plan canvas, rig posing).
-- Editor runs at editor/index.html (python3 -m http.server 8124; no build, no network at runtime). Finish pref: localStorage `stage-finish` + auto-measure; URL ?finish=0|1 forces (manual source).
+- Round 2 (2026-11-14): rendering path exact (finish composer + stroke ring + clay props + all object/marker builders), 3-module exactness audit (analysis/AUDIT_{TRACKS,UX,ENV_UI}.md), all 4 P0 + ~18 P1 fixes.
+- Round 3 (2026-11-15) COMPLETE: all 4 HANDOFF seam items — timeline polish (place.js solver q5r/_ie/kGt/lje EXACT + magnet/trim/diamonds/alt-duplicate), segment inspector editors, lasso, nav ball (lZr exact). Code review: 3 P0 + 4 P1 + 6 P2 fixed (notably depth-counted gesture undo; diamond click stopPropagation; [.1,120] duration clamps). Editor now REVIEWABLE at port 3000 (fullstack-dev Next.js in /home/z/my-project with public/editor symlink + iframe; preview panel). Remaining: P3 timeline nits, take-range tool, gizmo meshes, then PLAN backlog (shake, plan canvas, rig posing, spawn grid…).
+- Editor runs at editor/index.html (any static server; no build, no network at runtime) AND on port 3000 for review. Finish pref: localStorage `stage-finish` + auto-measure; URL ?finish=0|1 forces (manual source).
 
 ## Directives (sticky)
 - Push/backup every micro step (GitHub primary + GitLab mirror + /home/sync) — GIT IS THE DISK; never force-push.
@@ -30,4 +31,4 @@ Round-2 user emphasis: the OVERALL RENDERING PATH must be reproduced exactly (th
 - Related: /home/sync/flick-3dstage (prior workstream — reference only)
 
 ## Editor dev loop
-edit editor/** → http.server :8124 → agent-browser close + open "?v=N" (fresh session; reload doesn't bust ES-module cache) → window.__app eval hooks (objects.add/select, page.seek/play, show.ensureTrack/addItem/appendPathAnchor, meshById, manipulator._commit for commit-pipeline tests) → screenshots to docs/screenshots/ → VLM sub-agent QA with explicit expected-content lists.
+edit editor/** → port 3000 (or any static server) → agent-browser close + open "?v=N" (fresh session; reload doesn't bust ES-module cache) → window.__app eval hooks (objects.add/select, page.seek/play, show.ensureTrack/addItem/appendPathAnchor, meshById, manipulator._commit, show.moveItem/trimItem/reorderItem/duplicateItemTo) → screenshots to docs/screenshots/ → VLM sub-agent QA with explicit expected-content lists. Synthetic pointer drags: dispatch PointerEvents on the element + a follow-up click event (browsers fire click after up); Alt modifier via altKey:true on the synthetic event (agent-browser mouse events don't carry held modifiers).

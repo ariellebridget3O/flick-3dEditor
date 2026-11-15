@@ -33,3 +33,14 @@ Detailed gotchas beyond SKILL.md top-level items.
 - GOr rebase: `zat` walks the chain BACKWARDS from the active cam-move at progress u, composing via `zat(u, s, 1, aim)` — end-anchored; pan_sweep position is invariant (rotation keep/turn via b2r from the dragged world rotation).
 - EZt (head rotation helper): euler(pitch, yaw, 0, 'YXZ') → quat → XYZ euler. jZt NEGATES pitch for the rig offsets. kje does not.
 - The original undo is an observer history (300ms coalescing) over objects+show; our gesture-bracket equivalent must snapshot BOTH stores and close AFTER the commit writes.
+
+## Round-3 porting notes (2026-11-15) — timeline / lasso / nav ball
+- The timeline drag plan split: q5r returns {kind:'move'} when the DESIRED slot is free (magnet via _ie) and {kind:'reorder', toIndex} when it overlaps — toIndex counts OTHERS' midpoints ≤ desired (not starts!). kGt then gives the dragged item the SLOT's original startS (gaps survive), and lje packs collisions. The dragged block FOLLOWS the raw desired position during reorder (siblings show the packed preview).
+- Magnet: radius Kne=12px expressed in SECONDS (12/pps); candidates are each marker as START or as (marker − duration); guides = markers matching the PLACED start/end within 1e-6 (not the desired).
+- _ie candidate positions when blocked: ONLY the overlapping obstacles' [start−dur, end] — not all obstacle edges; nearest-to-snapped wins; fallback when none free.
+- Store duration setters clamp [.1, 120] (Ije/QZt/_Hr/kHr); the DRAG handler floors at WAr=0.05 — both layers exist, store wins.
+- addTransformKeyframe inherits headRotation from the replaced same-tS key; addRigKeyframe MERGES joints; ALL add*Keyframe extend durationS to the last key tS. Diamonds: click = selectKeyframe + seekPerformance(segStart+tS) and seek STOPS playback.
+- Lasso (jt): markers... no — skip aimed targets (Xu: kind==='target' AND some camera.targetId===id), skip projected z>1; rect in CANVAS-relative px; threshold Sye=8px; completed drag exits lasso mode (one-shot), sub-threshold keeps it. Orbit is saved/disabled on mode ENTER (not per-drag), restored on exit.
+- Nav ball: pad is DOM (button, right:12 top:12, 67px) but the CONTENT renders in WebGL — scissor at GL coords (w−79, h−79) = top-right on screen; copyFramebufferToTexture(tex, pos) with DEVICE pixels (×pixelRatio); blur quad → clearDepth → ball scene; autoClear saved/restored. Ball state (lastPos/lastYaw) updates BEFORE the visible() gate (state continuity when hidden). r182 signature is (texture, position) — texture FIRST.
+- FramebufferTexture needs explicit minFilter/magFilter LinearFilter; recreate when pixelRatio×67 changes.
+- RXr pad: stick = zzr(dx, dy, radius=w/2) with .12 dead zone, rim clamp, rescale; window blur ends the drag; drive = 4m/s × (Shift?3) via bot (camera-relative fwd/right; camera.position AND orbit.target move together).

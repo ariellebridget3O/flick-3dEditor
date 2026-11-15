@@ -1,24 +1,24 @@
 # HANDOFF — next session (immediate seam)
 
 ## State
-Round 2 complete through commit (see git log). The editor's RENDERING PATH is now exact end-to-end: finish composer (SSAO/edges/soft-terminator, auto-measured + `stage-finish` localStorage), stroke ring, clay props, exact primitives/procedurals/markers. All 4 audit P0s + ~18 P1s fixed and E2E-verified (docs/FIDELITY.md round-2 log). Both remotes + /home/sync synced. Server may be down (sandbox processes die) — restart: `cd /home/z/flick-3dEditor/editor && nohup python3 -m http.server 8124 &`.
+Round 3 complete through commit (see git log). All 4 seam items DONE and review-audited: timeline polish (placement solver + drag/trim/diamonds/magnet/duplicate EXACT), segment inspector editors, lasso, nav ball. 3 P0 + 4 P1 + 6 P2 review fixes applied and E2E-verified (gesture depth-counting undo is the big one — brackets now nest; per-move `_commit` inside an outer begin/end no longer splits undo). Editor is served for review at **port 3000** (fullstack-dev: `/home/z/my-project` Next.js, `public/editor` SYMLINK → this repo's `editor/`, root route = full-viewport iframe; dev server auto-runs; my edits here are instantly live). Both remotes + /home/sync synced.
 
 ## First 10 minutes
-1. `cd /home/z && git clone https://<GH_PAT>@github.com/ariellebridget3O/flick-3dEditor.git` (PAT split-coded in .env: `source scripts/env.sh`) — or resume /home/z/flick-3dEditor if the sandbox survived.
-2. Read PLAN.md backlog (priority-ordered, sourced from the audit docs) + docs/FIDELITY.md.
-3. Start server (above), verify: `agent-browser open "http://localhost:8124/index.html?scene=samples/synthetic_tracks.json&noAutosave=1&finish=1"` → no errors, `window.__app` truthy. Finish note: `?finish=1|0` forces the pref (persisted, source manual); otherwise auto-measure decides (SwiftShader = always off → for visual finish QA always pass finish=1).
+1. `cd /home/z && git clone https://<GH_PAT>@github.com/ariellebridget3O/flick-3dEditor.git` (PAT split-coded in .env: `source scripts/env.sh`) — or resume /home/z/flick-3dEditor if the sandbox survived. NOTE: the port-3000 serving lives in /home/z/my-project (separate sandbox repo, commit `serve flick 3D editor on /`) — re-create if recycled: `ln -sfn /home/z/flick-3dEditor/editor /home/z/my-project/public/editor` + the iframe `src/app/page.tsx` (see that repo's git log) after running the fullstack init (`curl https://z-cdn.chatglm.cn/fullstack/init-fullstack.sh | bash`).
+2. Read PLAN.md backlog + docs/FIDELITY.md round-3 log.
+3. Test URLs: direct `http://localhost:3000/editor/index.html?scene=samples/synthetic_tracks.json&noAutosave=1&v=N` (bump v — ES-module cache needs a fresh query), or the root `/` iframe. Dev.log at /home/z/my-project/dev.log.
 
 ## Seam items (only these)
-1. **Timeline polish** — the largest remaining UX gap (AUDIT_UX §5 has the 16-item checklist; raw code in analysis/tmp_b/timeline_ui_pretty.js + tracks_raw.js PLACEMENT section @42077: q5r magnet 12px + obstacle push, oje overlap, _ie solver, W5r place, trim → speed=arc/dur, keyframe diamonds on transform/rig/cam-transform blocks).
-2. **Segment inspector editors** for rotate/revolve/scale/transform/play (store setters exist: setRotateAxis/setObjectItemSpeed/setRevolveCenter/setScaleFactor/addTransformKeyframe — wire the DOM in ui.js; raw: segment_inspector_pretty.js).
-3. **Lasso** (manipulate.js — rect ∩ world positions, excludes track-driven; lasso cursor nWr 28×28 hotspot 6 24).
-4. **Nav ball** — raw code ALREADY EXTRACTED in analysis/tmp_d/auto_measure.js (lZr complete: 67px pad + zie=12 margin, copyFramebufferToTexture, golden-angle 12-tap blur, compass needle, navBallVector drive) — needs its own module + wiring in main.js frame loop (tick + render, edit-mode only).
+1. **Timeline leftovers (P3s)** — duplicate-ghost guides belong in the SOURCE lane + ghost should render on alt-pointerdown (currently after the 4px threshold); diamond `title` tooltips; nav-ball drive gate in unreal control mode.
+2. **Take-range tool** (She/xTr) — the "range" button next to magnet: drag on ruler → setTakeRange → locked take; raw code in analysis/tmp_b/timeline_ui_pretty.js (xTr hook `c`, `_Tr` renderer, `setTakeRange` in the show store @5787400-ish; `tie/th` helpers) + keyboard_Hzr.js has the constants region.
+3. **Gizmo custom meshes (Mzr)** — raw: analysis/tmp_b/gizmo_custom_Mzr.js + gizmo_ozr.js; replaces stock TransformControls visuals (shaft/cone/circle/torus per mode, renderOrder 1000010, negative-axis picker drop).
+4. If touching undo/gestures: the system is now DEPTH-COUNTED — `beginEditGesture` increments, `endEditGesture` decrements and pushes undo at depth 0. `_commit` self-brackets. Any new drag flow: wrap pointerdown→begin, pointerup/cancel→end, and add pointercancel handlers (trim/diamond already have them — copy that pattern).
 
-## Env gotchas (round-2 additions)
-- MultiEdit/long old_str: line-exact matching fails on invisible whitespace — prefer python replace scripts with assert, or Edit with short anchors.
-- Bash pipelines EAT literal "[h" sequences in OUTPUT (sed/grep display) — the FILES are fine; verify with Read before "fixing" mangled-looking code.
-- agent-browser eval: no THREE global — import('/js/vendor/three.module.js') inside eval, or use plain math / app APIs.
-- Template-literal regexes: `[[_\\s-]]` is WRONG (char class + literal ]); correct: `[_\\s-]` — see finish.js GC.
-- The stroke ring + finish are ONE predicate (strokeEnabled = finishOn) — matching the live app; footprint shader is independent.
-- Saved scenes carry BAKED anchor tangents (in/out) — eval uses them as-is; only painting/editing recomputes via buildTangents. Don't "fix" a fixture's tangents.
-- ?finish=1 on a fresh profile: localStorage gets {enabled:true,source:"manual"} — clear it (agent-browser eval localStorage.clear()) before testing auto-measure.
+## Env gotchas (round-3 additions)
+- `place.js` is the solver module — if you need placement math, import from there; do NOT re-derive. `appendPlace` = W5r (no magnet) for add-menu; `planMove` = q5r for drags.
+- WWr=32 is the FOOTPRINT-DRAW cap (selection.js), NOT a selection cap — store.select is unclamped (live parity).
+- The lasso + nav ball visibility ride `page.changed()`; stageView flips must call `page.changed()` (viewSwitch handler does).
+- agent-browser synthetic PointerEvents: real modifiers (Alt) do NOT carry — dispatch PointerEvents with `altKey:true` directly on the element (setPointerCapture is try/caught). Clicks after synthetic pointerup must ALSO be dispatched (browsers fire click after up; diamond tests need it).
+- `app._tl.interaction` ('drag'|'trim') suppresses timeline re-render mid-gesture — always clear it on up AND cancel, or the timeline freezes.
+- Port-3000 iframe: `window.__app` lives in the IFRAME (`document.querySelector('iframe').contentWindow.__app`); test the direct editor URL instead.
+- The my-project watchdog force-checkouts every ~20s — the symlink + page.tsx are committed there; editor source changes belong in THIS repo only.

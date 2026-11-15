@@ -5,6 +5,14 @@ Mission: reconstruct the flick.art 3D Stage editor runtime for local offline pre
 ## Round 1 (2026-11-13) — DONE
 - [x] Context restore, live bundle re-extraction (4 analysis docs), DESIGN.md v2 audited, editor implemented (13 modules + three r182 + 101MB assets), E2E verified (daylight/path/framing exact; undo/picker/autosave pass)
 
+## Round 3 (2026-11-15) — DONE
+- [x] Editor served on port 3000 via fullstack-dev (public/editor symlink + full-viewport iframe on /; VLM QA PASS; preview panel)
+- [x] **Timeline polish** (seam 1): place.js solver (q5r/_ie/kGt/lje/Xne/oje/W5r/G5r/MP/wie) audited EXACT; block drag (magnet 12px + obstacle push + reorder preview + snap guides + alt-drag duplicate w/ Art/DHr same-domain gate); trim handles (clip dur, path speed=arc/dur, [.1,120] clamps); keyframe diamonds (SCr: click select+seek, drag B2r clamp + xbe move, active/selected); magnet toggle; YAr clock; segment editors for rotate/revolve/scale/transform + key list (jump/delete); **ruler↔lane 110px gutter alignment fix** (pre-existing seek bug)
+- [x] **Segment inspector editors** (seam 2): axis/degPerS/center/factor + keyframe capture per kind
+- [x] **Lasso** (seam 3): editInteraction mode + right-toolbar toggle, nWr cursor, orbit gating, rect overlay, projected-position selection (Xu skip), one-shot, Esc
+- [x] **Nav ball** (seam 4): lZr exact (67px pad, blurred backdrop, rolling icosa, zzr stick, Ye 4m/s drive Shift×3)
+- [x] Code review round: 3 P0 + 4 P1 + 6 P2 fixed (gesture depth-counting undo, diamond click stopPropagation, duration clamps, pointercancel guards, reorder raw-follow, duplicate gate, seek-stops-playback, WWr footprint-vs-selection split, appendPlace for add-menu, painting-block drag gate)
+
 ## Round 2 (2026-11-14) — DONE
 - [x] **Rendering path made exact** (user P0): finish composer hKt (SSAO+blur+composite+SOFT_TERMINATOR) ported verbatim + auto-measure + stage-finish persistence; stroke ring hGr/uGr; **clay props** (FNr strips ALL GLB materials → one #e2e0dc rough-1 material — the "white shaded models"); exact primitives (base-anchored, soft terminator, big-swap); Mje name colors + eKt night glow; 13 procedural prop builders (zqt); target torus (YWt); camera mie + urt 16-pt frustum + page focal/aspect + target aim; u5r placeholder; AOr shadow fingerprint redraw; EOr no-clearDepth; nav-ball raw code captured (analysis/tmp_d/auto_measure.js)
 - [x] **Full exactness audit** (3 parallel sub-agents → analysis/AUDIT_{TRACKS,UX,ENV_UI}.md): 73+67+62 rows, 4 P0 / ~24 P1 found
@@ -13,11 +21,9 @@ Mission: reconstruct the flick.art 3D Stage editor runtime for local offline pre
 - [x] E2E verification of every fix (see docs/FIDELITY.md round-2 log)
 
 ## Backlog (future rounds) — priority order; source: AUDIT_*.md P2 lists + old backlog
-- [ ] Timeline polish: trim handles (incl. path speed=arc/dur UI), magnet snapping 12px w/ obstacle push (q5r/G5r/oje/_ie), keyframe diamonds on transform/rig/cam-transform blocks, block reorder ghost, alt-drag duplicate between tracks, take-range drag (AUDIT_UX §5)
-- [ ] Segment inspector editors for rotate/revolve/scale/transform/play kinds (AUDIT_ENV_UI)
-- [ ] Lasso select (rect ∩ world positions, excludes track-driven) + lasso cursor
+- [ ] Timeline leftovers (P3 from review): duplicate-ghost guides render in SOURCE lane + ghost on alt-pointerdown (not after 4px); ruler last-label clip at scroll edge; diamond tooltips; nav-ball drive in unreal mode (original gates Ye)
+- [ ] take-range drag (She/xTr: range tool button, peek playhead, locked take) — raw in tmp_b/timeline_ui_pretty.js (X/c/_Tr)
 - [ ] Gizmo custom meshes (Mzr): shaft/cone/circle/torus geometry per mode, renderOrder 1000010, negative-axis picker drop
-- [ ] Nav ball (lZr) — raw code already extracted in analysis/tmp_d/auto_measure.js + EDITOR_UX §7 (framebuffer copy + golden-angle blur + compass needle + drive)
 - [ ] Shake apply on preview (Dzt/oEr — constants in const.js; camera rigs gq)
 - [ ] 2D plan canvas (SDr painter: grid fade, footprints, camera wedges, spotlight pools, marquee, draw-direction → path)
 - [ ] Humanoid rig posing UX (xqr joint spheres r .028, captureFocusedRigPose, Fzr multi-joint)
