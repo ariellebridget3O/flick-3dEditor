@@ -135,3 +135,16 @@ Legend: **EXACT** = byte/port-exact from bundle (values verified in headless rou
 - Framing (camera mode): e=1, n=1.88, mh=.368, r=5.10, wf=19.6% — exact o2r; fov adopt 56.2°.
 - Path paint: 4 anchors, tangent out[0] = [0.67, 0, 0.33], duration 6.44s.
 - Undo/redo, prop picker, autosave cross-reload — pass.
+
+
+## Round 5 (2026-11-16) — user-bug fixes + audit
+- **T-pose flicker**: root cause = static bind-snapshot restoreClipLocal fought three's PropertyMixer accu0/accu1 change-detection (static pose → binding write skipped → bind left visible). Fix = exact AWr port (figures.js): clipLocal is the per-frame PRE-OFFSET snapshot (m() restores offset bones to last mixer pose, g() re-snapshots + aKt additive apply). E2E: 0 flashes full playback (was 3-8).
+- **Pose/clip at rest**: objects-subscription → b() (applyClip) unconditional + playbackClips-aware; inspector Clip select + Playing checkbox. E2E: dance@0 held exactly at rest; mid-playback edits don't restart clips.
+- **Playback pinning**: round-4 timeS=clipTimeS kept (live ue pins poses to the timeline; my timeS:null was a misread — only livePlay passes null). E2E: seek 11.5 → dance@0.5 frozen 1s.
+- **Spotlight** (oOr/iOr/e6r exact): degrees-clamped beam angle (was 172° cone — radians clamped by degree bounds), raw ×2.4 intensity (was /100×π ≈ 32× dim), GPU-capped shadow slots in object-store order, 128px Nearest cookies (bucket n=round(d/100×10)), casting: map=cookie + angle=atan(tan(m)/nre) + penumbra=0 + shadow.radius=1+f·6; beams scene-level w/ decomposed TRS + shape geoms. E2E: angle 23.26°, intensity 192, pool + cube shadow hole rendered at night.
+- **Shadow fingerprint**: walk gated behind its own dirty flag never re-ran (chicken-egg) — now walks EVERY tick (live TOr), AOr generation + webglcontextrestored. E2E: shadow map auto-creates on scene change.
+- **Stale-tree incident**: a55a900 accidentally built on a round-2 working tree from /home/sync (deleted rounds 3-4: ~1500 lines + 4 modules). Review agent caught it; repaired (2311e71); re-verified all round-3/4 features.
+- **Audit round 2** (true diff 4e7055d..2311e71): all 9 prior fixes verified; 1 P2 (same-t seek → seekEpoch) + 9 P3 fixed (80d39ff).
+- **UI sweep A**: 2 P1 (id-keyed track cloning; undo gestures for object ops) + 4 P2 (kind gating, camera rows, focal sync, hierarchy tree) + 5 P3 — all fixed + E2E (80d39ff).
+- **Gap matrix**: analysis/ROUND5_GAP_MATRIX.md (164 rows, Top-20 backlog).
+- Remaining known divergences: rest-seek hard-cuts crossfade (live natural seek lets .25s fade run — ours uses the capture path); scrub-vs-capture yaw now rate-limited; deleteFocused cascade (keyframe→segment→track→object) not ported (stage Delete = objects only); inspector rotation in radians (live shows degrees).

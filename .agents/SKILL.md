@@ -60,3 +60,10 @@ Mesh ownership: store→sync at rest; playback while performing; manipulator whi
 18. **Humanoids must load per-instance** (fresh loadAsync like the original) — a cached gltf.scene added twice steals the scene graph (verified: distinct mixers after fix).
 19. **The live app's stroke mask includes ALL scene Lines** (camera frustums, path curves) whenever anything is selected — port quirk-for-quirk, don't filter.
 20. **Auto-measure in headless**: SwiftShader cost (~99ms) always exceeds the 11ms budget → finish auto-DISABLES; pass `?finish=1` for visual QA (persists manual pref — clear localStorage afterwards).
+
+## Round-5 additions
+36. **three's PropertyMixer skips no-change writes** (accu0 vs accu1 comparison) — any "restore-to-bind then let mixer write" scheme breaks when the sampled pose is static (idle@t=0 during gaps): the mixer skips, the restore wins, you get bind-pose flashes. The live's answer: never restore to BIND — restore to the last PRE-OFFSET pose (dynamic clipLocal), so even a skipped write leaves the correct pose.
+37. **Analysis docs AND self-derived specs can mis-transcribe** — round-5 had two: cookie bucket (n=round(d/100×Eat), NOT scaled to texture px) and playback timeS (PINNED clipTimeS, NOT null — only livePlay passes null). Always re-read the raw bundle bytes at the cited offset before porting a constant that "looks wrong".
+38. **/home/sync working trees go stale mid-round** — its .git has every commit but the checked-out tree can be an hour old. After ANY restore: `git log -1` AND `git status`; if dirty or behind, `git reset --hard HEAD`. Editing a stale tree produces a commit that silently deletes later rounds (the a55a900 incident).
+39. **Gesture brackets for object ops** belong at the UI event level (one begin/end pair per user gesture); the show store's depth-counter makes nesting safe (manipulator drag brackets outermost, _commit self-brackets inner).
+40. **Same-value state changes need an event, not a value diff** — a seek to the current playhead must still pose the scene (live performanceSeekS transitions null→t). Emit an epoch counter in the store action; never detect "change" by comparing the value.

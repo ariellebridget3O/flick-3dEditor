@@ -28,7 +28,25 @@ Mission: reconstruct the flick.art 3D Stage editor runtime for local offline pre
 - [x] **~18 P1s fixed**: pan_sweep exact (at-START anchor), revolve x2r sign + origin center + live-mesh application, ne() non-person path apply (props now move on paths), FOLD_KINDS gate, GA euler unwrap (Q + commit), cam-move rebase GOr, keyed-camera/target capture, cam-follow offset, VOr/UOr gates, reaim, jZt gaze (EZt + negated pitch), IZt additive merge, undo covers objects+show, TOr fingerprint quaternion/scale, floor polygonOffset 4, crane_down +3, pace/heightCurve validators, timeline seek scrollLeft, groundY recursive, aids traverse, v4to5 all cameras, v7to8 chained unwrap, aim targetId fallback, stop-at-end reset, multi-select parent restore
 - [x] E2E verification of every fix (see docs/FIDELITY.md round-2 log)
 
-## Backlog (future rounds) — priority order; source: AUDIT_*.md P2 lists + old backlog
+## Round 5 (2026-11-16) — DONE
+- [x] User-reported P0s all root-caused + fixed: T-pose flicker (HumanoidRig = exact AWr port: dynamic clipLocal pre-offset snapshot + aKt additive — the old static bind-restore fought three's PropertyMixer change-detection, 3-8 flashes/playback → 0); pose/clip not applying at rest (objects-subscription → b() unconditional + playbackClips-aware, inspector Clip/Playing controls); spotlight shadow (oOr/iOr/e6r exact: degrees-clamped beam angle [was 172° cone], raw ×2.4 intensity [was 32× dim], shadow-slot budget by GPU caps, cookie, beams in scene group); shadow fingerprint walked only when dirty (chicken-egg — walk now runs every tick like live TOr)
+- [x] Mid-round catastrophic bug caught by review agent: a55a900 was accidentally built on a stale round-2 tree (silently deleted rounds 3-4) — repaired onto round-4 base (2311e71); all 9 review fixes verified
+- [x] Review round 2 (true diff): 0 P0/P1; 1 P2 (same-t seek) + 9 P3 fixed (80d39ff)
+- [x] UI sweep A (chrome/inspector/keys): 2 P1 + 4 P2 + 5 P3 — ALL fixed (id-keyed track cloning, undo gestures for object ops, kind gating, camera rows, focal sync, hierarchy tree, scene-name, toolbar highlight, escaping, hygiene)
+- [x] Gap matrix (analysis/ROUND5_GAP_MATRIX.md): 164 rows, Top-20 ranked; complaint verdicts: pose=FIXED, path-keyframes=diamonds+heightCurve-editor-partial, no-ops=regression-restored+gated, spotlight=FIXED
+
+## Round 5 backlog (ranked — from ROUND5_GAP_MATRIX.md Top-20)
+- [ ] P1 Actions palette (M5r: Move/Animate/Camera tabs, 46 clip tiles w/ live previews, search, drag-to-add — the live's core add-UX)
+- [ ] P1 Cam-path height-curve editor (bundle @5466360: curve w/ draggable points + scrub; eval already ported, UI missing)
+- [ ] P1 Through-the-lens Cameras view (adopt evaluated camera pose — port only draws the frame guide)
+- [ ] P1 Aspect-ratio picker UI (6 presets @3920360; page.recordAspect exists)
+- [ ] P1 Pixel oracle vs live flick.art (site reachable; login creds in CONTEXT.md; scene-match + screenshot diff harness)
+- [ ] P2 Rig posing UX (xqr joint spheres + captureFocusedRigPose + Fzr multi-joint)
+- [ ] P2 Held-pose baking (bakeRigPoseSegment flow: rig key @t=0)
+- [ ] P2 Shake apply (Dzt/oEr — constants ready), 2D plan canvas (SDr), spawn grid, deleteFocused cascade (keyframe→segment→track→object), cam-follow offset UI, color row + person-kind switch
+- [ ] UI sweep B (timeline/tools) agent timed out twice — items manually E2E'd instead (blocks/trim/diamonds/take-range/lasso/navball/playback all verified); remaining: alt-drag duplicate re-verify on repaired tree, ctrl+wheel zoom, ruler scrub visual
+
+## Backlog (future rounds) — priority order; source: ROUND5_GAP_MATRIX Top-20 + AUDIT_*.md P2 lists
 - [ ] Shake apply on preview (Dzt/oEr — constants in const.js; camera rigs gq)
 - [ ] 2D plan canvas (SDr painter: grid fade, footprints, camera wedges, spotlight pools, marquee, draw-direction → path)
 - [ ] Humanoid rig posing UX (xqr joint spheres r .028, captureFocusedRigPose, Fzr multi-joint)
