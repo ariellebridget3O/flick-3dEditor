@@ -2,8 +2,9 @@
 """Extract a complete function/class from the minified bundle by balanced-brace
 extension from a match position, extending backwards to the statement start."""
 import re, sys
+import pathlib
 
-BUNDLE = "/home/z/flick-3dEditor/analysis/index-DBE17t4T.js"
+BUNDLE = str(pathlib.Path(__file__).resolve().parents[1] / "analysis/index-DBE17t4T.js")
 SRC = open(BUNDLE, encoding="utf-8", errors="replace").read()
 
 def find_stmt_start(src, pos):

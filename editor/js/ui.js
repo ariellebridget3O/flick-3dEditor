@@ -7,6 +7,7 @@ import { normalizeLight } from './env.js';
 import { itemDuration } from './schema.js';
 import { showLayout, ITEM_LABELS, fovFromFocal } from './tracks.js';
 import { MAGNET_PX, maxEnd, placeAvoiding, repackSequential, planMove, moveItemToIndex, clampKeyTime, canDuplicateOnto } from './place.js';
+import { createRangeTool, renderTakeRange, wireRangeToolGlobal } from './takerange.js';
 import { stickFromDelta } from './navball.js';
 
 const $ = id => document.getElementById(id);
@@ -406,7 +407,8 @@ const CAMERA_ITEM_KINDS = new Set(['cam-still', 'cam-move', 'cam-path', 'cam-fol
 const KF_KINDS = new Set(['transform', 'rig-transform', 'cam-transform']); // Zzt
 
 function buildTimeline(app) {
-  app._tl = { pps: 60, magnet: true, interaction: null };
+  app._tl = { pps: 60, magnet: true, interaction: null, rangeTool: createRangeTool() };
+  wireRangeToolGlobal(app);
   const ruler = document.getElementById('tlRuler');
 
   // seek by ruler click/drag (clamped to span)
@@ -419,7 +421,12 @@ function buildTimeline(app) {
     app.page.seek(Math.min(t, Math.max(10, layout.durationS + 5)));
     app.evaluateAt?.(app.page.playheadS, 1 / 60, true);
   };
-  ruler.addEventListener('pointerdown', e => { seeking = true; ruler.setPointerCapture(e.pointerId); seekAt(e); });
+  ruler.addEventListener('pointerdown', e => {
+    if (app._tl.rangeTool?.on) return;   // range tool owns the ruler (live PGt covers it)
+    seeking = true;
+    try { ruler.setPointerCapture(e.pointerId); } catch (_) {}   // synthetic-event safe
+    seekAt(e);
+  });
   ruler.addEventListener('pointermove', e => seeking && seekAt(e));
   ruler.addEventListener('pointerup', () => seeking = false);
 
@@ -446,6 +453,19 @@ function buildTimeline(app) {
   };
   const tlTitle = document.querySelector('.tl-title');
   if (tlTitle) tlTitle.after(magBtn);
+
+  // take-range toggle (live header: iconBtn "range", disabled while a take films — never offline)
+  const rangeBtn = document.createElement('button');
+  rangeBtn.id = 'btnRange';
+  rangeBtn.className = 'ghost small range-btn';
+  rangeBtn.textContent = '⇥';
+  rangeBtn.title = 'Take range — drag on the timeline to set what gets filmed';
+  rangeBtn.setAttribute('aria-pressed', 'false');
+  rangeBtn.onclick = () => {
+    app._tl.rangeTool.on = !app._tl.rangeTool.on;
+    refreshTimeline(app);
+  };
+  magBtn.after(rangeBtn);
 
   $('btnAddTrack').onclick = () => {
     const objs = Object.entries(app.objects.all()).filter(([id, o]) =>
@@ -522,11 +542,20 @@ export function refreshTimeline(app) {
   for (let t = 0; t <= span; t += step) {
     ticks += `<div class="tick" style="left:${gutter + t * pps}px"><span>${fmtTime(t)}</span></div>`;
   }
-  ruler.style.width = `${W}px`;
+  // +gutter so the last tick (at gutter + span*pps) and its label fit the scroll area
+  // (P3: last-label clip at the scroll edge)
+  ruler.style.width = `${W + gutter}px`;
   ruler.innerHTML = ticks + `<div class="tl-playhead" id="playheadLine" style="left:${gutter}px"></div>`;
 
+  // take-range button state (live iconBtnActive on toolOn)
+  const rangeBtn = document.getElementById('btnRange');
+  if (rangeBtn) {
+    rangeBtn.classList.toggle('on', !!app._tl.rangeTool?.on);
+    rangeBtn.setAttribute('aria-pressed', String(!!app._tl.rangeTool?.on));
+  }
+
   // lanes
-  lanes.style.width = `${W}px`;
+  lanes.style.width = `${W + gutter}px`;   // match the ruler (last-tick room)
   lanes.innerHTML = layout.tracks.map(tr => {
     const obj = app.objects.get(tr.characterId);
     const name = obj ? (obj.name ?? obj.kind) : '?';
@@ -542,6 +571,7 @@ export function refreshTimeline(app) {
 
   wireTimelineInteractions(app, lanes, pps, magnet, layout);
   updatePlayhead(app, app.page.playheadS);
+  renderTakeRange(app);   // _Tr ruler label + wTr lane overlay (box/grips/ghost/guides/draw)
   refreshHierarchy(app);
   refreshCameras(app);
 }
@@ -555,7 +585,7 @@ function blockHTML(app, u, tr, pps, isWalker) {
   const kf = KF_KINDS.has(it.kind) && (it.keys?.length ?? 0) > 0;
   const seg = app.page.selectedSegment;
   const diamonds = kf ? `<span class="kf-layer">${it.keys.map(k =>
-    `<span class="kf-diamond${seg?.itemId === it.id && seg?.tS !== undefined && Math.abs(seg.tS - k.tS) <= KEY_EPS ? ' selected' : ''}" data-ts="${k.tS}" style="left:${clampPx(k.tS * pps, w)}px"></span>`).join('')}</span>` : '';
+    `<span class="kf-diamond${seg?.itemId === it.id && seg?.tS !== undefined && Math.abs(seg.tS - k.tS) <= KEY_EPS ? ' selected' : ''}" data-ts="${k.tS}" title="Keyframe — click to select, drag to move" style="left:${clampPx(k.tS * pps, w)}px"></span>`).join('')}</span>` : '';
   const handle = trimmable(it) && !painting ? '<span class="trim-handle" title="Drag to change duration"></span>' : '';
   return `<div class="blk ${blockCategory(it, isWalker)}${sel ? ' sel' : ''}${painting ? ' painting' : ''}"
     data-track="${tr.trackId}" data-item="${it.id}" data-start="${u.startS}" data-end="${u.endS}"
@@ -638,16 +668,29 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       }
     };
     const setGhost = (laneBody, startS, dur) => {
+      // live duplicate ghost: ghost renders in the TARGET lane (V?.toTrackId === ae.id);
+      // lane gets `laneDuplicateTarget` only when a DIFFERENT lane passes the domain gate
       lanes.querySelectorAll('.ghost-blk,.ghost-caret').forEach(g => g.remove());
-      lanes.querySelectorAll('.lane-body.drop-active').forEach(l => l.classList.remove('drop-active'));
+      lanes.querySelectorAll('.lane-body.dup-target').forEach(l => l.classList.remove('dup-target'));
       if (!laneBody) return;
-      laneBody.classList.add('drop-active');
+      if (laneBody.dataset.trackId !== trackId && compatibleFor(laneBody.dataset.trackId)) {
+        laneBody.classList.add('dup-target');
+      }
       const el = document.createElement('span');
       el.className = dur > 0 ? 'ghost-blk' : 'ghost-caret';
       el.style.left = `${startS * pps}px`;
       if (dur > 0) el.style.width = `${Math.max(3, dur * pps)}px`;
       laneBody.appendChild(el);
     };
+    // domain gate (live `se`: resolve + yGt) for a candidate target lane id
+    const compatibleFor = tid => {
+      const tt = app.show.show.tracks.find(t => t.id === tid);
+      const obj = tt ? app.objects.get(tt.characterId) : null;
+      return !!(tt && obj && canDuplicateOnto(it, obj.kind));
+    };
+    // live nCr `se`: alt-pointerdown opens the duplicate ghost IMMEDIATELY (before any
+    // threshold), in the SOURCE lane at the block's own position (E called with toTrackId=t.id)
+    if (duplicating) setGhost(laneBodyOf(trackId), startS0, durationS);
 
     const mv = ev => {
       const dx = ev.clientX - startXPx, dy = ev.clientY - startYPx;
@@ -678,10 +721,13 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
         }) : null;
         if (placed) {
           curStart = placed.startS; guidesS = placed.guidesS;
-          setGhost(laneBodyOf(targetId), curStart, durationS);
-          renderGuides(laneBodyOf(targetId), guidesS);
+          setGhost(laneBodyOf(toTrackId), curStart, durationS);
+          // live: guides render in the lane that OWNS the drag (F belongs to the source
+          // lane's component); the ghost follows the pointer into the target lane
+          renderGuides(laneBodyOf(trackId), guidesS);
         } else {
           setGhost(null);
+          renderGuides(laneBodyOf(trackId), []);
         }
         return;
       }
@@ -722,7 +768,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', cancel);
       lanes.querySelectorAll('.snap-guide,.ghost-blk,.ghost-caret').forEach(g => g.remove());
-      lanes.querySelectorAll('.lane-body.drop-active').forEach(l => l.classList.remove('drop-active'));
+      lanes.querySelectorAll('.lane-body.dup-target').forEach(l => l.classList.remove('dup-target'));
       if (!dragging) return;
       app._tl.justDragged = true;
       app._tl.interaction = null;
@@ -742,7 +788,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', cancel);
       lanes.querySelectorAll('.snap-guide,.ghost-blk,.ghost-caret').forEach(g => g.remove());
-      lanes.querySelectorAll('.lane-body.drop-active').forEach(l => l.classList.remove('drop-active'));
+      lanes.querySelectorAll('.lane-body.dup-target').forEach(l => l.classList.remove('dup-target'));
       if (dragging) { app._tl.interaction = null; refreshTimeline(app); }
     };
     window.addEventListener('pointermove', mv);
@@ -770,7 +816,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       };
       const finish = () => {
         window.removeEventListener('pointermove', mv);
-        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointerup', finish);
         window.removeEventListener('pointercancel', finish);
         app.show.endEditGesture();
         app._tl.interaction = null;
@@ -778,7 +824,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
         refreshSegInspector(app);
       };
       window.addEventListener('pointermove', mv);
-      window.addEventListener('pointerup', up);
+      window.addEventListener('pointerup', finish);      // was `up` (undefined) — froze the timeline
       window.addEventListener('pointercancel', finish);
     };
     handle.onclick = e => e.stopPropagation();   // no segment select after a trim (live onClick stopPropagation)
@@ -805,6 +851,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       const up = ev => {
         window.removeEventListener('pointermove', mv);
         window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', finishKey);   // don't leak the cancel listener
         ev.stopPropagation();
         if (moved) {
           if (it.kind === 'cam-transform') app.show.moveCameraKeyframe(trackId, itemId, fromTS, previewTS);

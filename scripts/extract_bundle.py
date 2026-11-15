@@ -4,9 +4,10 @@ Statement-aware: extends across chained brackets (foo(...){...}[...]) until term
 Usage: python3 extract_bundle.py [bundle] [outdir]
 """
 import os, re, sys, json
+import pathlib
 
-BUNDLE = sys.argv[1] if len(sys.argv) > 1 else '/home/z/flick-3dEditor/analysis/index-DBE17t4T.js'
-OUT = sys.argv[2] if len(sys.argv) > 2 else '/home/z/flick-3dEditor/analysis/extracted'
+BUNDLE = sys.argv[1] if len(sys.argv) > 1 else str(pathlib.Path(__file__).resolve().parents[1] / 'analysis/index-DBE17t4T.js')
+OUT = sys.argv[2] if len(sys.argv) > 2 else str(pathlib.Path(__file__).resolve().parents[1] / 'analysis/extracted')
 os.makedirs(OUT, exist_ok=True)
 src = open(BUNDLE, encoding='utf-8').read()
 

@@ -8,12 +8,13 @@ Round-2 user emphasis: the OVERALL RENDERING PATH must be reproduced exactly (th
 ## Status
 - Round 1 (2026-11-13): full editor implementation + E2E (see git log / FIDELITY round-1).
 - Round 2 (2026-11-14): rendering path exact (finish composer + stroke ring + clay props + all object/marker builders), 3-module exactness audit (analysis/AUDIT_{TRACKS,UX,ENV_UI}.md), all 4 P0 + ~18 P1 fixes.
-- Round 3 (2026-11-15) COMPLETE: all 4 HANDOFF seam items — timeline polish (place.js solver q5r/_ie/kGt/lje EXACT + magnet/trim/diamonds/alt-duplicate), segment inspector editors, lasso, nav ball (lZr exact). Code review: 3 P0 + 4 P1 + 6 P2 fixed (notably depth-counted gesture undo; diamond click stopPropagation; [.1,120] duration clamps). Editor now REVIEWABLE at port 3000 (fullstack-dev Next.js in /home/z/my-project with public/editor symlink + iframe; preview panel). Remaining: P3 timeline nits, take-range tool, gizmo meshes, then PLAN backlog (shake, plan canvas, rig posing, spawn grid…).
+- Round 3 (2026-11-15): all 4 seam items — timeline polish (place.js solver EXACT + magnet/trim/diamonds/alt-duplicate), segment inspector editors, lasso, nav ball. Review: 3 P0 + 4 P1 + 6 P2 fixed.
+- Round 4 (2026-11-15) COMPLETE: take-range tool (xTr/_Tr/wTr EXACT: draw/grips/slide/magnet/Delete/Esc + show.range persistence + setTakeRange/She), custom gizmo meshes (Mzr EXACT: one-sided handles, discs, ring set, shell centre, negative-picker drop, amber hover), all timeline P3s (ghost-on-alt-down, source-lane guides, diamond tooltips, WASD control-mode gate, ruler last-label). Review: no P0 in new code, 2 P1 + 5 P2 fixed; PLUS a latent P0 fixed (trim `up` undefined → gesture leak). Editor reviewable at port 3000 (rsync-copy serving — see HANDOFF). Remaining: PLAN backlog (shake, 2D plan canvas, rig posing, spawn grid…).
 - Editor runs at editor/index.html (any static server; no build, no network at runtime) AND on port 3000 for review. Finish pref: localStorage `stage-finish` + auto-measure; URL ?finish=0|1 forces (manual source).
 
 ## Directives (sticky)
 - Push/backup every micro step (GitHub primary + GitLab mirror + /home/sync) — GIT IS THE DISK; never force-push.
-- Work in /home/z/flick-3dEditor (outside the /home/z/my-project watchdog path).
+- Repo lives at /home/z/my-project/flick-3dEditor (inside the persisted project dir; sandbox resets wiped the old /home/z/flick-3dEditor path twice). public/editor is an rsync copy — run my-project/scripts/sync-editor.sh after edits.
 - Design decisions → sub-agent audit rounds before implementation; code changes → sub-agent code review (the three AUDIT docs are the standing divergence registry — re-audit fixed areas when touching them).
 - Wrap-up: PLAN.md (long horizon), HANDOFF.md (next-session seam), .agents/SKILL.md + kb/ (distilled know-how), CONTEXT.md (this file).
 - User's local disk is NOT durable — everything must live in git; .env secrets split-coded mid-string (GitHub push-protection blocks literal AND base64 PATs).

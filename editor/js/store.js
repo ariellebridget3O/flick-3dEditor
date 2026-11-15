@@ -5,6 +5,11 @@ import { arcLength, polylineOf, buildTangents } from './curves.js';
 import { C } from './const.js';
 import { moveItemToIndex, canDuplicateOnto, dropSelfRefs, moveKey } from './place.js';
 
+const TAKE_RANGE_MIN_S = 0.1;   // eie — min take-range width
+// rx().durationS — raw show length = max item endS (no span floor)
+const showDurationS = show => Math.max(0, ...(show.tracks ?? []).flatMap(t =>
+  t.items.map(it => it.startS + itemDuration(it))));
+
 const KEY_EPS = 0.001;   // ym
 
 function emit(listeners) { for (const fn of listeners) fn(); }
@@ -120,6 +125,44 @@ export class ShowStore extends StoreBase {
   }
   setShow(show) { this.show = show; this.undoStack = []; this.redoStack = []; this.changed(); }
   tracks() { return this.show.tracks; }
+
+  // ---- take range (setTakeRange @5548675 + She @4320286, eie/tie) ----
+  // eie=.1 — minimum range width in seconds; tie(startS,endS) validity (>= eie - 1e-6)
+  setTakeRange(e) {
+    if (this._takeLocked?.()) return false;            // live: recording !== null refuses
+    if (!e) {                                          // null clears the range
+      this.beginEditGesture();
+      if (this.show.range !== undefined) delete this.show.range;
+      this.endEditGesture();
+      this.changed();
+      return true;
+    }
+    const r2 = a => Math.round(a * 100) / 100;         // round to 0.01 s
+    const a = r2(Math.max(0, Math.min(e.startS, e.endS)));
+    const b = r2(Math.max(e.startS, e.endS));
+    if (!(b - a >= TAKE_RANGE_MIN_S - 1e-6)) return false;   // tie(r,s)
+    this.beginEditGesture();
+    this.show.range = { startS: a, endS: b };
+    this.endEditGesture();
+    this.changed();
+    return true;
+  }
+  // She(show, durationS) — the effective play/film span; range clamped to the show, else full
+  takeSpan(durationS) {
+    const n = this.show.range;
+    if (n) {
+      const r = Math.min(Math.max(n.startS, 0), durationS);
+      const s = Math.min(Math.max(n.endS, 0), durationS);
+      if (s - r >= TAKE_RANGE_MIN_S - 1e-6) return { fromS: r, toS: s };
+    }
+    return { fromS: 0, toS: durationS };
+  }
+  filmedARange() {                                     // live filmedARange: fromS>0 || toS<duration
+    const d = showDurationS(this.show);
+    const { fromS, toS } = this.takeSpan(d);
+    return fromS > 0 || toS < d;
+  }
+  durationS() { return showDurationS(this.show); }
   trackOf(characterId) { return this.show.tracks.find(t => t.characterId === characterId); }
   ensureTrack(characterId) {
     let tr = this.trackOf(characterId);

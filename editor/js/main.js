@@ -758,7 +758,10 @@ export class App {
   }
 
   _wasd(dt) {
+    // live `ne()` gate: default control mode + edit + no play session (keyboardOwner = stage
+    // equivalent); in unreal mode WASD only works while pointer-locked free-look (not ported)
     if (!this._keys || this.page.mode !== 'edit' || this.page.keyboardOwner !== 'stage') return;
+    if (this.page.controlMode !== 'default') return;
     const k = this._keys;
     let f = 0, s = 0, u = 0;
     if (k.has('w')) f += 1; if (k.has('s')) f -= 1;

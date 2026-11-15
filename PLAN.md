@@ -5,6 +5,14 @@ Mission: reconstruct the flick.art 3D Stage editor runtime for local offline pre
 ## Round 1 (2026-11-13) — DONE
 - [x] Context restore, live bundle re-extraction (4 analysis docs), DESIGN.md v2 audited, editor implemented (13 modules + three r182 + 101MB assets), E2E verified (daylight/path/framing exact; undo/picker/autosave pass)
 
+## Round 4 (2026-11-15) — DONE
+- [x] Env restored after sandbox reset: repo now lives INSIDE /home/z/my-project/flick-3dEditor (persisted; symlinks now blocked by sandbox → public/editor is an rsync COPY via my-project/scripts/sync-editor.sh — run it after every editor edit)
+- [x] **Timeline P3s**: duplicate ghost renders on alt-pointerdown in SOURCE lane (pre-threshold); guides render in the SOURCE lane during cross-lane duplicate; laneDuplicateTarget only for different+compatible lanes; diamond title tooltips; ruler last-label clip (+gutter width); WASD gated to default control mode (live ne())
+- [x] **Take-range tool** (xTr/Tie/PGt/wTr/_Tr EXACT): range button, draw on lanes + ruler, grips (eie=.1 clamps), label slide, magnet markers [0,dur,playhead,…edges], Delete/Esc/outside-deselect, per-move magnet radius, setTakeRange + She takeSpan/filmedARange + show.range persistence
+- [x] **Gizmo custom meshes** (Mzr/Pzr/Nzr EXACT): one-sided shafts/cones, plane discs, centre sphere/box + BackSide shell, rotate ring set, negative-axis picker drop, hover #FFD166
+- [x] **P0 fix from review**: trim handler referenced undefined `up` (pointerup listener no-op → gesture never ended: no undo push + interaction leak + timeline freeze) — single `finish` listener now
+- [x] Review round: no P0s in new code; 2 P1 (ruler draw surface, per-move magnet) + 5 P2 fixed & E2E-verified
+
 ## Round 3 (2026-11-15) — DONE
 - [x] Editor served on port 3000 via fullstack-dev (public/editor symlink + full-viewport iframe on /; VLM QA PASS; preview panel)
 - [x] **Timeline polish** (seam 1): place.js solver (q5r/_ie/kGt/lje/Xne/oje/W5r/G5r/MP/wie) audited EXACT; block drag (magnet 12px + obstacle push + reorder preview + snap guides + alt-drag duplicate w/ Art/DHr same-domain gate); trim handles (clip dur, path speed=arc/dur, [.1,120] clamps); keyframe diamonds (SCr: click select+seek, drag B2r clamp + xbe move, active/selected); magnet toggle; YAr clock; segment editors for rotate/revolve/scale/transform + key list (jump/delete); **ruler↔lane 110px gutter alignment fix** (pre-existing seek bug)
@@ -21,9 +29,6 @@ Mission: reconstruct the flick.art 3D Stage editor runtime for local offline pre
 - [x] E2E verification of every fix (see docs/FIDELITY.md round-2 log)
 
 ## Backlog (future rounds) — priority order; source: AUDIT_*.md P2 lists + old backlog
-- [ ] Timeline leftovers (P3 from review): duplicate-ghost guides render in SOURCE lane + ghost on alt-pointerdown (not after 4px); ruler last-label clip at scroll edge; diamond tooltips; nav-ball drive in unreal mode (original gates Ye)
-- [ ] take-range drag (She/xTr: range tool button, peek playhead, locked take) — raw in tmp_b/timeline_ui_pretty.js (X/c/_Tr)
-- [ ] Gizmo custom meshes (Mzr): shaft/cone/circle/torus geometry per mode, renderOrder 1000010, negative-axis picker drop
 - [ ] Shake apply on preview (Dzt/oEr — constants in const.js; camera rigs gq)
 - [ ] 2D plan canvas (SDr painter: grid fade, footprints, camera wedges, spotlight pools, marquee, draw-direction → path)
 - [ ] Humanoid rig posing UX (xqr joint spheres r .028, captureFocusedRigPose, Fzr multi-joint)

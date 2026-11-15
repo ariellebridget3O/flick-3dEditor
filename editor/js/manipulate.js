@@ -2,6 +2,7 @@
 // + drag commit pipeline (SZt port) + keyboard (Hzr port).
 import * as THREE from 'three';
 import { TransformControls } from './vendor/controls/TransformControls.js';
+import { applyCustomGizmo } from './gizmo.js';
 import { C, smoothstep } from './const.js';
 import { isPersonKind, camMovePose, unwrapEulerVs, subjectlessItem, CAM_ITEM_KINDS } from './tracks.js';
 import { itemDuration } from './schema.js';
@@ -61,12 +62,9 @@ export class Manipulator {
     this.transform.addEventListener('objectChange', () => this._onObjectChange());
     // mode mapping F(): translate default; camera scale → translate; track-driven → translate
     this.transform.setMode('translate');
-    // restyle: axis colours (h$) — traverse helper children and tint by name
-    helper.traverse(o => {
-      if (o.material?.color && /X/i.test(o.name)) o.material.color.setHex(0xe5534b);
-      else if (o.material?.color && /Y/i.test(o.name)) o.material.color.setHex(0x55b35e);
-      else if (o.material?.color && /Z/i.test(o.name)) o.material.color.setHex(0x4a86e8);
-    });
+    // custom gizmo meshes (Mzr exact): one-sided shafts+cones, plane discs, ring set, centre
+    // sphere/box w/ dark shell, negative-axis pickers dropped, hover amber (bzr)
+    applyCustomGizmo(this.transform);
   }
 
   attachToSelection() {

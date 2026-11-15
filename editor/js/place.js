@@ -20,7 +20,7 @@ const overlaps = (a, b) =>
   a.startS < b.endS - EPS && b.startS < a.endS - EPS;
 
 // Xne — magnet snap: try each marker as start or as end (marker - duration)
-function magnetSnap({ desiredStartS, durationS, markersS, radiusS }) {
+export function magnetSnap({ desiredStartS, durationS, markersS, radiusS }) {
   if (radiusS <= 0) return desiredStartS;
   let best = desiredStartS, bestD = radiusS + EPS;
   for (const m of markersS) {

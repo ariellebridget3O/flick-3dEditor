@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Find contexts around multiple signatures in the bundle."""
 import sys, re
+import pathlib
 
-BUNDLE = "/home/z/flick-3dEditor/analysis/index-DBE17t4T.js"
+BUNDLE = str(pathlib.Path(__file__).resolve().parents[1] / "analysis/index-DBE17t4T.js")
 src = open(BUNDLE, encoding="utf-8", errors="replace").read()
 
 def ctx(pat, before=200, after=200, limit=8, flags=0):

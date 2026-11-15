@@ -89,9 +89,27 @@ Legend: **EXACT** = byte/port-exact from bundle (values verified in headless rou
 | Autosave (1s debounce, restore on load) | PORT | round-trip verified |
 | 2D plan canvas, PIP, recording/takes, multi-scene tabs, chat | SKIP | D11/backlog |
 | **Nav ball (lZr/RXr/zzr/Ye exact)**: 67px pad, blurred backdrop (golden-angle 12-tap), rolling icosahedron, drag-drive 4m/s | EXACT | review: constants + math EXACT |
+| **Take-range tool (xTr/Tie/PGt/wTr/_Tr exact)**: range button (disabled while filming), draw on lanes + RULER, grips w/ eie=.1 clamps, label slide (durationS=w magnet), markers [0,dur,playhead,…edges], 3px threshold, guides on real snaps (bTr=1e-6), Delete/Esc/outside-deselect (form-gated), commit→tool-off+select, Ctrl mid-drag suspends magnet | EXACT | review: no P0; P1s (ruler draw surface, per-move magnet) + P2s fixed & verified |
+| setTakeRange (@5548675): refuse while filming, null clears, 2dp round, tie validate; She takeSpan/filmedARange; range persists in show.range (v10 round-trip) | EXACT | undo: 1 entry per gesture; round-trip verified |
+| **Gizmo custom meshes (Mzr/Pzr/Nzr exact)**: one-sided shafts (.009×.42 y .1→.52) + cones (.03/.115/24), plane discs (.045/28 @.17 op .6 2-side, ⟂-axis color), centre sphere .036 + box .0612 w/ BackSide #171b26 shell grown .006 (ro 1e6), rotate half-tori + E .75/.006 + XYZE op .35, renderOrder 1000010, negative-axis pickers dropped, hover #FFD166 via setColors | EXACT | 3-mode VLM PASS; X-drag commit +1.838; hover amber + restore |
+| Duplicate ghost P3s: ghost on alt-pointerdown (source lane, own position), guides in SOURCE lane, laneDuplicateTarget only for different+compatible lane | EXACT | cross-lane snap-to-4.0 w/ guides [4,8] in source lane |
 | **Lasso (br/Nr/ua/jt exact)**: editInteraction mode, nWr cursor, rect overlay, projected selection (Xu aimed-target skip), one-shot >8px, Esc | EXACT | review: EXACT (P3s fixed) |
 
 ## Runtime verification log (headless Chrome)
+### Round 4 (2026-11-15)
+- Take-range draw (lanes + ruler): [1,3.5] committed, tool auto-off, selected, ghost during draw, **1 undo entry**; short label "min 3s" (< Sie 3s); label chip repositioned INSIDE the ruler strip (VLM caught scroll-container clip).
+- Grips: start 2.83→**snap 2.0** (marker, guide rendered); end→past-start clamps to **start+.1** (eie); slide start 2→**snap 4.0** (guide [4], width preserved 2.83).
+- Ctrl/Cmd mid-drag suspends magnet (per-move radius like live `I = x(C,pps)`): no-Ctrl end snaps 4.15→**4.00**, with-Ctrl end stays **4.15** raw.
+- Delete: selected-only guard (unselected Delete = no-op), removes range + undo; **Delete mid-grip-drag cancels the drag (no re-commit on release)** — live effect [e,y] mirrored.
+- Escape exits tool (form-element gated: typing in an input keeps the tool on); outside-pointerdown deselects.
+- Undo: gesture-by-gesture (draw/grip/slide/delete each = 1 entry); undo×2 restores [4,6.83]; saveScene→loadScene round-trip keeps show.range; filmedARange/takeSpan exact.
+- Duplicate P3s: ghost in SOURCE lane on alt-pointerdown (before 3px threshold, own position/width); cross-lane (walker→walker2) ghost in TARGET lane at magnet-snapped 4.000 + **guides [4.00,8.00] in SOURCE lane** + dup-target class; incompatible lane (clip→camera) renders NOTHING (live se() gate) — verified identical.
+- Gizmo: attach → one-sided shafts/cones exact colors, discs (XY blue/YZ red/XZ green .6), centre sphere+shell, rotate 3 half-tori+E+XYZE, scale boxes; **negative-axis pickers dropped** (bbox test, none remaining); hover X → **#ffd166** (bzr), leave → axis color restored; native-mouse X-drag commits +1.838 (1 undo). 3-mode VLM PASS (box tips pixel-verified vs cones).
+- **P0 found in review: trim handler referenced undefined `up`** — addEventListener('pointerup', undefined) no-op'd → gesture never ended (no undo push, interaction='trim' leak, timeline freeze). Fixed via single `finish`; 5-move trim = 1 undo entry (re-verified).
+- WASD control-mode gate (live ne()): default moves 2m/s-equiv, unreal mode 0 (unreal WASD = pointer-locked free-look, not ported).
+- Ruler last-tick label no longer clipped (ruler/lanes width +gutter).
+- Regression: block drag reorder (dance→0.9 ⇒ dance@0, walk repacked @4, transform@6), diamond no-move click selects+seeks (startS+tS), playback advances, undo/redo round-trip, lasso one-shot, navball 4m drive, lane-heads clickable above tr-overlay when scrolled (z7>z5). Zero page errors (fresh session).
+- VLM final showcase: 3/3 real findings cleared — humanoid orange = live Phe #f29a5c (prompt misdescribed), chip dark = unverifiable live CSS (design choice), round ball = icosahedron fills 67px pad (round-3 verified).
 ### Round 3 (2026-11-15)
 - Timeline solver: reorder drag dance→desired 6.47 (overlap) → kGt insertion toIndex 1 + lje pack → [walk@0, dance@8.47, transform@12.47] exact; free move dance→desired 21.14 **magnet-snapped to 20.944** (transform end marker, guide rendered at px 1257); alt-drag path Alpha→Beta lane: ghost + snap to 4.47 + duplicate committed (speed preserved); path→camera lane refused (Art same-domain gate, no ghost).
 - Trim: dance +2s drag → durationS 6.0 w/ live width; walk +2s → speed 0.3455 = arc(2.236)/6.472 exact (speed=arc/dur).

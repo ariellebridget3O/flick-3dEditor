@@ -1,24 +1,25 @@
 # HANDOFF — next session (immediate seam)
 
 ## State
-Round 3 complete through commit (see git log). All 4 seam items DONE and review-audited: timeline polish (placement solver + drag/trim/diamonds/magnet/duplicate EXACT), segment inspector editors, lasso, nav ball. 3 P0 + 4 P1 + 6 P2 review fixes applied and E2E-verified (gesture depth-counting undo is the big one — brackets now nest; per-move `_commit` inside an outer begin/end no longer splits undo). Editor is served for review at **port 3000** (fullstack-dev: `/home/z/my-project` Next.js, `public/editor` SYMLINK → this repo's `editor/`, root route = full-viewport iframe; dev server auto-runs; my edits here are instantly live). Both remotes + /home/sync synced.
+Round 4 complete through commit (see git log). Take-range tool (xTr/_Tr/wTr exact), custom gizmo meshes (Mzr/Pzr/Nzr exact), and all timeline P3s DONE and review-audited (2 P1 + 5 P2 fixed). A latent P0 was found and fixed: the trim handler referenced an undefined `up` listener (gesture never ended — no undo push, interaction leak, timeline freeze). Editor serves on **port 3000**: `/home/z/my-project` Next.js, root = full-viewport iframe, editor files at `public/editor` which is now an **rsync COPY** (symlinks are blocked by current sandbox policy) synced from this repo via `my-project/scripts/sync-editor.sh` — RUN IT AFTER EVERY EDITOR EDIT, then restart the browser session (close + open; a reload alone serves stale ES modules). This repo now lives at `/home/z/my-project/flick-3dEditor` (inside the persisted project dir — survives resets; /home/z/flick-3dEditor no longer exists).
 
 ## First 10 minutes
-1. `cd /home/z && git clone https://<GH_PAT>@github.com/ariellebridget3O/flick-3dEditor.git` (PAT split-coded in .env: `source scripts/env.sh`) — or resume /home/z/flick-3dEditor if the sandbox survived. NOTE: the port-3000 serving lives in /home/z/my-project (separate sandbox repo, commit `serve flick 3D editor on /`) — re-create if recycled: `ln -sfn /home/z/flick-3dEditor/editor /home/z/my-project/public/editor` + the iframe `src/app/page.tsx` (see that repo's git log) after running the fullstack init (`curl https://z-cdn.chatglm.cn/fullstack/init-fullstack.sh | bash`).
-2. Read PLAN.md backlog + docs/FIDELITY.md round-3 log.
-3. Test URLs: direct `http://localhost:3000/editor/index.html?scene=samples/synthetic_tracks.json&noAutosave=1&v=N` (bump v — ES-module cache needs a fresh query), or the root `/` iframe. Dev.log at /home/z/my-project/dev.log.
+1. Sandbox may have reset: if `/home/z/my-project/flick-3dEditor` is missing, restore it — copy `.git` from `/home/sync/flick-3dEditor/.git` (has all rounds through round 4) then `git reset --hard HEAD`; re-sync public/editor with the script above (or re-clone from GitHub: PAT split-coded in .env, `source scripts/env.sh`).
+2. Verify serving: `curl -s -o /dev/null -w "%{http_code}" localhost:3000/editor/index.html` — if the dev server died: `cd /home/z/my-project && (nohup bun run dev > dev.log 2>&1 &)`.
+3. Read PLAN.md backlog + docs/FIDELITY.md round-4 log.
+4. Test URL (fresh browser session each code change!): `http://localhost:3000/editor/index.html?scene=samples/synthetic_tracks.json&noAutosave=1&v=N` (bump v). `window.__app` only exists on the direct editor URL — in the root iframe use `document.querySelector('iframe').contentWindow.__app`.
 
 ## Seam items (only these)
-1. **Timeline leftovers (P3s)** — duplicate-ghost guides belong in the SOURCE lane + ghost should render on alt-pointerdown (currently after the 4px threshold); diamond `title` tooltips; nav-ball drive gate in unreal control mode.
-2. **Take-range tool** (She/xTr) — the "range" button next to magnet: drag on ruler → setTakeRange → locked take; raw code in analysis/tmp_b/timeline_ui_pretty.js (xTr hook `c`, `_Tr` renderer, `setTakeRange` in the show store @5787400-ish; `tie/th` helpers) + keyboard_Hzr.js has the constants region.
-3. **Gizmo custom meshes (Mzr)** — raw: analysis/tmp_b/gizmo_custom_Mzr.js + gizmo_ozr.js; replaces stock TransformControls visuals (shaft/cone/circle/torus per mode, renderOrder 1000010, negative-axis picker drop).
-4. If touching undo/gestures: the system is now DEPTH-COUNTED — `beginEditGesture` increments, `endEditGesture` decrements and pushes undo at depth 0. `_commit` self-brackets. Any new drag flow: wrap pointerdown→begin, pointerup/cancel→end, and add pointercancel handlers (trim/diamond already have them — copy that pattern).
+1. **Shake apply on preview** (Dzt/oEr) — constants already in const.js; camera rigs gq. Raw: search `Dzt`/`oEr` in the bundle.
+2. **2D plan canvas** (SDr painter: grid fade, footprints, camera wedges, spotlight pools, marquee, draw-direction → path).
+3. **Humanoid rig posing UX** (xqr joint spheres r .028, captureFocusedRigPose, Fzr multi-joint) — pairs with the existing rig-transform keyframe kind.
+4. If touching gestures/undo: see round-3 note in FIDELITY — depth-counted `beginEditGesture`/`endEditGesture`; every drag flow needs up AND pointercancel cleanup and MUST clear `app._tl.interaction` on every early-return path (the round-4 P0 was exactly such a leak).
 
-## Env gotchas (round-3 additions)
-- `place.js` is the solver module — if you need placement math, import from there; do NOT re-derive. `appendPlace` = W5r (no magnet) for add-menu; `planMove` = q5r for drags.
-- WWr=32 is the FOOTPRINT-DRAW cap (selection.js), NOT a selection cap — store.select is unclamped (live parity).
-- The lasso + nav ball visibility ride `page.changed()`; stageView flips must call `page.changed()` (viewSwitch handler does).
-- agent-browser synthetic PointerEvents: real modifiers (Alt) do NOT carry — dispatch PointerEvents with `altKey:true` directly on the element (setPointerCapture is try/caught). Clicks after synthetic pointerup must ALSO be dispatched (browsers fire click after up; diamond tests need it).
-- `app._tl.interaction` ('drag'|'trim') suppresses timeline re-render mid-gesture — always clear it on up AND cancel, or the timeline freezes.
-- Port-3000 iframe: `window.__app` lives in the IFRAME (`document.querySelector('iframe').contentWindow.__app`); test the direct editor URL instead.
-- The my-project watchdog force-checkouts every ~20s — the symlink + page.tsx are committed there; editor source changes belong in THIS repo only.
+## Env gotchas (round-4 additions)
+- `ln -s` and bind mounts are BLOCKED in the sandbox now — use rsync copies (`scripts/sync-editor.sh`) for serving.
+- The extraction tools (scripts/*.py) are repo-relative again (patched round 4) — they read `analysis/index-DBE17t4T.js`.
+- Synthetic PointerEvents need `pointerType: 'mouse'` for TransformControls hover (its onPointerHover switches on pointerType); `setPointerCapture` throws on synthetic ids — all our handlers try/catch it, stock vendor code does NOT (use agent-browser native `mouse` commands for gizmo drags).
+- ES-module cache: a page RELOAD serves stale modules even with a bumped ?v= on index.html (the import URLs are unversioned) — close the browser session and reopen.
+- The take-range system: state on `app._tl.rangeTool` (on/selected/drag), render via `renderTakeRange(app)` (in-place DOM updates — never innerHTML the overlay mid-drag, it holds pointer capture); store API: `show.setTakeRange(null|{startS,endS})`, `show.takeSpan(dur)`, `show.filmedARange()`; persisted at `show.range` in the v10 scene JSON.
+- The gizmo: `applyCustomGizmo(tc)` in gizmo.js patches the VENDORED stock TransformControls once at Manipulator construction — gizmo visuals are custom, pickers stay stock minus negative-axis ones; hover amber comes from `tc.setColors(..., 0xFFD166)`.
+- The live label text for the take-range is i18n-only (compiled catalog not in the bundle) — our English strings are semantic equivalents, not literal.

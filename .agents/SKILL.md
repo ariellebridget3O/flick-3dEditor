@@ -35,6 +35,15 @@ Mesh ownership: store→sync at rest; playback while performing; manipulator whi
 ## kb/
 - `kb/porting-notes.md` — detailed port gotchas (browser eval patterns, prop library quirks).
 
+## Round-4 additions
+29. **Synthetic PointerEvents need `pointerType:'mouse'`** for anything that switches on pointerType (stock TransformControls onPointerHover) — default '' falls through silently; also stock vendor setPointerCapture is NOT try/catch'd, so use agent-browser NATIVE `mouse` commands for vendor-control drags (synthetic pointerIds throw NotFoundError).
+30. **A reload does NOT bust the ES-module cache** even with a bumped ?v= on the page URL (import URLs are unversioned) — close the browser session and reopen. Symptom: error stack line numbers that don't match the current file.
+31. **In-place DOM updates for capture-holding overlays** — a React-equivalent re-render via innerHTML destroys the element holding pointer capture mid-drag. Update styles/classes on persistent elements; only rebuild elements that never hold capture (guides/ghosts).
+32. **Interaction-flag discipline**: every early return inside a gesture must still be reachable for cleanup — the round-4 P0 was `addEventListener('pointerup', undefined)` (a silent no-op) leaving `app._tl.interaction='trim'` set forever: no undo push AND refreshTimeline permanently suppressed. Use ONE `finish` listener for up+cancel and reference only names that exist in scope.
+33. **Live setHex-override tricks are for THEIR codebase** — the live f8 material intercepts `color.setHex` to force the hover color, but stock r182 highlights via `color.copy(materialLib.active.color)`; the equivalent is `tc.setColors(x, y, z, hoverColor)`. Port the OBSERVABLE, not the mechanism.
+34. **Decode i18n keys as unavailable** — the message catalog is a separate compiled asset, not in the JS bundle; use semantic English strings and note them as equivalents (never invent "exact" wording).
+35. **Sandbox policy drifts between sessions** — `ln -s` and bind mounts worked in round 3, blocked in round 4. Detection: tool errors on previously-working commands; fallback = rsync copy + sync script.
+
 ## Round-3 additions
 21. **Gesture undo is depth-counted** — beginEditGesture++ / endEditGesture-- and the undo push happens at depth 0. `_commit` self-brackets, so an outer bracket (drag pointerdown→up) swallows per-move commits into ONE entry. Any new drag flow: bracket it AND handle pointercancel (an uncleared `app._tl.interaction` freezes timeline re-render).
 22. **WWr=32 is the footprint-DRAW cap, not a selection cap** — live setSelection is unclamped. Constants can serve a DIFFERENT subsystem than their name suggests; always check the consumer.

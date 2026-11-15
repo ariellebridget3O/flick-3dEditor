@@ -164,7 +164,7 @@ button.small { padding: 2px 8px; font-size: 12px; }
 .lane-head {
   width: var(--lane-gutter); flex: none; display: flex; align-items: center; justify-content: space-between;
   padding: 0 6px 0 10px; font-size: 12px; color: var(--text-dim); background: var(--panel);
-  border-right: 1px solid var(--border); position: sticky; left: 0; z-index: 2;
+  border-right: 1px solid var(--border); position: sticky; left: 0; z-index: 7;   /* above .tr-overlay (z5) */
 }
 .lane-del { border: none; background: none; color: var(--text-dim); padding: 0 4px; font-size: 11px; }
 .lane-del:hover { color: var(--accent); }
@@ -199,7 +199,6 @@ button.small { padding: 2px 8px; font-size: 12px; }
 }
 .ghost-caret { position: absolute; top: 3px; height: 28px; width: 2px; background: #8ca5ff; pointer-events: none; }
 .snap-guide { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,209,102,.85); z-index: 4; pointer-events: none; }
-.lane-body.drop-active { background: rgba(120,150,255,.07); }
 
 /* keyframe diamonds (live kfLayer/kfDiamond) */
 .kf-layer { position: absolute; inset: 0; pointer-events: none; }
@@ -274,3 +273,48 @@ button.small { padding: 2px 8px; font-size: 12px; }
 }
 .rt-btn:hover { color: var(--text); border-color: var(--accent2); }
 .rt-btn.on { color: var(--accent2); border-color: var(--accent2); background: rgba(120,150,255,.15); }
+
+/* ---- take-range tool (live _1q91z module: drawSurface/box/grip/gripTab/ghost/snapGuide/label) ---- */
+.range-btn { padding: 2px 8px; }
+.range-btn.on { border-color: var(--accent2); color: var(--accent2); }
+.tr-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+.tr-draw { position: absolute; top: 0; bottom: 0; right: 0; pointer-events: auto; }
+.tr-box {
+  position: absolute; top: 0; bottom: 0; pointer-events: none;
+  background: rgba(255, 209, 102, .16);
+  border-left: 2px solid rgba(255, 209, 102, .85);
+  border-right: 2px solid rgba(255, 209, 102, .85);
+}
+.tr-box.selected { background: rgba(255, 209, 102, .18); }
+.tr-box.short { background: rgba(255, 120, 90, .10);
+  border-color: rgba(255, 130, 90, .85); }
+.tr-grip {
+  position: absolute; top: 0; bottom: 0; width: 14px; pointer-events: auto;
+  display: flex; align-items: center; justify-content: center; cursor: ew-resize;
+}
+.tr-grip-start { left: -7px; }
+.tr-grip-end { right: -7px; }
+.tr-grip-tab {
+  width: 4px; height: 26px; border-radius: 2px;
+  background: rgba(255, 209, 102, .95); box-shadow: 0 0 0 1px rgba(28, 15, 9, .8);
+}
+.tr-box.short .tr-grip-tab { background: rgba(255, 130, 90, .95); }
+.tr-ghost { position: absolute; top: 0; bottom: 0; background: rgba(255, 209, 102, .18);
+  border: 1px dashed rgba(255, 209, 102, .9); pointer-events: none; }
+.tr-guide { position: absolute; top: 0; bottom: 0; width: 1px;
+  background: rgba(255, 209, 102, .9); pointer-events: none; }
+.tr-label {
+  position: absolute; top: 1px; bottom: 1px; white-space: nowrap;   /* inside the ruler strip */
+  background: var(--hud); border: 1px solid #2a2f3c; border-radius: 4px;
+  color: var(--text); font-size: 10px; padding: 1px 6px; pointer-events: auto;
+  max-width: var(--room-px, 400px); overflow: hidden; text-overflow: ellipsis;
+  display: flex; gap: 4px; align-items: center; cursor: grab; z-index: 6;
+}
+.tr-label.movable { cursor: grab; }
+.tr-label.short { color: #ff9a7a; }
+.tr-remove {
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 10px; line-height: 1; padding: 1px 2px;
+}
+.tr-remove:hover { color: #ff8a70; }
+.lane-body.dup-target { background: rgba(255, 209, 102, .09); box-shadow: inset 0 0 0 1px rgba(255, 209, 102, .35); }

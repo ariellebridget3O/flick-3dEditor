@@ -2,9 +2,10 @@
 """Signature-based subsystem extraction from the flick bundle (names reshuffle per build).
 Finds code by content shape, dumps generous context."""
 import os, re, sys, json
+import pathlib
 
-BUNDLE = '/home/z/flick-3dEditor/analysis/index-DBE17t4T.js'
-OUT = '/home/z/flick-3dEditor/analysis/extracted'
+BUNDLE = str(pathlib.Path(__file__).resolve().parents[1] / 'analysis/index-DBE17t4T.js')
+OUT = str(pathlib.Path(__file__).resolve().parents[1] / 'analysis/extracted')
 os.makedirs(OUT, exist_ok=True)
 src = open(BUNDLE, encoding='utf-8').read()
 N = len(src)
