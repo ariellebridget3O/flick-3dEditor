@@ -39,6 +39,7 @@ export function buildUI(app) {
     const b = e.target.closest('button'); if (!b) return;
     [...$('viewSwitch').children].forEach(x => x.classList.toggle('on', x === b));
     app.page.stageView = b.dataset.v;
+    app.page.changed();          // nav ball pad / lasso button visibility ride this
     updateFrameGuide(app);
   });
   $('modeSwitch').addEventListener('click', e => {
@@ -555,7 +556,7 @@ function blockHTML(app, u, tr, pps, isWalker) {
   const seg = app.page.selectedSegment;
   const diamonds = kf ? `<span class="kf-layer">${it.keys.map(k =>
     `<span class="kf-diamond${seg?.itemId === it.id && seg?.tS !== undefined && Math.abs(seg.tS - k.tS) <= KEY_EPS ? ' selected' : ''}" data-ts="${k.tS}" style="left:${clampPx(k.tS * pps, w)}px"></span>`).join('')}</span>` : '';
-  const handle = trimmable(it) ? '<span class="trim-handle" title="Drag to change duration"></span>' : '';
+  const handle = trimmable(it) && !painting ? '<span class="trim-handle" title="Drag to change duration"></span>' : '';
   return `<div class="blk ${blockCategory(it, isWalker)}${sel ? ' sel' : ''}${painting ? ' painting' : ''}"
     data-track="${tr.trackId}" data-item="${it.id}" data-start="${u.startS}" data-end="${u.endS}"
     style="left:${u.startS * pps}px;width:${w}px">
@@ -614,6 +615,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
     if (e.target.closest('.trim-handle')) return;                  // trim handle owns the gesture
     if (e.target.closest('.kf-diamond')) return;                   // diamonds own the gesture
     if (e.button !== 0) return;
+    if (app.page.paint?.itemId === itemId) return;                  // live: painting blocks are not draggable (se gates on paintingItemId)
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}   // synthetic-event safe
     const it = app.show.show.tracks.find(t => t.id === trackId)?.items.find(i => i.id === itemId);
     if (!it) return;
@@ -661,13 +663,12 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       const radiusS = useMagnet ? MAGNET_PX / pps : 0;
 
       if (duplicating) {
-        // target lane from pointer position (live elementFromPoint on [data-track-id])
+        // target lane from pointer position (live elementFromPoint on [data-track-id]); keep the LAST hit on a miss
         const hit = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-track-id]');
-        const targetId = hit instanceof HTMLElement ? (hit.dataset.trackId ?? trackId) : trackId;
-        toTrackId = targetId;
-        const targetTrack = app.show.show.tracks.find(t => t.id === targetId);
+        if (hit instanceof HTMLElement && hit.dataset.trackId) toTrackId = hit.dataset.trackId;
+        const targetTrack = app.show.show.tracks.find(t => t.id === toTrackId);
         const targetObj = targetTrack ? app.objects.get(targetTrack.characterId) : null;
-        const compatible = targetTrack && (!targetObj || canDuplicateOnto(it, targetObj.kind));
+        const compatible = !!(targetTrack && targetObj && canDuplicateOnto(it, targetObj.kind));   // missing owner refuses (Art with undefined kind)
         const tItems = targetTrack?.items ?? [];
         const placed = compatible ? placeAvoiding({
           desiredStartS: desiredStart, durationS,
@@ -700,15 +701,17 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
         blockEl.style.transform = `translateX(${(curStart - startS0) * pps}px)`;
         laneBody.querySelectorAll('.blk').forEach(b => { if (b !== blockEl) b.style.transform = ''; });
       } else {
-        // reorder: preview the packed layout (live lje(kGt(...)))
+        // reorder: dragged block follows the RAW desired start; siblings preview the packed layout (live lje(kGt)) 
         previewStarts = new Map(repackSequential(moveItemToIndex(tr.items, itemId, plan.toIndex))
           .map(x => [x.id, x.startS]));
         laneBody.querySelectorAll('.blk').forEach(b => {
+          if (b === blockEl) return;
           const ps = previewStarts.get(b.dataset.item);
           const base = +b.dataset.start;
           b.style.transform = (ps !== undefined && ps !== base) ? `translateX(${(ps - base) * pps}px)` : '';
         });
-        curStart = previewStarts.get(itemId) ?? startS0;
+        curStart = Math.max(0, desiredStart);   // live: F.startS = Math.max(0, pe) for reorder plans
+        blockEl.style.transform = `translateX(${(curStart - startS0) * pps}px)`;
         guidesS = [];
       }
       renderGuides(laneBody, guidesS);
@@ -724,9 +727,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       app._tl.justDragged = true;
       app._tl.interaction = null;
       if (duplicating) {
-        if (toTrackId !== trackId || Math.abs(curStart - startS0) > 0.001) {
-          app.show.duplicateItemTo(trackId, itemId, toTrackId, curStart);
-        }
+        app.show.duplicateItemTo(trackId, itemId, toTrackId, curStart);
       } else if (plan.kind === 'reorder') {
         app.show.reorderItem(trackId, itemId, plan.toIndex);
       } else if (plan.kind === 'move') {
@@ -767,9 +768,10 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
         app.show.trimItem(trackId, itemId, newDur);       // live per-move commit (clip/speed/object/camera)
         blockEl.style.width = `${Math.max(3, newDur * pps)}px`;   // live width while render suppressed
       };
-      const up = () => {
+      const finish = () => {
         window.removeEventListener('pointermove', mv);
         window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', finish);
         app.show.endEditGesture();
         app._tl.interaction = null;
         refreshTimeline(app);
@@ -777,7 +779,9 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       };
       window.addEventListener('pointermove', mv);
       window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', finish);
     };
+    handle.onclick = e => e.stopPropagation();   // no segment select after a trim (live onClick stopPropagation)
   }
 
   // ---- keyframe diamonds (SCr flow) ----
@@ -814,9 +818,16 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
         refreshTimeline(app);
         refreshSegInspector(app);
       };
+      const finishKey = () => {
+        window.removeEventListener('pointermove', mv);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', finishKey);
+      };
       window.addEventListener('pointermove', mv);
       window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', finishKey);
     };
+    d.onclick = e => e.stopPropagation();   // live: block click must not clobber the keyframe selection
   });
 }
 
@@ -826,13 +837,7 @@ function placeNewItem(app, charId, desiredStartS, durationS) {
   const items = tr?.items ?? [];
   const layout = showLayout(app.show.show);
   const pps = 1; // seconds-domain math; markers in seconds
-  return placeAvoiding({
-    desiredStartS, durationS,
-    obstacles: items.map(x => ({ startS: x.startS, endS: x.startS + itemDuration(x) })),
-    markersS: allMarkers(layout, null),
-    radiusS: (app._tl?.magnet ?? true) ? MAGNET_PX / (app._tl?.pps ?? 60) : 0,
-    fallbackStartS: maxEnd(items),
-  }).startS;
+  return appendPlace(items, durationS, desiredStartS);   // live placeItemS → W5r: obstacles yes, magnet/markers no
 }
 
 function addItemKind(app, charId, kind, startS) {
@@ -1029,11 +1034,15 @@ const fmtClock = t => {
 
 // ================= viewport overlays: lasso + nav ball =================
 function buildViewportOverlays(app) {
-  // ---- lasso button + rect box (live rightToolbar/lassoBox) ----
+  // ---- lasso button + rect box (live rightToolbar/lassoBox) + nav ball pad visibility ----
   const lassoBtn = document.getElementById('btnLasso');
   const lassoBox = document.getElementById('lassoBox');
+  const pad = document.getElementById('navBallPad');
   lassoBtn.onclick = () => app.page.toggleLasso();
   app.page.subscribe(() => {
+    const inEdit = app.page.mode === 'edit' && app.page.stageView !== 'cameras' && !app.page.playing;
+    pad.style.display = inEdit ? '' : 'none';           // live mounts the pad only in edit view
+    lassoBtn.style.display = inEdit ? '' : 'none';
     const active = app.page.editInteraction === 'lasso';
     lassoBtn.classList.toggle('on', active);
     lassoBtn.setAttribute('aria-pressed', String(active));
@@ -1048,7 +1057,6 @@ function buildViewportOverlays(app) {
   });
 
   // ---- nav ball pad drag (RXr port): pointer delta → stick → page.navBallVector ----
-  const pad = document.getElementById('navBallPad');
   let drag = null;
   const drive = (x, y) => { if (drag) app.page.setNavBallVector(stickFromDelta(x - drag.x, y - drag.y, drag.radiusPx)); };
   const end = () => { if (drag) { drag = null; app.page.setNavBallVector(null); } };

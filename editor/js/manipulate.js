@@ -486,7 +486,8 @@ export class Manipulator {
       const y0 = Math.min(p0.y, p1.y) - r.top, y1 = Math.max(p0.y, p1.y) - r.top;
       const objs = app.objects.all();
       const aimed = new Set(
-        Object.values(objs).filter(o => o.kind === 'camera' && o.targetId).map(o => o.targetId));   // Xu
+        Object.values(objs).filter(o => o.kind === 'camera' && o.targetId)
+          .map(o => o.targetId).filter(id => objs[id]?.kind === 'target'));   // Xu: target kind gate (stale targetIds ignored)
       const ids = [];
       for (const [id, mesh] of app.objectManager.meshById) {
         if (!objs[id]?.kind || aimed.has(id)) continue;

@@ -49,7 +49,7 @@ export class ObjectStore extends StoreBase {
     this.changed();
   }
   select(ids) {
-    this.selectedIds = ids.slice(0, C.SEL_MAX);
+    this.selectedIds = [...ids];   // live setSelection has no clamp (WWr caps footprint DRAW only)
     this.selectedId = this.selectedIds[this.selectedIds.length - 1] ?? null;
     this.changed();
   }
@@ -115,7 +115,8 @@ export class ShowStore extends StoreBase {
     this.show = { name: 'Show', tracks: [] };
     this.undoStack = [];
     this.redoStack = [];
-    this._gestureSnapshots = null; // [sceneRef, showRef] at gesture start
+    this._gestureSnapshots = null; // [sceneRef, showRef] at outermost gesture start
+    this._gestureDepth = 0;         // nestable brackets: undo pushed when depth returns to 0
   }
   setShow(show) { this.show = show; this.undoStack = []; this.redoStack = []; this.changed(); }
   tracks() { return this.show.tracks; }
@@ -136,14 +137,16 @@ export class ShowStore extends StoreBase {
     return { show: JSON.stringify(this.show), objects: this._companion ? JSON.stringify(this._companion.all()) : null };
   }
   beginEditGesture() {
-    if (this._gestureSnapshots) return;
-    this._gestureSnapshots = this._snap();
+    this._gestureDepth = (this._gestureDepth ?? 0) + 1;
+    if (this._gestureDepth === 1) this._gestureSnapshots = this._snap();   // snapshot at the OUTERMOST begin only
   }
   endEditGesture() {
-    if (!this._gestureSnapshots) return;
+    if (this._gestureDepth > 0) this._gestureDepth--;
+    if (this._gestureDepth > 0) return;   // still inside an outer gesture — no undo push yet
     const before = this._gestureSnapshots;
-    const after = this._snap();
     this._gestureSnapshots = null;
+    if (!before) return;
+    const after = this._snap();
     if (before.show !== after.show || before.objects !== after.objects) {
       this.undoStack.push({ ...before, redoShow: after.show, redoObjects: after.objects });
       if (this.undoStack.length > 200) this.undoStack.shift();
@@ -209,12 +212,13 @@ export class ShowStore extends StoreBase {
       const i = t.items.findIndex(x => x.id === itemId);
       if (i < 0) return;
       const it = t.items[i];
+      const dur = Math.min(120, Math.max(0.1, durationS));   // store clamps [.1, 120] (Ije/QZt); UI floor .05 is the drag stop (WAr)
       if (it.kind === 'path' || it.kind === 'cam-path') {
         // trim recomputes speed = arc/duration (MR(nx(anchors))/dur)
         const arc = it.anchors.length >= 2 ? arcLength(polylineOf(it.anchors)) : 0;
-        t.items[i] = { ...it, speedUnitsPerS: Math.max(C.SPEED_STORE_FLOOR, arc / Math.max(0.05, durationS)) };
+        t.items[i] = { ...it, speedUnitsPerS: Math.max(C.SPEED_STORE_FLOOR, arc / dur) };
       } else {
-        t.items[i] = { ...it, durationS: Math.max(0.05, durationS) };
+        t.items[i] = { ...it, durationS: dur };
       }
     });
   }
@@ -421,7 +425,10 @@ export class PageStore extends StoreBase {
   setEditInteraction(v) { this.editInteraction = v; this.changed(); }
   setLassoRect(r) { this.lassoRect = r; this.changed(); }
   setNavBallVector(v) { this.navBallVector = v; }   // high-frequency: no change event (consumed per-frame)
-  seek(s) { this.playheadS = s; this.changed(); }
+  seek(s) {
+    if (this.playing) this.stop();   // live seekPerformance stops playback first
+    this.playheadS = s; this.changed();
+  }
   play() {
     if (this.playing) return;
     this.playing = true;
