@@ -1,0 +1,78 @@
+{
+ "row": {
+  "scene_id": "d9139e87-1a51-44fb-9875-08f00600f517",
+  "name": "Scene 2",
+  "created_at": "2026-11-11T04:55:02.8378+00:00",
+  "updated_at": "2026-11-11T04:55:02.8378+00:00",
+  "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a"
+ },
+ "scene": {
+  "v": 10,
+  "show": {
+   "name": "Show 1",
+   "tracks": [
+    {
+     "id": "c37aef00-b8db-48f6-8626-cdfda661581b",
+     "items": [
+      {
+       "id": "b2506842-3904-4f11-b6cd-3c5b819ebc7a",
+       "kind": "cam-move",
+       "move": "orbit",
+       "startS": 0,
+       "angleDeg": 360,
+       "direction": "ccw",
+       "durationS": 5,
+       "subjectId": "c5793e8d-e1e0-4dfa-8841-20277c55b2fb",
+       "distanceScale": 1,
+       "heightDeltaUnits": 0
+      }
+     ],
+     "characterId": "b6e729d3-9e89-4e88-9cb5-313a1d246e0c"
+    }
+   ]
+  },
+  "objects": {
+   "b6e729d3-9e89-4e88-9cb5-313a1d246e0c": {
+    "kind": "camera",
+    "name": "Camera 1",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "shake": "off",
+    "position": [
+     -0.8428234048542343,
+     1.6756546446789802,
+     0.6750296044944708
+    ],
+    "rotation": [
+     -0.15110615513310752,
+     -0.23054255388762476,
+     -0.03477981662490714
+    ],
+    "focalLengthMm": 35
+   },
+   "c5793e8d-e1e0-4dfa-8841-20277c55b2fb": {
+    "kind": "simple_figure",
+    "name": "Figure 1",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     -0.4202181121615922,
+     0,
+     -1.1049523828270802
+    ],
+    "rotation": [
+     3.141592653589793,
+     -0.5146763264269042,
+     3.141592653589793
+    ]
+   }
+  },
+  "recordAspect": "16:9"
+ }
+}

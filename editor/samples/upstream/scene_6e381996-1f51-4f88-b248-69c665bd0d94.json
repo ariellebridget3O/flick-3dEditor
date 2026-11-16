@@ -1,0 +1,7521 @@
+{
+ "row": {
+  "scene_id": "6e381996-1f51-4f88-b248-69c665bd0d94",
+  "name": "Palace Stone Terrace",
+  "created_at": "2026-11-11T05:01:03.509797+00:00",
+  "updated_at": "2026-11-11T05:10:13.563+00:00",
+  "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a"
+ },
+ "scene": {
+  "v": 10,
+  "show": {
+   "name": "Show 1",
+   "tracks": [
+    {
+     "id": "2517f51e-6329-4692-86a8-8a165d523f9a",
+     "items": [
+      {
+       "id": "813e35ae-4f8e-463b-8f2f-1bf3987b4b22",
+       "kind": "cam-still",
+       "startS": 0,
+       "durationS": 5
+      }
+     ],
+     "characterId": "2cd53bbc-7e23-4a6a-8fb5-540d12bb34e5"
+    }
+   ]
+  },
+  "light": {
+   "azimuthDeg": 191.3099085619086,
+   "elevationDeg": 40
+  },
+  "objects": {
+   "00499e65-a8ef-4d5f-94ec-25f03c1e7b5b": {
+    "kind": "cube",
+    "name": "door_slat_3_8",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     3.026,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "01ed1b1e-dd69-4858-98af-60208c9d24c2": {
+    "kind": "cube",
+    "name": "door_slat_3_6",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     2.645999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "01ef0767-d60a-44bd-9273-d69cba85bb12": {
+    "kind": "cube",
+    "name": "door_slat_3_11",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     3.595999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "02150162-25b0-4dd8-99e4-5a17a61cec4b": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_1",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.533333333333333,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "04fcd067-5ee5-4ba0-887f-02a1a725fc2c": {
+    "kind": "cube",
+    "name": "rear_balustrade_base",
+    "scale": [
+     10,
+     0.13,
+     0.39
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.552713678800501e-15,
+     -0.7328571428571429,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "05a0ba96-ae54-448a-ab23-f1b1b5ab7ef4": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_4_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.552713678800501e-15,
+     -0.14285714285714302,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "05cdc8f3-5c2f-4c48-b87a-fb7f4344cca0": {
+    "kind": "simple_figure",
+    "name": "crouched_figure",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     -0.55,
+     0.8,
+     -0.3
+    ],
+    "rotation": [
+     0,
+     -2.9029294652003848,
+     0
+    ]
+   },
+   "06055ebb-c61f-4d79-a5cc-ee20a90a3371": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_7_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     3.6374999999999957,
+     0.18714285714285706,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "06434d60-164c-4374-be04-e41e566d13ef": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_11",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     2.041666666666666,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "069e7560-86e8-49fa-9f19-c27eb9957a8f": {
+    "kind": "cube",
+    "name": "door_slat_0_9",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -4.434,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "06a5f2df-4d39-4cf8-b6ae-181fe3c1d38e": {
+    "kind": "cube",
+    "name": "door_slat_3_1",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     1.6959999999999997,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "070babf4-ff2a-4621-9c8b-ed02fa44c4f5": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_14_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.083333333333334,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "07493a02-d612-4dfd-b6cc-aee3144aa4a8": {
+    "kind": "cube",
+    "name": "door_panel_2",
+    "scale": [
+     2.35,
+     3.2,
+     0.2
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -0.004000000000000448,
+     -0.39866666666666806,
+     -0.13600000000000545
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "075240ca-1f54-457e-be4a-8788d91c9392": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_0_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -7.35,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "077dd89b-29a8-4886-9c61-8963469694c7": {
+    "kind": "cube",
+    "name": "rear_balustrade_handrail",
+    "scale": [
+     10,
+     0.16,
+     0.35
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.552713678800501e-15,
+     0.2571428571428571,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "094c76d7-756c-4fa8-a504-a981956fadb2": {
+    "kind": "cube",
+    "name": "door_slat_2_6",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     0.09600000000000009,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "09f77484-b898-4b65-b4fc-fd7bf95ab856": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_13_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     3.2666666666666675,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "0a33a93f-4c65-4688-acb8-adcd300c448a": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_12",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     2.8583333333333343,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "0ac328c5-3d59-4f54-b11c-066f38a9c8d3": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_0_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -4.850000000000003,
+     0.10714285714285698,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "0c7354b9-cdb0-4952-9a95-3c57e9fb61e6": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_18_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     7.35,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "0c8666af-5db5-4bd0-bb91-33bd31de4940": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_11_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     1.6333333333333329,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "0d464b80-b1ce-4220-861b-b0b3612616c0": {
+    "kind": "cube",
+    "name": "exposed_rafter_5",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -5.579464285714286,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "0d9ade40-6eb2-495b-b7b5-cc50ab4eaad4": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_0_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -7.35,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "0e73f890-60eb-4a53-8b94-b784e92828f9": {
+    "kind": "cube",
+    "name": "roof_bracket_1_2",
+    "scale": [
+     0.74,
+     0.17,
+     1.5899999999999999
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -4.654464285714286,
+     0.005357142857140396,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5": {
+    "kind": "group",
+    "name": "Heavy beams and open decorative braces",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     4.510000000000001,
+     4.447,
+     -3.7200000000000006
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "12117dff-1965-428a-ba2b-8dbd7c22a4c9": {
+    "kind": "cylinder",
+    "name": "beam_upright_5",
+    "scale": [
+     0.28,
+     1.4,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     6.39,
+     -0.2969999999999997,
+     -0.02999999999999936
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "121b44a4-a69b-44e0-a95b-6786553923a8": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_12_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     2.450000000000001,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "13693cad-763e-4383-836c-c87f9df2376a": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_18_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     7.35,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1398d77a-ef5e-4b24-87eb-dc9559922a10": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_12_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     2.450000000000001,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1473102c-19ed-4808-a86d-3df750a3244d": {
+    "kind": "cylinder",
+    "name": "tiger_ear_1",
+    "scale": [
+     0.15,
+     0.13,
+     0.15
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     -0.706,
+     0.6719999999999999,
+     0.20133333333333325
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "14ced970-9d32-49a3-a0fb-cff27cf4b102": {
+    "kind": "cube",
+    "name": "roof_bracket_2_1",
+    "scale": [
+     0.51,
+     0.17,
+     1.27
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -2.054464285714286,
+     -0.1746428571428602,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "14f64312-1d7d-4060-88d2-c729f8b77c43": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_4_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.552713678800501e-15,
+     0.037142857142857144,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "17658cfe-ec66-4b7c-a80a-fc3a88f99d10": {
+    "kind": "group",
+    "name": "Timber hall",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     1.575,
+     0.8,
+     -7.1
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "17f3a57f-c34d-496a-bafb-b35d16e0212a": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_13_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     3.2666666666666675,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1847ade2-f9a6-4b70-8790-16d674649d73": {
+    "kind": "cube",
+    "name": "door_slat_0_7",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -4.814,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1a31535c-a21a-4f4a-a9f6-438ebd0f6b7b": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_9_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1a532618-e592-4220-8286-dcf7aef6bbff": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_1_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.533333333333333,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1a9c655a-0d5a-4145-a157-9afa7d06c504": {
+    "kind": "cylinder",
+    "name": "tiger_head",
+    "scale": [
+     0.52,
+     0.54,
+     0.57
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     -0.776,
+     0.16199999999999992,
+     0.021333333333333204
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1ba9acd7-9b14-4d63-80be-83cc0ddf44fc": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_15",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.9,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1bdfd0cd-77af-4394-9d88-7a2bfa401bc7": {
+    "kind": "cylinder",
+    "name": "beam_upright_1",
+    "scale": [
+     0.28,
+     1.4,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     -4.010000000000001,
+     -0.2969999999999997,
+     -0.02999999999999936
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1dd8c418-7c53-453b-8a60-f4c2cefc2a29": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_8_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -0.8166666666666665,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1e6c2ea2-39cb-4103-844b-d770890207d2": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_1_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.637500000000003,
+     0.10714285714285698,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1f59c4bd-6e68-4377-876f-c3531372987b": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_4_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.083333333333333,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1f6c07cf-64eb-41fb-84e8-0d4b47b36d71": {
+    "kind": "simple_figure",
+    "name": "robed_man",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     1.5,
+     0.8,
+     -0.65
+    ],
+    "rotation": [
+     0,
+     2.6200704906982133,
+     0
+    ]
+   },
+   "1fdc6199-08c7-4b02-b696-074cab193560": {
+    "kind": "cube",
+    "name": "door_slat_0_11",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -4.054,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "205afbbe-d230-4e9f-a765-03202f990b99": {
+    "kind": "cube",
+    "name": "door_slat_2_11",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     1.0459999999999994,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "209239e7-86be-47b1-b5bb-c19f8681b03a": {
+    "kind": "cube",
+    "name": "roof_bracket_1_1",
+    "scale": [
+     0.51,
+     0.17,
+     1.27
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -4.654464285714286,
+     -0.1746428571428602,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "20abfd43-e5fd-4a34-af1e-ab2046cb29fc": {
+    "kind": "cube",
+    "name": "roof_bracket_0_2",
+    "scale": [
+     0.74,
+     0.17,
+     1.5899999999999999
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -7.2544642857142865,
+     0.005357142857140396,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "21342e69-bcaa-4245-996b-9b2a520957a5": {
+    "kind": "cube",
+    "name": "door_slat_2_3",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -0.4740000000000002,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "224acef2-717d-46e5-b840-db1038641417": {
+    "kind": "cylinder",
+    "name": "veranda_column_3",
+    "scale": [
+     0.5,
+     4.5,
+     0.5
+    ],
+    "parentId": "be61aea9-50d0-42c5-b596-7d226de91d23",
+    "position": [
+     1.3000000000000007,
+     1.1102230246251565e-16,
+     0
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "2525b7b3-4b12-4576-87f5-cc93f7f3799e": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_6_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     2.4249999999999963,
+     0.10714285714285698,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "25400c87-f800-4cea-87c1-5fd40b09fd29": {
+    "kind": "cube",
+    "name": "exposed_rafter_4",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -6.054464285714285,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "2685d73c-2791-4377-a909-67abc939c4ad": {
+    "kind": "cube",
+    "name": "door_slat_1_1",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -3.404000000000001,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "26fed671-20f2-4fc5-86a8-a86372e93e3d": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_14_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.083333333333334,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "27716dcc-8134-4bdb-a3ea-b8bebc4cefd8": {
+    "kind": "cube",
+    "name": "raised_terrace",
+    "scale": [
+     18,
+     0.8,
+     7
+    ],
+    "position": [
+     1,
+     0,
+     -1.5
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "279e0813-d71f-4cde-a3c3-0cd7eafeac41": {
+    "kind": "group",
+    "name": "Large white tiger behind the woman",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     0.34600000000000003,
+     1.098,
+     -0.9313333333333332
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "29a5130d-8217-4d6e-8f6f-b44535430d66": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_1_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.637500000000003,
+     -0.14285714285714302,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "2b78b259-98a9-4b25-a403-a409e02aace4": {
+    "kind": "cylinder",
+    "name": "beam_upright_4",
+    "scale": [
+     0.28,
+     1.4,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     3.79,
+     -0.2969999999999997,
+     -0.02999999999999936
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "2c889eb1-f8d0-46b1-b17d-c3fe396dded1": {
+    "kind": "cube",
+    "name": "hall_left_return",
+    "scale": [
+     0.35,
+     4.5,
+     0.8
+    ],
+    "parentId": "17658cfe-ec66-4b7c-a80a-fc3a88f99d10",
+    "position": [
+     -3.925,
+     0,
+     2.0999999999999996
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "2cd53bbc-7e23-4a6a-8fb5-540d12bb34e5": {
+    "kind": "camera",
+    "name": "Camera",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     4.6,
+     2.4,
+     5.5
+    ],
+    "rotation": [
+     -0.057178258013750274,
+     0.5534241713326746,
+     0.08477730081426245
+    ],
+    "focalLengthMm": 32
+   },
+   "2e0b93bd-9063-4505-8997-e90080e72fa0": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_10_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     0.8166666666666663,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "2fa4a7aa-5eb3-4aa0-af3d-c8a8db8316b9": {
+    "kind": "cube",
+    "name": "roof_bracket_5_1",
+    "scale": [
+     0.51,
+     0.17,
+     1.27
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     5.745535714285714,
+     -0.1746428571428602,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "2fabe2bb-0da7-4262-a6ba-e40f29eac156": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_13_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     3.2666666666666675,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "305e48eb-0dc9-4ff8-86a1-d9e7b2b868dc": {
+    "kind": "cube",
+    "name": "roof_bracket_3_0",
+    "scale": [
+     0.28,
+     0.17,
+     0.95
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     0.5455357142857151,
+     -0.3546428571428599,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "3072f148-b32d-4c88-9083-af6751bdf903": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_6_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     2.4249999999999963,
+     0.18714285714285706,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "308431ba-971f-4f64-b108-431136bab17d": {
+    "kind": "cube",
+    "name": "exposed_rafter_22",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     2.4955357142857135,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "30d9c3df-98a3-4b66-a08f-929f39cec813": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_14",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.083333333333334,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "31149977-0fba-4f5f-9824-5acf79d4f180": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_5_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     1.2124999999999968,
+     -0.04285714285714293,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "3159e4de-cb83-490c-bc90-cfbbb4443f2e": {
+    "kind": "cube",
+    "name": "door_panel_3",
+    "scale": [
+     2.35,
+     3.2,
+     0.2
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     2.5459999999999994,
+     -0.39866666666666806,
+     -0.13600000000000545
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "31c26862-661e-4741-bb8c-33e650ec6ea8": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_18_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     7.35,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "32280202-0417-4a0d-8f5f-061c57fbb408": {
+    "kind": "cube",
+    "name": "door_slat_4_0",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     4.055999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "336002fa-2c02-45bd-bfbe-a74b0bc8be93": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_cap",
+    "scale": [
+     15,
+     0.09,
+     0.34
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     -0.09014705882352958,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "336a7a30-d8f4-43e4-9f49-0d50007890da": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_11_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     1.6333333333333329,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "344b6dfd-c46f-44b2-84d2-1ed8c1366f31": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_11_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     1.6333333333333329,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "345a1671-5ec1-463d-9082-e908c41c03b4": {
+    "kind": "cube",
+    "name": "door_crosspiece_2_375",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -0.004000000000000448,
+     2.551333333333332,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "34791970-5fe5-49ac-9add-5b3bbc0fe464": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_18_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     7.35,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "34fcb94e-be2a-45e4-a2cd-bba51b2a70a3": {
+    "kind": "cube",
+    "name": "door_slat_2_2",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -0.6640000000000006,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "3654f80c-3b0e-4f52-abf7-00457bd79e6f": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_4_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.083333333333333,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "371e3089-f943-42c0-b401-2e3b76538d36": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_17_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     6.533333333333333,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "379a6fa0-4dc6-4751-ae8f-a7906b7df015": {
+    "kind": "cube",
+    "name": "door_slat_3_9",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     3.2159999999999993,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "379f2a0f-b0c6-4fc6-bb8c-0371b973647d": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_12_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     2.450000000000001,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "385fffd5-63c9-4712-a689-7118853f2843": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_10",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     0.8166666666666663,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "38ca1b0a-cb75-41d6-8e17-39a7de5ed2f8": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_4",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -3.675,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "38e8ed07-1e24-4923-bd98-a1a26589ffc1": {
+    "kind": "cube",
+    "name": "door_slat_0_2",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -5.764,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "3989c5ba-8280-4fca-968b-f2304b37870c": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_10_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     0.8166666666666663,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "3a2b49f5-aba9-4a96-a40b-8358fbc44aa0": {
+    "kind": "cube",
+    "name": "triangular_brace_0_1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     -5.890000000000001,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     0.57
+    ]
+   },
+   "3a5211d5-3c87-45b6-b58b-604164987846": {
+    "kind": "cube",
+    "name": "exposed_rafter_24",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     3.445535714285712,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "3aad4e8b-d3e1-4341-8eb1-29b9b3b2ba21": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_3_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -1.212500000000004,
+     0.037142857142857144,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "3b0329eb-c0b2-43f1-a3ab-573260aad12f": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_17_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     6.533333333333333,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "3c42bea5-4faf-4843-9f8a-7b6a763e9745": {
+    "kind": "cube",
+    "name": "door_slat_4_4",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     4.815999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "3e3beff3-dd7b-4106-85bf-d944617eee8c": {
+    "kind": "cube",
+    "name": "exposed_rafter_23",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     2.970535714285714,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "3ed95e6a-8b57-4130-9c26-cc15ae908294": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_15_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.9,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "3f5bd871-9986-430a-bd86-bb7de349bc01": {
+    "kind": "cube",
+    "name": "door_slat_1_3",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -3.0240000000000005,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4098b026-593c-4d79-9234-32660b99c48e": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_13_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     3.2666666666666675,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "42cab4fe-5189-4268-a167-6e5631406410": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_11_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     1.6333333333333329,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4320f5ad-df82-4aee-ba04-641ebaee2de1": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_0_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -4.850000000000003,
+     -0.04285714285714293,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "43bd5fba-6a1d-4023-b847-52123151bf3f": {
+    "kind": "cube",
+    "name": "hall_mass",
+    "scale": [
+     16,
+     6,
+     8
+    ],
+    "parentId": "17658cfe-ec66-4b7c-a80a-fc3a88f99d10",
+    "position": [
+     3.925,
+     0,
+     -2.0999999999999996
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "444d28ad-be1f-482c-a717-422ecb54acb8": {
+    "kind": "cylinder",
+    "name": "tiger_shoulders",
+    "scale": [
+     0.77,
+     0.9,
+     0.79
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     -0.376,
+     0.051999999999999824,
+     -0.01866666666666672
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "44545a50-9e38-4f6b-8eef-6cf74985b027": {
+    "kind": "cylinder",
+    "name": "tiger_haunch",
+    "scale": [
+     0.7,
+     0.85,
+     0.76
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     0.994,
+     0.031999999999999806,
+     -0.01866666666666672
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "44fd0b06-a7e6-480e-92bc-4dafeddc87ae": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_4_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.552713678800501e-15,
+     0.10714285714285698,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "45c5f7a8-8b1a-403c-ba7b-5aef20737551": {
+    "kind": "cube",
+    "name": "triangular_brace_5_-1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     5.669999999999999,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     -0.57
+    ]
+   },
+   "45c774a9-54ec-4b5c-890a-7f635cff7605": {
+    "kind": "cube",
+    "name": "door_slat_0_5",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -5.194000000000001,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4620ec4f-9e55-4733-af7e-11a6917ae647": {
+    "kind": "cube",
+    "name": "door_slat_0_10",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -4.244000000000001,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "46a8fcca-3cad-4bb2-9144-f4a11a39ecae": {
+    "kind": "cylinder",
+    "name": "tiger_muzzle",
+    "scale": [
+     0.34,
+     0.25,
+     0.39
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     -0.996,
+     0.18199999999999994,
+     0.09133333333333327
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "472259e6-3a19-4805-aec4-7e60dd758ff3": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_17",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     6.941666666666666,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "478a4364-5452-43a4-b6b5-866312647849": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_6_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     2.4249999999999963,
+     -0.04285714285714293,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "478a824b-e7b7-49d3-983e-43dfc82f8043": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_6_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -2.4499999999999993,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4930ee32-e642-466f-b7b7-65585bd8b843": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_16_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     5.716666666666667,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4a8c1912-21a5-4a8b-97a2-8c60bfbc76ed": {
+    "kind": "cube",
+    "name": "door_slat_1_6",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -2.4540000000000006,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4b736995-677b-40a2-894a-615df06b184f": {
+    "kind": "cube",
+    "name": "exposed_rafter_19",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     1.0705357142857146,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "4bc08ce1-6e1c-4576-9ae0-92d1e5b2a5c9": {
+    "kind": "cube",
+    "name": "exposed_rafter_31",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     6.770535714285715,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "4c857747-e446-4905-8727-3891087bad3b": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_3",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.491666666666666,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4d5acb5d-90fa-4d0c-839c-eb758368cf28": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_7_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     3.6374999999999957,
+     -0.04285714285714293,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4d948085-6e27-4546-a051-c78544db364e": {
+    "kind": "cube",
+    "name": "door_slat_2_8",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     0.4759999999999991,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4db36076-71eb-42f4-86e4-443c11a29d79": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_6_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -2.4499999999999993,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4e044539-c0d1-4bbb-934d-0887404d5aba": {
+    "kind": "cube",
+    "name": "door_crosspiece_0_375",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -5.104,
+     2.551333333333332,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4efca467-cf51-447d-8efc-711b8770296a": {
+    "kind": "cube",
+    "name": "door_slat_3_5",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     2.4559999999999995,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4f538b1b-0bb1-42ae-ae24-76ab0c7c36ed": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_13_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     3.2666666666666675,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4fdcb36d-0755-4da1-bb4f-5ed10862cbfd": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_17_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     6.533333333333333,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "502107f0-5e9a-401c-ab92-fc8cbc3e1b40": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_9_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "52016145-7632-44ee-a45a-e8e21ff93c53": {
+    "kind": "cube",
+    "name": "exposed_rafter_12",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -2.2544642857142865,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "525cc621-32f5-4a80-858e-23ef1ba8b365": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_10_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     0.8166666666666663,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "526f58c1-4f10-411c-b781-b147633b4e70": {
+    "kind": "cube",
+    "name": "exposed_rafter_3",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -6.529464285714286,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "5304b0ae-2dfc-492b-aec1-6475045caf36": {
+    "kind": "cube",
+    "name": "front_beam_1",
+    "scale": [
+     16,
+     0.43,
+     0.7
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     0.9899999999999993,
+     0.6029999999999998,
+     -0.02999999999999936
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "533372e0-3c59-4d49-82f2-84af3e237ff2": {
+    "kind": "cube",
+    "name": "door_slat_4_5",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     5.0059999999999985,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "5381b3bc-0e50-426c-b5bf-5508b4f72415": {
+    "kind": "cube",
+    "name": "roof_bracket_0_0",
+    "scale": [
+     0.28,
+     0.17,
+     0.95
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -7.2544642857142865,
+     -0.3546428571428599,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "5508dd32-e783-40ae-a758-1243ba204874": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_4",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.083333333333333,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "5751a439-c251-4c35-b15d-f8f6b9f60451": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_12",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     2.450000000000001,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "584ab9c2-49b8-483f-aa50-e98aaaa87626": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_2_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -2.4250000000000025,
+     0.10714285714285698,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "5ab144af-5e85-48aa-bf04-8b8749e1d769": {
+    "kind": "cube",
+    "name": "roof_bracket_5_2",
+    "scale": [
+     0.74,
+     0.17,
+     1.5899999999999999
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     5.745535714285714,
+     0.005357142857140396,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "5ad622ba-4a2c-4c4f-acc7-4d6b695bc5c2": {
+    "kind": "cube",
+    "name": "roof_bracket_2_0",
+    "scale": [
+     0.28,
+     0.17,
+     0.95
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -2.054464285714286,
+     -0.3546428571428599,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "5bb8aa16-3c7f-4c04-8f3a-3c3c2c589716": {
+    "kind": "cube",
+    "name": "triangular_brace_4_1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     4.510000000000001,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     0.57
+    ]
+   },
+   "5e3f5082-ef2b-4ec3-91fb-9cac2cba6b6f": {
+    "kind": "simple_figure",
+    "name": "guard_middle",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     2.4,
+     0.8,
+     -1.85
+    ],
+    "rotation": [
+     0,
+     2.579531028667493,
+     0
+    ]
+   },
+   "5e526d83-b74e-4342-86a0-2830e49d1073": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_0",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -7.35,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "5e864051-796a-4e53-8f3e-7cf22aad7004": {
+    "kind": "cube",
+    "name": "exposed_rafter_2",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -7.004464285714286,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "5ef4cd71-28e4-4a2a-9218-8fc2556bd51e": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_2_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -5.716666666666667,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "5f828273-d5a7-45bc-a231-0dd15b198c59": {
+    "kind": "cube",
+    "name": "rear_balustrade_panels",
+    "scale": [
+     10,
+     0.37,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.552713678800501e-15,
+     -0.6028571428571429,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "5fd26eac-9e60-4b97-8a99-69b2d71a9d53": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_2_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -5.716666666666667,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "60671693-e60e-4c1b-b720-05247866bcfb": {
+    "kind": "cube",
+    "name": "roof_bracket_4_1",
+    "scale": [
+     0.51,
+     0.17,
+     1.27
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     3.1455357142857148,
+     -0.1746428571428602,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "6129a406-a1e4-4e46-8ac6-bc4797da8622": {
+    "kind": "cube",
+    "name": "exposed_rafter_11",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -2.729464285714286,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "613e225e-0283-4193-a593-79c5b57d3514": {
+    "kind": "cube",
+    "name": "door_slat_3_7",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     2.8359999999999994,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "62948010-3176-4899-8e52-f9251a9ae778": {
+    "kind": "cube",
+    "name": "door_slat_0_1",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -5.954000000000001,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "6299ed1f-3240-43ab-b652-0a494337820c": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_14_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.083333333333334,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "62b6b86d-a0c3-417b-85c5-365b0afc6b2a": {
+    "kind": "cube",
+    "name": "exposed_rafter_7",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -4.6294642857142865,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "62f82481-3cda-4765-8dfa-dc8b863aab44": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_5_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     1.2124999999999968,
+     0.037142857142857144,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "646fc948-0886-4ccd-ba08-5647ae7ebac5": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_9_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "65b1da00-92a1-4593-b593-8e765d5671ca": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_2_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -2.4250000000000025,
+     0.18714285714285706,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "660cb6ea-eb28-435e-ba9a-57f3d31e56bb": {
+    "kind": "cube",
+    "name": "exposed_rafter_16",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -0.3544642857142861,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "6663ae46-3893-47e5-b9d0-e617869eb6fc": {
+    "kind": "cube",
+    "name": "exposed_rafter_9",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -3.6794642857142863,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "6731be92-d09a-4be2-9c02-053c892b4e6e": {
+    "kind": "cube",
+    "name": "triangular_brace_1_-1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     -4.73,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     -0.57
+    ]
+   },
+   "68f86e93-0a1a-40bc-8a84-880dbfdfffb5": {
+    "kind": "cube",
+    "name": "door_slat_3_10",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     3.405999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "698b1eca-67a4-45cb-bbc1-a45a3a0aaaa1": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_6",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -2.041666666666666,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "69c2f382-572e-4e4b-b241-09ada22dc17e": {
+    "kind": "cube",
+    "name": "door_crosspiece_4_95",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     5.095999999999998,
+     -0.24866666666666815,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "69e6bed8-75d5-4d6a-aa78-30f99a46d99f": {
+    "kind": "cube",
+    "name": "roof_bracket_5_0",
+    "scale": [
+     0.28,
+     0.17,
+     0.95
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     5.745535714285714,
+     -0.3546428571428599,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "69f9b8a8-ebeb-4578-ae0c-7b081a0b46af": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_15_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.9,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "6b07464a-80d5-4dcb-925e-cbad9014cf40": {
+    "kind": "cube",
+    "name": "door_slat_0_4",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -5.384,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "6bd2afca-7b7b-4c4f-8a77-5a81ecfb6c06": {
+    "kind": "cube",
+    "name": "exposed_rafter_8",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -4.154464285714286,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "6cc68e0c-ba03-4575-8bf2-26c557f95132": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_7_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     3.6374999999999957,
+     0.10714285714285698,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "6d35f39d-14cb-4dfd-b582-74f8618dbe99": {
+    "kind": "cube",
+    "name": "exposed_rafter_32",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     7.245535714285713,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "6d585fde-2072-4967-acd5-a8dcbeed9e6b": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_8_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -0.8166666666666665,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "6e65e422-a6d6-453e-b061-65d1ec0f4353": {
+    "kind": "cube",
+    "name": "exposed_rafter_33",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     7.720535714285714,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "6ea72b2b-a694-4877-818a-337480941124": {
+    "kind": "simple_figure",
+    "name": "woman",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     0.45,
+     0.8,
+     0.25
+    ],
+    "rotation": [
+     0,
+     2.884352516319641,
+     0
+    ]
+   },
+   "6f1111c5-7cde-47c9-b9a3-00df4b387a23": {
+    "kind": "cube",
+    "name": "exposed_rafter_20",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     1.5455357142857142,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "6f65e706-aaa0-4fb3-870b-ee2f441350c0": {
+    "kind": "cube",
+    "name": "exposed_rafter_34",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     8.195535714285711,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "70ab8bda-0eaf-4b26-86b4-3e5d5b8d2b33": {
+    "kind": "cylinder",
+    "name": "tiger_ear_0",
+    "scale": [
+     0.15,
+     0.13,
+     0.15
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     -0.706,
+     0.6719999999999999,
+     -0.16866666666666685
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "711985e6-baa5-4541-9da0-c0ce1761f3b4": {
+    "kind": "cube",
+    "name": "door_slat_4_10",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     5.9559999999999995,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "719a8c3e-6a1e-4f98-b64b-47dde3a25ac3": {
+    "kind": "cube",
+    "name": "door_slat_1_9",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -1.8840000000000003,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "76749a8e-1e9c-4ac4-985d-1e5bd71011a0": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_0_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -7.35,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "76e39ba1-50d6-4b8c-9d8b-c34991e5c974": {
+    "kind": "cube",
+    "name": "exposed_rafter_14",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -1.3044642857142863,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "770512c0-a072-4873-810c-1f66aaaa5177": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_8_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     4.849999999999996,
+     0.18714285714285706,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7973d65e-fb69-4d20-9d3e-224f0ad50826": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_5",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -3.2666666666666666,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7981a57f-603a-4869-98e7-2b08e7ce8992": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_4_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.552713678800501e-15,
+     0.18714285714285706,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "79e2af91-dfe9-45a0-95bb-691703ca1edc": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_4_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.083333333333333,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7a6636bd-8091-4995-b69b-306d21fdb767": {
+    "kind": "cube",
+    "name": "exposed_rafter_35",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     8.670535714285712,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "7a7a9fc0-c85d-459a-b8e7-8c635ab28621": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_7_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -1.6333333333333329,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7a9b8245-c1b0-42bf-b1ee-92e6e2d56840": {
+    "kind": "cube",
+    "name": "door_slat_3_4",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     2.265999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7b74bf6c-dae9-4762-a3f8-177c535e35d1": {
+    "kind": "cube",
+    "name": "door_slat_4_2",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     4.436,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7bcb46d6-8ce6-4a5e-88af-8472dd100f1b": {
+    "kind": "cube",
+    "name": "door_slat_1_4",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -2.8340000000000005,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7c3d26a2-9b52-4258-95ac-1834ae057b13": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_1_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.533333333333333,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7cf65207-3701-4172-b5fe-f47c57eb4f29": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_7_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     3.6374999999999957,
+     0.037142857142857144,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7cf7fb83-49e9-42a5-9ee6-7dda12b95682": {
+    "kind": "cylinder",
+    "name": "veranda_column_1",
+    "scale": [
+     0.5,
+     4.5,
+     0.5
+    ],
+    "parentId": "be61aea9-50d0-42c5-b596-7d226de91d23",
+    "position": [
+     -3.9000000000000004,
+     1.1102230246251565e-16,
+     0
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7d3a5d59-a546-4a6a-9a4a-7e9c8d16a333": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_5_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -3.2666666666666666,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "7eb2f45f-d5ae-41c1-95f5-789009c61e23": {
+    "kind": "cube",
+    "name": "exposed_rafter_30",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     6.295535714285713,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "7f7ebb9b-078c-4ba4-89bf-4e22bcd5ed8a": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_3_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -1.212500000000004,
+     -0.04285714285714293,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8008db9b-754e-4d4f-98a1-bbd0ff346966": {
+    "kind": "cube",
+    "name": "door_panel_0",
+    "scale": [
+     2.35,
+     3.2,
+     0.2
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -5.104,
+     -0.39866666666666806,
+     -0.13600000000000545
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "80c880ac-4106-4faa-bc6c-a9a6718eaf1a": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_16_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     5.716666666666667,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "823e9828-56bf-4c3c-89ec-7cbfa4db95ca": {
+    "kind": "simple_figure",
+    "name": "guard_right",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     2.95,
+     0.8,
+     -1.9
+    ],
+    "rotation": [
+     0,
+     2.4891071641902927,
+     0
+    ]
+   },
+   "82663276-2cb9-4194-9fb2-48fdb729fcd0": {
+    "kind": "cylinder",
+    "name": "beam_upright_2",
+    "scale": [
+     0.28,
+     1.4,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     -1.4100000000000006,
+     -0.2969999999999997,
+     -0.02999999999999936
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "835c3ae4-5fa2-4ad9-90f6-ac8936c53833": {
+    "kind": "cube",
+    "name": "triangular_brace_5_1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     7.11,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     0.57
+    ]
+   },
+   "842a6c4e-0660-4c84-8611-f5c6df5da365": {
+    "kind": "cube",
+    "name": "door_slat_2_10",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     0.8559999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "84787750-2619-4a78-96ee-83511acae212": {
+    "kind": "cube",
+    "name": "door_slat_1_11",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -1.5040000000000004,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "84c41440-5c34-496d-97ce-5817b1aabb00": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_1_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.637500000000003,
+     0.037142857142857144,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "84ee6a24-65c3-466f-a97c-cbf561c288a3": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_0",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.941666666666666,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8565e0ef-55d5-407e-8ee0-2bfbfb4208ee": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_1_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.533333333333333,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8579292d-a927-4cb4-9058-eb74afefaa18": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_6",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -2.4499999999999993,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "85bd3132-d6e5-4050-a0ad-5a2c528647bf": {
+    "kind": "cube",
+    "name": "exposed_rafter_21",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     2.020535714285714,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "865305a7-2c64-446c-a52c-037665970e1e": {
+    "kind": "cube",
+    "name": "foreground_balustrade_handrail",
+    "scale": [
+     15,
+     0.16,
+     0.35
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     0.3998529411764704,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "86df35b2-9f42-4698-83d3-d676791767af": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_2",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -5.716666666666667,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "882c4ebb-977e-46ae-8de0-393df1cc6b20": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_0_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -4.850000000000003,
+     0.18714285714285706,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "883c4774-7a4e-4cab-957e-0b5e215eccd7": {
+    "kind": "cube",
+    "name": "rear_balustrade_panel_cap",
+    "scale": [
+     10,
+     0.09,
+     0.34
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.552713678800501e-15,
+     -0.23285714285714287,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "89138ab0-8aa4-4328-ab2d-3fa0a51df48d": {
+    "kind": "cube",
+    "name": "door_crosspiece_3_95",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     2.5459999999999994,
+     -0.24866666666666815,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8a049326-2e92-4eb3-a2c0-29e3f6273b40": {
+    "kind": "cube",
+    "name": "exposed_rafter_15",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -0.8294642857142858,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "8aa347e3-64de-4811-9355-515cab74f61e": {
+    "kind": "cube",
+    "name": "roof_bracket_3_1",
+    "scale": [
+     0.51,
+     0.17,
+     1.27
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     0.5455357142857151,
+     -0.1746428571428602,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8bd09334-365c-4dc5-a281-afba978de317": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_17",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     6.533333333333333,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8c14653e-b379-423d-94de-37ae1b18fadf": {
+    "kind": "cube",
+    "name": "door_panel_4",
+    "scale": [
+     2.35,
+     3.2,
+     0.2
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     5.095999999999998,
+     -0.39866666666666806,
+     -0.13600000000000545
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8d81742c-4f2b-4735-b355-d019c827a4f6": {
+    "kind": "cube",
+    "name": "triangular_brace_4_-1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     3.0700000000000003,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     -0.57
+    ]
+   },
+   "8d8bf33e-eb20-4ae3-9b14-7652ae98085e": {
+    "kind": "cylinder",
+    "name": "tiger_leg_1",
+    "scale": [
+     0.25,
+     0.54,
+     0.28
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     -0.36600000000000005,
+     -0.17800000000000005,
+     -0.30866666666666676
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8dea499d-6658-4165-9743-6cb084aee22c": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_2",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -5.308333333333334,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8e2c31ba-6187-42b7-af76-be95622c8fe9": {
+    "kind": "cube",
+    "name": "door_slat_4_3",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     4.6259999999999994,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8ea1644d-9a79-4bfb-9aee-512b1b21d310": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_8_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     4.849999999999996,
+     -0.14285714285714302,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8ed03505-7182-4e3a-a2c9-e3e17827639c": {
+    "kind": "cube",
+    "name": "door_slat_2_0",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -1.0440000000000005,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8ee21b70-2195-4a83-b208-caea50e9c81b": {
+    "kind": "cube",
+    "name": "door_slat_0_6",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -5.0040000000000004,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "8f4c618b-29d9-4673-a01c-b372fc75efd0": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_9",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     0.40833333333333327,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "933055af-23a5-4630-9691-06034e266566": {
+    "kind": "cube",
+    "name": "exposed_rafter_29",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     5.820535714285712,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "9335250a-4651-44fe-8f4e-c603474f0af1": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_8_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     4.849999999999996,
+     0.037142857142857144,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "966ce811-3fe4-440d-a02d-4974edd6f229": {
+    "kind": "cube",
+    "name": "door_slat_1_2",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -3.2140000000000004,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "977db874-06d2-4b5e-8c74-e4a21a9cb3de": {
+    "kind": "cube",
+    "name": "exposed_rafter_28",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     5.345535714285714,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "97a95c85-0c5f-46e1-8c86-4e13efc01458": {
+    "kind": "cube",
+    "name": "door_slat_4_9",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     5.766,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "97aef688-126b-4a91-a5b8-531fa2eed3dc": {
+    "kind": "cube",
+    "name": "door_slat_2_9",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     0.6659999999999995,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "98e1a5a7-085a-4691-8293-580c9b37887c": {
+    "kind": "cube",
+    "name": "roof_bracket_4_0",
+    "scale": [
+     0.28,
+     0.17,
+     0.95
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     3.1455357142857148,
+     -0.3546428571428599,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "99a1765b-7f3b-47b6-a201-29c8eb32e9c4": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_5_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     1.2124999999999968,
+     -0.14285714285714302,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "99bd0610-6f26-4f0a-8012-b8388df54d75": {
+    "kind": "cube",
+    "name": "door_slat_2_1",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -0.8540000000000005,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "9a259966-cdb3-440d-9c59-c68b3af2f5e8": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_0_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -4.850000000000003,
+     0.037142857142857144,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "9a37b874-91d7-41c9-9f26-a3913425a454": {
+    "kind": "cube",
+    "name": "door_slat_1_5",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -2.6440000000000006,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "9a956a6b-4002-400c-8af6-1aa12f4b7182": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_7_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -1.6333333333333329,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "9bd403a2-59e6-45cc-9726-b69006cf19aa": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_6_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     2.4249999999999963,
+     -0.14285714285714302,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "9cad752e-15f6-467e-a463-acfab0cb22e0": {
+    "kind": "cube",
+    "name": "door_slat_4_7",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     5.385999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "9cb08a3e-e8c0-4e06-ac15-4dde85a7cb00": {
+    "kind": "cube",
+    "name": "door_crosspiece_2_95",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -0.004000000000000448,
+     -0.24866666666666815,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "9ece9a53-e212-446e-8fce-8982372bcc62": {
+    "kind": "cube",
+    "name": "front_beam_0",
+    "scale": [
+     16,
+     0.43,
+     0.7
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     0.9899999999999993,
+     -0.2969999999999997,
+     -0.02999999999999936
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "9fded681-e942-4d3b-98a9-2f6876129c59": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_5",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -2.8583333333333334,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "9fe1150e-3cdb-495a-afda-4e71c57a5099": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_2_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -5.716666666666667,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a08cbf60-5eb0-4e42-906f-d39d0af34d49": {
+    "kind": "group",
+    "name": "Projecting roof and exposed rafters",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     5.154464285714286,
+     5.35464285714286,
+     -3.733928571428571
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a0925edd-2ee0-4bce-8df3-f64ac940cc29": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_11",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     1.6333333333333329,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a1f87db9-fb6c-4622-83d5-c4935b5979f5": {
+    "kind": "cylinder",
+    "name": "tiger_leg_3",
+    "scale": [
+     0.25,
+     0.54,
+     0.28
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     1.004,
+     -0.17800000000000005,
+     -0.30866666666666676
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a497ba70-56ad-48f5-bcaa-da34c0ecf7f9": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_1_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.533333333333333,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a4d913b0-ab1f-47e1-a003-f6215130cb85": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_13",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     3.6750000000000007,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a5168759-141e-4aea-b55b-9034c08a464a": {
+    "kind": "cylinder",
+    "name": "veranda_column_5",
+    "scale": [
+     0.5,
+     4.5,
+     0.5
+    ],
+    "parentId": "be61aea9-50d0-42c5-b596-7d226de91d23",
+    "position": [
+     6.5,
+     1.1102230246251565e-16,
+     0
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a536a101-3825-4ef0-95d4-5b37edf127a0": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_12_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     2.450000000000001,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a53a7c5a-18c3-4176-8e87-0b0bff49cf79": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_15_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.9,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a5eacfcf-4e30-4505-a867-617a257b14de": {
+    "kind": "cube",
+    "name": "roof_bracket_3_2",
+    "scale": [
+     0.74,
+     0.17,
+     1.5899999999999999
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     0.5455357142857151,
+     0.005357142857140396,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a7a43276-4c45-4d59-b415-23dd5008cae0": {
+    "kind": "cube",
+    "name": "exposed_rafter_10",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -3.2044642857142858,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "a7f7cfc6-a20d-408f-b429-9e86785e4a33": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_5_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -3.2666666666666666,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a94142c1-84e0-49a2-b83d-3ab50ac7b590": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_18_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     7.35,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a986b963-e14d-4e20-af8d-e78f011ac829": {
+    "kind": "cylinder",
+    "name": "tiger_body",
+    "scale": [
+     0.83,
+     1.55,
+     0.83
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     0.37399999999999994,
+     0.1319999999999999,
+     -0.01866666666666672
+    ],
+    "rotation": [
+     0,
+     0,
+     1.5707963267948963
+    ]
+   },
+   "a9a0400f-1caa-4cb4-b13c-89a96cfe5507": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_8",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -0.8166666666666665,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "a9e94e46-d3d7-41c0-99e0-0cf306ae70af": {
+    "kind": "cube",
+    "name": "door_slat_2_5",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -0.0940000000000003,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "aa7f0f54-d70b-484f-8a90-57d7faa2b64a": {
+    "kind": "cylinder",
+    "name": "veranda_column_2",
+    "scale": [
+     0.5,
+     4.5,
+     0.5
+    ],
+    "parentId": "be61aea9-50d0-42c5-b596-7d226de91d23",
+    "position": [
+     -1.3000000000000003,
+     1.1102230246251565e-16,
+     0
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ab3b3847-55d8-4351-a78e-1696da5758aa": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_15_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.9,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ab4c0dfc-f82b-42a3-92a9-7d6ad4b1e199": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_2_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -2.4250000000000025,
+     -0.14285714285714302,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ac41140d-3863-481a-9f97-2e0f84137e36": {
+    "kind": "cube",
+    "name": "door_slat_3_0",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     1.5059999999999993,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "acc8b5d1-2289-440a-b1f1-f7aa2ac4daaa": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_5_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     1.2124999999999968,
+     0.10714285714285698,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ad10f91a-84c5-47ae-9f22-3f9d9156a187": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_3",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.8999999999999995,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "aeabb29c-32ad-4f03-9402-f5b973d0c849": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_2_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -5.716666666666667,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "aec70cd4-68f3-4158-8304-a7a8847a522a": {
+    "kind": "cube",
+    "name": "door_slat_1_8",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -2.0740000000000007,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "aed83440-c63c-4de8-8d70-af057d034676": {
+    "kind": "cylinder",
+    "name": "beam_upright_0",
+    "scale": [
+     0.28,
+     1.4,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     -6.610000000000001,
+     -0.2969999999999997,
+     -0.02999999999999936
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "af6485ae-2807-4d19-93b8-c30483da6897": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_2_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -2.4250000000000025,
+     0.037142857142857144,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "afe9ae44-331d-4c0e-851d-547875555556": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_7_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -1.6333333333333329,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b14d065a-d296-4f3b-9d0d-95b480c2d8f8": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_7",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -1.2249999999999996,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b1adf10d-bae2-4bd5-aced-0234f841d92b": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_3_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.8999999999999995,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b1de3067-dcfc-48a6-bcbf-38b30cf4b941": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_16",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     5.716666666666667,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b34ac531-31bf-4950-b16f-15220c80c18f": {
+    "kind": "cube",
+    "name": "triangular_brace_0_-1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     -7.330000000000001,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     -0.57
+    ]
+   },
+   "b3c2b3e9-2157-4acb-8866-e1e17d17d697": {
+    "kind": "cube",
+    "name": "exposed_rafter_1",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -7.479464285714286,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "b523065d-c746-4300-a14e-8a3d548a8b77": {
+    "kind": "cube",
+    "name": "door_slat_0_0",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -6.144,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b6967727-0457-42e4-ae76-bb5b39ad3202": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_13",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     3.2666666666666675,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b6cde756-8c86-4292-8345-2e97b6d21cbd": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_3_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -1.212500000000004,
+     0.10714285714285698,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b7268364-3f0c-4b17-8fec-8bc105d07748": {
+    "kind": "cube",
+    "name": "roof_upper_mass",
+    "scale": [
+     17,
+     0.65,
+     3.7
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     0.34553571428571406,
+     0.5953571428571403,
+     -1.066071428571429
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b8347e79-749e-41f3-8bcb-5c7197c6b7d9": {
+    "kind": "group",
+    "name": "Recessed wooden door bays",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     4.304,
+     1.198666666666668,
+     -4.943999999999995
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b90d4e92-dae4-49cb-bb20-d756f1663e81": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_14_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.083333333333334,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b94adba1-dae7-4fcc-af60-8fbb0a840bed": {
+    "kind": "cube",
+    "name": "door_slat_4_1",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     4.245999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "b976fc86-2a53-4811-914a-fffdd0ea75b5": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_9_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "bb7b4032-3a20-497d-86e8-d9b61a337f1e": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_10_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     0.8166666666666663,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "bbbb945a-ef8e-41a5-b0ba-fe68d9961664": {
+    "kind": "cube",
+    "name": "triangular_brace_2_-1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     -2.130000000000001,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     -0.57
+    ]
+   },
+   "bc0b7812-21c6-4b7a-9ba0-acb174878c18": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_3_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -1.212500000000004,
+     0.18714285714285706,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "bc2e2f8d-0ee4-4b69-bd46-2af7d83d8874": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_3_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -1.212500000000004,
+     -0.14285714285714302,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "bc5f72ff-5277-40fa-979e-568f3380e58a": {
+    "kind": "cube",
+    "name": "triangular_brace_1_1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     -3.290000000000001,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     0.57
+    ]
+   },
+   "bcbd5293-1b25-49cc-b3af-5d90fe893f0a": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_0_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -4.850000000000003,
+     -0.14285714285714302,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "bd8dfb3f-cee8-47dc-90b1-1f0e0bd8c89d": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_10_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     0.8166666666666663,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "be61aea9-50d0-42c5-b596-7d226de91d23": {
+    "kind": "group",
+    "name": "Round veranda columns",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     4.4,
+     0.7999999999999999,
+     -3.75
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "becb2bfd-e694-4e1b-beac-7418b67a55bf": {
+    "kind": "cube",
+    "name": "door_slat_4_11",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     6.145999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "c016628e-22b1-4e3a-a89d-f85e7ad26051": {
+    "kind": "cube",
+    "name": "foreground_balustrade_base",
+    "scale": [
+     15,
+     0.13,
+     0.39
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     -0.5901470588235296,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "c29d4336-e638-48f6-ab3a-79879c2d79ea": {
+    "kind": "cube",
+    "name": "exposed_rafter_25",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     3.9205357142857133,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "c30cda04-a452-4757-9ca5-2eec0d3e26f0": {
+    "kind": "cube",
+    "name": "door_slat_0_8",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -4.6240000000000006,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "c38e231c-d490-43df-af96-d5239a552369": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_4_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.083333333333333,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "c4130700-853b-4e03-aa41-b35e639e564f": {
+    "kind": "simple_figure",
+    "name": "guard_left",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     1.85,
+     0.8,
+     -1.8
+    ],
+    "rotation": [
+     0,
+     2.684409562007452,
+     0
+    ]
+   },
+   "c424d507-ac86-4506-bb93-9f95539fcb66": {
+    "kind": "cube",
+    "name": "roof_understructure",
+    "scale": [
+     17,
+     0.4,
+     4
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     0.34553571428571406,
+     0.1953571428571399,
+     -0.7660714285714292
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "c628291f-b871-4303-8ef5-884f3df4960c": {
+    "kind": "cube",
+    "name": "exposed_rafter_13",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -1.779464285714286,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "c64cfb2d-0e7f-493a-8a9f-fbc91cd43bdc": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_8_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -0.8166666666666665,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "c95266ff-45ba-4137-8b9e-21a6c044677f": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_15_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.9,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "caeeb307-a16a-478d-9451-e41a4b00de36": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_5_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -3.2666666666666666,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "cb5628d4-5ce5-4964-83b8-6dd2c25e6a14": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_14_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.083333333333334,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "cb9203f3-4a43-4f27-8529-db4024434dec": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_8_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     4.849999999999996,
+     -0.04285714285714293,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ccfe59a9-d25e-4c75-970d-7ac5a9f4eec9": {
+    "kind": "cube",
+    "name": "door_slat_2_4",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -0.2840000000000007,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "cdd3b2bc-89fc-46e2-8cee-291d589143de": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_16_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     5.716666666666667,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ce01ae8f-e08b-4185-b5dc-ee3ba62582d4": {
+    "kind": "cube",
+    "name": "exposed_rafter_0",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -7.954464285714286,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "ce0a0d86-3a6c-4bd9-adc5-5f5419bbdeca": {
+    "kind": "cube",
+    "name": "exposed_rafter_26",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     4.395535714285715,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "cfc39e56-12bf-42d8-bc23-f20b2e94d8a3": {
+    "kind": "cube",
+    "name": "exposed_rafter_18",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     0.5955357142857132,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "d0441b78-3ef5-4242-8916-924aa0b3a4d8": {
+    "kind": "cube",
+    "name": "door_slat_2_7",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     0.2859999999999996,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d0d8f452-30e9-40b4-a037-230a74090733": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_4_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.552713678800501e-15,
+     -0.04285714285714293,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d149947e-05d5-4972-9f7f-f46f7b4ea721": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_5_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -3.2666666666666666,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d1583e79-c05e-4b44-8a6c-5a37ad698bfe": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_8_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     4.849999999999996,
+     0.10714285714285698,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d1c0d1d7-edd0-433b-a3c6-db980433e70c": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_6_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -2.4499999999999993,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d301c06d-ab96-4338-9858-f96e4e64ab7d": {
+    "kind": "cube",
+    "name": "door_crosspiece_0_95",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -5.104,
+     -0.24866666666666815,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d311a49d-8099-4121-a9cf-8ff30c809b5a": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_12_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     2.450000000000001,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d38873fb-1e3c-4eed-b278-ea61e4a91d13": {
+    "kind": "cylinder",
+    "name": "veranda_column_4",
+    "scale": [
+     0.5,
+     4.5,
+     0.5
+    ],
+    "parentId": "be61aea9-50d0-42c5-b596-7d226de91d23",
+    "position": [
+     3.9000000000000004,
+     1.1102230246251565e-16,
+     0
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d3d955dc-b9da-41c5-9b3a-75152765c961": {
+    "kind": "cylinder",
+    "name": "tiger_leg_0",
+    "scale": [
+     0.25,
+     0.54,
+     0.28
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     -0.36600000000000005,
+     -0.17800000000000005,
+     0.2613333333333332
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d43c9086-ecd8-435a-b2cf-8de2fa6a09a4": {
+    "kind": "cube",
+    "name": "door_crosspiece_3_375",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     2.5459999999999994,
+     2.551333333333332,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d485f4d3-3c6c-4206-83c1-2e4926f6999e": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_1_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.533333333333333,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d5a88e03-64fa-4e91-9c9d-060e431fc285": {
+    "kind": "cube",
+    "name": "triangular_brace_3_-1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     0.47000000000000064,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     -0.57
+    ]
+   },
+   "d5c176f8-ee4a-437b-a09e-9468063be1d3": {
+    "kind": "cylinder",
+    "name": "tiger_paw_3",
+    "scale": [
+     0.37,
+     0.16,
+     0.34
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     0.9139999999999999,
+     -0.29800000000000004,
+     -0.28366666666666684
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d5f02548-a217-4ef4-a53f-8f390920bfb3": {
+    "kind": "cube",
+    "name": "door_crosspiece_1_95",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -2.5540000000000003,
+     -0.24866666666666815,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d7c9713f-4494-4dd3-942b-ebedc2506bbd": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_0_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -7.35,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d8f3d564-41b3-46a2-a9a5-ea62cee337d2": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_17_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     6.533333333333333,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "d91a8775-5124-406c-b11c-59b5311c6832": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_16_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     5.716666666666667,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "db8f0698-106b-4f0e-8c84-680916d34e84": {
+    "kind": "cube",
+    "name": "door_slat_4_6",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     5.196,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "dc6c60e7-b551-4f98-a850-0f344fbe81af": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_3_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.8999999999999995,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "dc986e22-981f-40d9-b811-9dbdbe368869": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_4_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.083333333333333,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "dcaf5738-6a48-4941-be74-366108cda0b8": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_3_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.8999999999999995,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "dd643ebd-5a42-4168-9fea-9d05b74c0116": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panels",
+    "scale": [
+     15,
+     0.37,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     -0.4601470588235296,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "de53dc09-e29c-44c2-84b1-b1c89d6994b6": {
+    "kind": "cylinder",
+    "name": "beam_upright_3",
+    "scale": [
+     0.28,
+     1.4,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     1.1900000000000004,
+     -0.2969999999999997,
+     -0.02999999999999936
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "deb10c97-7d77-4873-baa6-394d1707652b": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_8",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -0.40833333333333316,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "df82696c-108f-4121-afb1-7f57f1b99ae3": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_2_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -5.716666666666667,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e16a05f9-4099-4ba9-9464-85208594381e": {
+    "kind": "cube",
+    "name": "roof_bracket_4_2",
+    "scale": [
+     0.74,
+     0.17,
+     1.5899999999999999
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     3.1455357142857148,
+     0.005357142857140396,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e1ac2e8e-e35c-4ab7-967c-a25478c66fe6": {
+    "kind": "cube",
+    "name": "exposed_rafter_17",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     0.12053571428571352,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "e1cbc593-78ea-446e-9557-3a8b1dafe54e": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_11_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     1.6333333333333329,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e1d1c56b-365f-401f-8605-13aea5d83010": {
+    "kind": "cylinder",
+    "name": "tiger_paw_2",
+    "scale": [
+     0.37,
+     0.16,
+     0.34
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     0.9139999999999999,
+     -0.29800000000000004,
+     0.2863333333333332
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e1eb285e-ba8a-4276-bc5e-04a08f8458f8": {
+    "kind": "cube",
+    "name": "door_slat_4_8",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     5.575999999999999,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e30601ac-c5e0-40ac-88cd-08a7e10f6542": {
+    "kind": "cube",
+    "name": "triangular_brace_2_1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     -0.6900000000000004,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     0.57
+    ]
+   },
+   "e323b8ce-f8ef-48f2-a00b-4be30cc4758c": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_8_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -0.8166666666666665,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e3c32696-4bf2-451d-9b5b-b72fd0301cc9": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_6_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -2.4499999999999993,
+     0.17985294117647044,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e46212af-8f86-4896-bdda-00178f6d761e": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_1_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.637500000000003,
+     0.18714285714285706,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e59c842e-7cc6-4c7a-853a-9c53b1ae53f9": {
+    "kind": "cube",
+    "name": "exposed_rafter_6",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -5.104464285714286,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "e763ec42-1fd6-4e20-864a-dbacdf97435b": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_7_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     3.6374999999999957,
+     -0.14285714285714302,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e76665c9-1baf-4b01-8084-9a964ea383a8": {
+    "kind": "cylinder",
+    "name": "tiger_paw_1",
+    "scale": [
+     0.37,
+     0.16,
+     0.34
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     -0.456,
+     -0.29800000000000004,
+     -0.28366666666666684
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e7eecd2b-b3ec-4710-887e-fb158100aa93": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_9_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e886e570-f6ed-426d-8455-4224bb79c111": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_6_neck",
+    "scale": [
+     0.12,
+     0.07,
+     0.15
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     2.4249999999999963,
+     0.037142857142857144,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e89b9e7d-a034-4b6e-a9f9-b9a2df17df68": {
+    "kind": "cube",
+    "name": "roof_bracket_0_1",
+    "scale": [
+     0.51,
+     0.17,
+     1.27
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -7.2544642857142865,
+     -0.1746428571428602,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e8babd3a-d30b-40e2-9987-36cd94b8a5d6": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_1",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.125,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e8c48a7e-96a9-4b4f-bc28-12773eb12c61": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_3_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.8999999999999995,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "e9bbee5a-d8f3-406f-a81d-6fab98dd9e8c": {
+    "kind": "cylinder",
+    "name": "tiger_leg_2",
+    "scale": [
+     0.25,
+     0.54,
+     0.28
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     1.004,
+     -0.17800000000000005,
+     0.2613333333333332
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "eafe3cec-51fd-48c2-ac78-a5387cb51edc": {
+    "kind": "cube",
+    "name": "door_slat_1_0",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -3.5940000000000003,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "eb5b950a-5de9-4f20-ad4a-679eda641851": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_6_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -2.4499999999999993,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ecf6e711-c27f-42f9-8980-c5e751cd630b": {
+    "kind": "group",
+    "name": "Foreground stone balustrade",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     6.938893903907228e-17,
+     1.3901470588235296,
+     1.9605808823529423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ed1cc97b-26a1-43d3-996f-95bf1daa8f47": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_15",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     5.308333333333334,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ed841b74-0194-4ed5-8fc8-808ba1fe543e": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_8_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -0.8166666666666665,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ed9d4d20-f3b0-4ed2-b0be-bf06ba1d2007": {
+    "kind": "cube",
+    "name": "roof_bracket_1_0",
+    "scale": [
+     0.28,
+     0.17,
+     0.95
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -4.654464285714286,
+     -0.3546428571428599,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "edd2098f-9c3f-4016-b506-b87e62c5b08f": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_14",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     4.491666666666667,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "eddc0f19-4b5d-40f0-a5c6-e6facd9edb03": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_1_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -3.637500000000003,
+     -0.04285714285714293,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "eee073e8-d956-44d1-b4e9-a1edf53ed48c": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_17_foot",
+    "scale": [
+     0.24,
+     0.1,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     6.533333333333333,
+     -0.0001470588235297221,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f05f720c-9e73-4b6c-9be0-4a50723790aa": {
+    "kind": "cube",
+    "name": "roof_bracket_2_2",
+    "scale": [
+     0.74,
+     0.17,
+     1.5899999999999999
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     -2.054464285714286,
+     0.005357142857140396,
+     0.03392857142857064
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f2d27273-ed7c-4546-8405-118f35ec5618": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_7_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -1.6333333333333329,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f3506e20-a694-4d37-9aee-479083ce38db": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_3_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -4.8999999999999995,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f3dd798f-c623-48e4-94a3-14b81980923f": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_16_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     5.716666666666667,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f46331da-543c-42c9-8e4a-b55b2f38d9af": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_7_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -1.6333333333333329,
+     0.32985294117647035,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f56f65be-7bc2-4b00-9953-d3277371699a": {
+    "kind": "cube",
+    "name": "door_slat_3_3",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     2.0759999999999996,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f69f856c-e9b7-4ba0-91ec-ea58409a19a0": {
+    "kind": "cube",
+    "name": "door_slat_3_2",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     1.8859999999999992,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f6adc241-3adb-4203-b2b5-11cc99bd2cfe": {
+    "kind": "cube",
+    "name": "triangular_brace_3_1",
+    "scale": [
+     0.12,
+     0.63,
+     0.28
+    ],
+    "parentId": "0ffaf563-3a74-41af-b8ac-a5fd6d66edf5",
+    "position": [
+     1.9100000000000001,
+     0.12300000000000022,
+     0.020000000000000462
+    ],
+    "rotation": [
+     0,
+     0,
+     0.57
+    ]
+   },
+   "f761c79b-5edc-4938-935c-d82350499229": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_5_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -3.2666666666666666,
+     0.09985294117647037,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f7831c68-f20d-4c2f-9c8c-df768044f720": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_7",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -1.6333333333333329,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f85755ef-f5d7-4d6b-a28c-732123365a83": {
+    "kind": "cube",
+    "name": "door_slat_0_3",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -5.574,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f89c885a-4d41-497b-a427-9d0f88aedb54": {
+    "kind": "cube",
+    "name": "door_slat_1_7",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -2.2640000000000002,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516": {
+    "kind": "group",
+    "name": "Rear stone balustrade",
+    "scale": [
+     1,
+     1,
+     1
+    ],
+    "position": [
+     -7.399999999999997,
+     1.532857142857143,
+     -4.649999999999998
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f99007d2-d482-4c50-8fdb-8677b51f5b3b": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_2_lower_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     -2.4250000000000025,
+     -0.04285714285714293,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "f9e02bd1-814e-4905-8c08-fea68c4c3790": {
+    "kind": "cylinder",
+    "name": "foreground_balustrade_baluster_0_upper_shoulder",
+    "scale": [
+     0.19,
+     0.08,
+     0.21
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -7.35,
+     0.24985294117647028,
+     -0.04058088235294233
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fa5e61ba-9f32-4e42-a7e7-e9043bc414bf": {
+    "kind": "cube",
+    "name": "door_crosspiece_4_375",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     5.095999999999998,
+     2.551333333333332,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fa5e9510-4d18-43bd-9381-07f058b314f6": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_18",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     7.35,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fa75e9fa-14e1-46d1-9c85-bd50c0e6cec5": {
+    "kind": "cube",
+    "name": "door_slat_1_10",
+    "scale": [
+     0.055,
+     2.67,
+     0.065
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -1.6940000000000008,
+     -0.15866666666666807,
+     0.00399999999999423
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fa7d8139-8fbf-4024-b61b-53847aff9f67": {
+    "kind": "cube",
+    "name": "exposed_rafter_27",
+    "scale": [
+     0.14,
+     0.19000000000000003,
+     3.7000000000000006
+    ],
+    "parentId": "a08cbf60-5eb0-4e42-906f-d39d0af34d49",
+    "position": [
+     4.870535714285713,
+     0.06535714285714,
+     0.03392857142857064
+    ],
+    "rotation": [
+     -0.09000000000000001,
+     0,
+     0
+    ]
+   },
+   "fa9edd25-5866-4e56-b067-1aa045adb9f7": {
+    "kind": "cylinder",
+    "name": "tiger_paw_0",
+    "scale": [
+     0.37,
+     0.16,
+     0.34
+    ],
+    "parentId": "279e0813-d71f-4cde-a3c3-0cd7eafeac41",
+    "position": [
+     -0.456,
+     -0.29800000000000004,
+     0.2863333333333332
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fb12147e-b947-4984-8ee8-e63bbd8601e0": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_16",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     6.125,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fb911a66-9143-4ab9-8e22-933e211de86d": {
+    "kind": "cylinder",
+    "name": "rear_balustrade_baluster_5_head",
+    "scale": [
+     0.24,
+     0.07,
+     0.25
+    ],
+    "parentId": "f8fe1a0a-55c7-4179-b3b9-07fa87cdc516",
+    "position": [
+     1.2124999999999968,
+     0.18714285714285706,
+     -2.6645352591003757e-15
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fd3e07c0-7dd5-48c7-8633-e47cbe213188": {
+    "kind": "cube",
+    "name": "foreground_balustrade_panel_divider_9",
+    "scale": [
+     0.065,
+     0.37,
+     0.045
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     -6.938893903907228e-17,
+     -0.4601470588235296,
+     0.11441911764705748
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fd8722c0-be7a-4958-90b3-cc43658970ec": {
+    "kind": "cylinder",
+    "name": "veranda_column_0",
+    "scale": [
+     0.5,
+     4.5,
+     0.5
+    ],
+    "parentId": "be61aea9-50d0-42c5-b596-7d226de91d23",
+    "position": [
+     -6.5,
+     1.1102230246251565e-16,
+     0
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fda0ff26-94d1-48c9-bfe0-d6a7699757a2": {
+    "kind": "cube",
+    "name": "door_crosspiece_1_375",
+    "scale": [
+     2.35,
+     0.14,
+     0.12
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -2.5540000000000003,
+     2.551333333333332,
+     0.043999999999994266
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "fe49515d-2a0e-405a-a1b6-87632d2b5a6b": {
+    "kind": "cube",
+    "name": "door_panel_1",
+    "scale": [
+     2.35,
+     3.2,
+     0.2
+    ],
+    "parentId": "b8347e79-749e-41f3-8bcb-5c7197c6b7d9",
+    "position": [
+     -2.5540000000000003,
+     -0.39866666666666806,
+     -0.13600000000000545
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ffa56a81-0a0f-43ea-94e3-7ad15045906b": {
+    "kind": "cube",
+    "name": "foreground_balustrade_relief_10",
+    "scale": [
+     0.6566666666666666,
+     0.2,
+     0.035
+    ],
+    "parentId": "ecf6e711-c27f-42f9-8980-c5e751cd630b",
+    "position": [
+     1.2249999999999996,
+     -0.3801470588235296,
+     0.10241911764705747
+    ],
+    "rotation": [
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  "recordAspect": "16:9"
+ }
+}

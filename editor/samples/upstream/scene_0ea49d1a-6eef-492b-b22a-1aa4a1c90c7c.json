@@ -1,0 +1,18 @@
+{
+ "row": {
+  "scene_id": "0ea49d1a-6eef-492b-b22a-1aa4a1c90c7c",
+  "name": "E2E API Test Scene",
+  "created_at": "2026-11-11T05:50:34.199227+00:00",
+  "updated_at": "2026-11-11T05:50:34.199227+00:00",
+  "project_id": "30f2a9fa-70ac-4fab-b488-1eef74d6217a"
+ },
+ "scene": {
+  "v": 10,
+  "show": {
+   "name": "Show",
+   "tracks": []
+  },
+  "objects": {},
+  "recordAspect": "16:9"
+ }
+}

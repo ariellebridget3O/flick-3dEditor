@@ -63,8 +63,13 @@ export function buildUI(app) {
     });
   });
 
-  // open/save
-  $('btnOpen').onclick = () => $('fileInput').click();
+  // open/save — round 7: Scenes… popover (bundled upstream library + file open + new) replaces bare Open…
+  let scenesPop = null;
+  $('btnScenes').onclick = e => {
+    e.stopPropagation();
+    if (!scenesPop) scenesPop = buildScenesPopover(app);
+    scenesPop.toggle();
+  };
   $('fileInput').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
     const data = JSON.parse(await f.text());
@@ -72,6 +77,35 @@ export function buildUI(app) {
     $('sceneName').value = data?.row?.name ?? data?.show?.name ?? 'Scene';
     e.target.value = '';
   };
+  // drag-drop a scene JSON anywhere on the window
+  let _dropHint = null;
+  window.addEventListener('dragover', e => {
+    if (!e.dataTransfer?.types?.includes('Files')) return;
+    e.preventDefault();
+    if (!_dropHint) {
+      _dropHint = document.createElement('div');
+      _dropHint.id = 'dropHint'; _dropHint.className = 'drop-hint';
+      _dropHint.textContent = 'Drop a scene .json to open it';
+      document.body.appendChild(_dropHint);
+    }
+  });
+  window.addEventListener('dragleave', e => {
+    if (e.relatedTarget === null && _dropHint) { _dropHint.remove(); _dropHint = null; }
+  });
+  window.addEventListener('drop', async e => {
+    if (!e.dataTransfer?.files?.length) return;
+    e.preventDefault();
+    if (_dropHint) { _dropHint.remove(); _dropHint = null; }
+    const f = [...e.dataTransfer.files].find(f => f.name.endsWith('.json'));
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (await app.loadSceneData(data)) {
+        $('sceneName').value = data?.row?.name ?? data?.show?.name ?? 'Scene';
+        app.toast(`Loaded ${f.name}`);
+      }
+    } catch (err) { console.error('drop load failed', err); app.toast('Not a valid scene file'); }
+  });
   // scene-name edits persist into the saved scene (show.name)
   $('sceneName').onchange = e => {
     app.show.beginEditGesture();
@@ -165,6 +199,74 @@ const SEASON_PRESETS = [
   { label: 'Mar 21', dayOfYear: 80 }, { label: 'Jun 21', dayOfYear: 172 },
   { label: 'Sep 21', dayOfYear: 264 }, { label: 'Dec 21', dayOfYear: 355 },
 ];
+
+// round 7 (R7-2): Scenes popover — bundled upstream flick-3dstage exports (samples/upstream
+// manifest.json) + file open + new empty. Beyond-original feature (free design) in the
+// light-popover visual language.
+function buildScenesPopover(app) {
+  let el = document.getElementById('scenesPop');
+  if (el) return { toggle: () => el.classList.toggle('open') };
+  el = document.createElement('div');
+  el.id = 'scenesPop'; el.className = 'scenes-pop hud-window';
+  el.innerHTML = `
+    <div class="sp-head">Scene library</div>
+    <div class="sp-actions">
+      <button id="spNew">New empty scene</button>
+      <button id="spFile">Open from file…</button>
+    </div>
+    <div class="sp-list" id="spList"><div class="sp-loading">Loading…</div></div>
+    <div class="sp-foot">flick-3dstage exports · drop a .json anywhere to open</div>`;
+  document.querySelector('.topbar').appendChild(el);
+
+  el.addEventListener('click', e => e.stopPropagation());
+  el.querySelector('#spNew').onclick = async () => {
+    app.objects.setObjects({});
+    app.show.setShow({ name: 'Show', tracks: [] });
+    app.light = normalizeLight(null);
+    app.page.recordAspect = '16:9';
+    app._syncObjects(); app.shadowFit.force(); app.fogNearFar.fitNow();
+    app._restEval = false; app._restSeekPending = false;
+    app._seenSeekEpoch = app.page.seekEpoch ?? 0;
+    app.playbackClips = new Map();
+    $('sceneName').value = 'Scene';
+    el.classList.remove('open');
+    app.toast('New empty scene');
+  };
+  el.querySelector('#spFile').onclick = () => {
+    el.classList.remove('open');
+    $('fileInput').click();
+  };
+
+  const list = el.querySelector('#spList');
+  fetch('samples/upstream/manifest.json').then(r => r.json()).then(entries => {
+    if (!Array.isArray(entries) || !entries.length) { list.innerHTML = '<div class="sp-loading">No bundled scenes found</div>'; return; }
+    list.innerHTML = '';
+    for (const s of entries) {
+      const row = document.createElement('button');
+      row.className = 'sp-row';
+      row.innerHTML = `<span class="sp-name">${s.name}</span>
+        <span class="sp-meta">${s.objects} objects${s.items ? ` · ${s.items} action${s.items > 1 ? 's' : ''}` : ''}</span>
+        <span class="sp-kinds">${s.kinds}</span>`;
+      row.onclick = async () => {
+        try {
+          const data = await (await fetch(`samples/upstream/${s.file}`)).json();
+          if (await app.loadSceneData(data)) {
+            $('sceneName').value = data?.row?.name ?? s.name;
+            el.classList.remove('open');
+            app.toast(`Loaded “${s.name}”`);
+          } else app.toast('Scene failed to load (unsupported format)');
+        } catch (err) { console.error('scene load failed', err); app.toast('Scene failed to load'); }
+      };
+      list.appendChild(row);
+    }
+  }).catch(() => { list.innerHTML = '<div class="sp-loading">Library unavailable (serve over http)</div>'; });
+
+  document.addEventListener('click', e => {
+    if (!el.contains(e.target) && e.target !== document.getElementById('btnScenes')) el.classList.remove('open');
+  });
+
+  return { toggle: () => el.classList.toggle('open') };
+}
 
 function buildLightPopover(app) {
   let el = document.getElementById('lightPop');

@@ -1,0 +1,83 @@
+[
+ {
+  "id": "b6780d03-dc55-4c41-8bff-f959f7faf95e",
+  "name": "E2E Living Room (agent)",
+  "file": "scene_b6780d03-dc55-4c41-8bff-f959f7faf95e.json",
+  "objects": 688,
+  "items": 0,
+  "kinds": "cube\u00d7545, cylinder\u00d7114, sphere\u00d721, spotlight\u00d75",
+  "updated": "2026-11-11"
+ },
+ {
+  "id": "0aa78286-285e-4429-88dd-813230eaee63",
+  "name": "Bamboo Garden Study",
+  "file": "scene_0aa78286-285e-4429-88dd-813230eaee63.json",
+  "objects": 482,
+  "items": 5,
+  "kinds": "cube\u00d7189, sphere\u00d7140, cylinder\u00d7123, group\u00d723",
+  "updated": "2026-11-11"
+ },
+ {
+  "id": "6e381996-1f51-4f88-b248-69c665bd0d94",
+  "name": "Palace Stone Terrace",
+  "file": "scene_6e381996-1f51-4f88-b248-69c665bd0d94.json",
+  "objects": 375,
+  "items": 1,
+  "kinds": "cube\u00d7193, cylinder\u00d7167, group\u00d78, simple_figure\u00d76",
+  "updated": "2026-11-11"
+ },
+ {
+  "id": "6323c78f-f196-464c-b573-5c74ed024244",
+  "name": "Timber Hearth Hall",
+  "file": "scene_6323c78f-f196-464c-b573-5c74ed024244.json",
+  "objects": 240,
+  "items": 1,
+  "kinds": "cube\u00d7113, cylinder\u00d780, sphere\u00d721, group\u00d720",
+  "updated": "2026-11-14"
+ },
+ {
+  "id": "fdc2c6af-8996-4737-ac2d-0b7e9d49debe",
+  "name": "Non-chat conversion E2E - CC0 Living Room",
+  "file": "scene_fdc2c6af-8996-4737-ac2d-0b7e9d49debe.json",
+  "objects": 172,
+  "items": 0,
+  "kinds": "cube\u00d794, sphere\u00d767, cylinder\u00d79, camera\u00d71",
+  "updated": "2026-11-14"
+ },
+ {
+  "id": "27b98b6b-8a4d-4b3a-a810-7d542342ce41",
+  "name": "Scene 1",
+  "file": "scene_27b98b6b-8a4d-4b3a-a810-7d542342ce41.json",
+  "objects": 7,
+  "items": 1,
+  "kinds": "prop\u00d74, humanoid\u00d71, simple_figure\u00d71, camera\u00d71",
+  "updated": "2026-11-11"
+ },
+ {
+  "id": "190b6283-1b47-4ffa-8ced-ac8c03222b86",
+  "name": "Scene 6",
+  "file": "scene_190b6283-1b47-4ffa-8ced-ac8c03222b86.json",
+  "objects": 2,
+  "items": 1,
+  "kinds": "camera\u00d71, simple_figure\u00d71",
+  "updated": "2026-11-11"
+ },
+ {
+  "id": "d9139e87-1a51-44fb-9875-08f00600f517",
+  "name": "Scene 2",
+  "file": "scene_d9139e87-1a51-44fb-9875-08f00600f517.json",
+  "objects": 2,
+  "items": 1,
+  "kinds": "camera\u00d71, simple_figure\u00d71",
+  "updated": "2026-11-11"
+ },
+ {
+  "id": "0ea49d1a-6eef-492b-b22a-1aa4a1c90c7c",
+  "name": "E2E API Test Scene",
+  "file": "scene_0ea49d1a-6eef-492b-b22a-1aa4a1c90c7c.json",
+  "objects": 0,
+  "items": 0,
+  "kinds": "",
+  "updated": "2026-11-11"
+ }
+]
