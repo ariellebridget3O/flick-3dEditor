@@ -20,6 +20,7 @@ import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
 import { tickGizmoHover } from './gizmo.js';
 import { createGroundGrid, syncSnap, applyRenderMode } from './viewport-modes.js';
+import { PlanView } from './plan.js';
 import { buildUI } from './ui.js';
 import {
   patchSoftTerminator, createFinishComposer, finishCapable,
@@ -100,6 +101,9 @@ export class App {
     };
     this.setSnapOn = v => { this.snapOn = v; localStorage.setItem('stage-snap', v ? '1' : '0'); this.groundGrid.visible = v; };
     if (this.renderMode !== 'shaded') this.setRenderMode(this.renderMode);
+    // round 6 (C): top-down plan canvas
+    this.propCatalogDims = key => this.objectManager?.propCatalog?.[key]?.dims;
+    this.planView = new PlanView(this, document.getElementById('viewport'));
     this.light = normalizeLight(null);
     // round 6 (D): light mutators — every write is one undo gesture at the UI layer.
     // geo edits (re)enter geographic mode; a knob/drag/preset edit enters custom mode.
@@ -746,6 +750,13 @@ export class App {
     this.navBall?.tick(dt);
 
     // --- render passes (re/ae port) ---
+    // round 6 (C): plan shown → the 3D render pauses (live NUr gating: updateMatrixWorld only);
+    // rigs/playback/livePose ticks above keep running so shownPose mirrors the show on the plan.
+    if (this.page.viewportMode === 'plan' && this.page.mode === 'edit' && !this.page.playing) {
+      this.scene.updateMatrixWorld();
+      this.planView?.tick();
+      return;
+    }
     this.renderFrame();
   }
 

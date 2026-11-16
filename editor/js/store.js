@@ -529,6 +529,7 @@ export class PageStore extends StoreBase {
     super();
     this.mode = 'edit';                  // edit | camera
     this.stageView = 'editor';           // editor | cameras
+    this.viewportMode = '3d';            // round 6 (C): '3d' | 'plan' — the top-down plan canvas
     this.controlMode = 'default';        // default | unreal
     this.recordAspect = '16:9';
     this.focalLengthMm = C.FOCAL_DEFAULT;
@@ -548,6 +549,8 @@ export class PageStore extends StoreBase {
   setEditInteraction(v) { this.editInteraction = v; this.changed(); }
   setLassoRect(r) { this.lassoRect = r; this.changed(); }
   setNavBallVector(v) { this.navBallVector = v; }   // high-frequency: no change event (consumed per-frame)
+  setViewportMode(m) { this.viewportMode = m; this.changed(); }
+
   seek(s) {
     if (this.playing) this.stop();   // live seekPerformance stops playback first
     this.playheadS = s;

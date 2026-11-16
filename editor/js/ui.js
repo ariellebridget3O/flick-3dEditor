@@ -36,6 +36,17 @@ export function buildUI(app) {
   };
 
   // view + mode switches
+  const ps = $('planSwitch');
+  if (ps) {
+    const syncPlan = () => [...ps.children].forEach(b => b.classList.toggle('on', b.dataset.pm === app.page.viewportMode));
+    syncPlan();
+    ps.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      app.page.setViewportMode(b.dataset.pm);
+      syncPlan();
+      app.onViewportMode?.();
+    });
+  }
   $('viewSwitch').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     [...$('viewSwitch').children].forEach(x => x.classList.toggle('on', x === b));
