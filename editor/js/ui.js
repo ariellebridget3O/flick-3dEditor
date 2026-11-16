@@ -54,6 +54,11 @@ export function buildUI(app) {
     app.page.stageView = b.dataset.v;
     app.page.changed();          // nav ball pad / lasso button visibility ride this
     updateFrameGuide(app);
+    // pixel-oracle R9: the camera Height/Lens footer is editor-view-only (live feed wall has
+    // no camera HUD); refreshCameras only runs on timeline refreshes — toggle here too
+    const footer = document.getElementById('camFooter');
+    const single = app.objects.selectedId && app.objects.get(app.objects.selectedId)?.kind === 'camera';
+    footer.style.display = single && b.dataset.v !== 'cameras' ? 'flex' : 'none';
   });
   // round 6 E2: Default/Unreal control-mode switch REMOVED by user direction
   // (standard units/format only; controlMode stays 'default' — WASD nav unaffected)
@@ -891,7 +896,9 @@ function refreshCameras(app) {
 
   const footer = document.getElementById('camFooter');
   const single = app.objects.selectedId && app.objects.get(app.objects.selectedId)?.kind === 'camera';
-  footer.style.display = single ? 'flex' : 'none';
+  // pixel-oracle R9: live hides the camera Height/Lens HUD in the cameras view (feed wall
+  // shows only tiles + labels); it belongs to the editor view only
+  footer.style.display = single && app.page.stageView !== 'cameras' ? 'flex' : 'none';
   if (single) {
     const obj = app.objects.get(app.objects.selectedId);
     const h = document.getElementById('heightSlider');

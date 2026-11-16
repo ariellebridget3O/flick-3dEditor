@@ -377,14 +377,19 @@ export class App {
         // fallback (W resolver): a subject-less camera item aims at the CAMERA's target object
         if (!subjectId && cameraId) subjectId = self.objects.get(cameraId)?.targetId ?? null;
         if (!subjectId) return null;
+        // pixel-oracle R9: verbatim W @5720107 — tt < playhead-1e-6 → evaluated subject pose
+        // + NP; else ROr (mesh world pos) + NP. NP = store NP @5264414 (VDe/uje catalog
+        // height: figure 1.75·scaleY — NOT the mesh bbox, which measures ~2.11 with the head
+        // sphere and aimed ~0.25m too high: live pitch 13.4° down measured vs 13.86 predicted).
+        const np = self.show.subjectHeightOffset(subjectId, self.objects.objects);
+        if (t < self.page.playheadS - 1e-6) {
+          const pose = self._subjectPos(subjectId, t);
+          if (pose) return [pose[0], pose[1] + np + offset, pose[2]];
+        }
         const m = self.meshById.get(subjectId);
         if (!m) return null;
-        const box = self._boxOf(subjectId);
-        if (!box) return null;
-        const k = self.objects.get(subjectId)?.kind === 'spotlight' ? 0.5 : C.SUBJECT_AIM_K;
         const p = m.getWorldPosition(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        return [p.x, box.min.y + k * size.y + offset, p.z];
+        return [p.x, p.y + np + offset, p.z];
       },
       follow(objectId, t) {
         const m = self.meshById.get(objectId);
