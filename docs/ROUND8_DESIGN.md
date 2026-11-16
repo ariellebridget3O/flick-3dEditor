@@ -5,6 +5,8 @@ Bundle offsets cited from MAP.md; all constants re-verified against raw bundle b
 
 ## R8-1 Actions palette — the live's core add-UX
 
+DESIGN AUDIT VERDICT: SHIP WITH FIXES (agent 6547c523; 4 P1 + 6 P2 applied below).
+
 ### Architecture
 - New module `editor/js/palette.js`: data tables + 3 tile-preview renderer classes + window UI + viewport-drop controller (BUr).
 - store.js: verbatim store-method family. place.js already has bGt/a$/yGt/Art (actionOf/remapAction/sameAction/canDuplicateOnto) — reuse; add `MP` (append-at-end = maxEnd, already exported) for placeItemS.
@@ -18,6 +20,7 @@ Bundle offsets cited from MAP.md; all constants re-verified against raw bundle b
 - canDropActionOnObject = canOwnTrack && resolveActionForObject !== null.
 - addPerformanceTrack(id): gate Xzt(kind)=Q0(kind)||'camera', !Xu, no existing track → push {id:uuid, characterId, items:[]}.
 - placeItemS(items, dur, atS) = atS===undefined ? MP(items) : W5r(items,dur,atS) — W5r=appendPlace; MP=maxEnd.
+- add*Item route through _commit(trackId, …) directly (NOT the characterId-based addItem; audit P2-8) — _commit IS the live updateTrackItems (mutate + packItems=lje). placeItemS computed from pre-push items exactly like verbatim (no double-place). Export remapAction from place.js for resolveActionForObject (parity with bundle a$ confirmed incl. clip-payload humanoid tail).
 - addClipItem(trackId, clip, atS): humanoid gate; {kind:'clip', clip, durationS:5, startS}; selects segment. NOTE: N8=5 fixed (NOT clip real duration).
 - addPlayItem: {kind:'play', durationS:0, samples:[], keymap:{}}.
 - addRotateItem: {axis:'y', degPerS:90, durationS:5}; addRevolveItem: {centerObjectId:firstOtherObjectId, degPerS:60, durationS:5}; addScaleItem(factor): {factor, durationS:5} (up=2, down=.5); addTransformItem: {durationS:4, keys:[]}; addRigTransformItem: humanoid gate {durationS:4, keys/joints} — read full verbatim body at implementation.
@@ -25,6 +28,7 @@ Bundle offsets cited from MAP.md; all constants re-verified against raw bundle b
 - firstOtherObjectId(trackId): first other object with Q0 kind && !spotlight.
 - addActionToTrack(trackId, payload, atS): verbatim dispatch (path→addPathItem(atS), play→addPlayItem, clip→addClipItem, camera→addCameraItem, object: rotate/revolve/scale±/transform/rig-transform).
 - appendActionToObject(id, payload): canDropActionOnObject gate; trackId = trackOf(id)?.id ?? addPerformanceTrack(id); addActionToTrack. Then palette closes (onActionAdded).
+- UNDO (audit P1-1): every facade entry (palette tile click, lane drop, viewport drop) wraps ONE outer begin/endEditGesture around the whole flow; store methods keep _commit self-brackets (depth-counted → exactly one undo entry, SKILL #39). Rationale: unbracketed ensureTrack/addPerformanceTrack snapshot AFTER track creation (orphan-track undo) and aimCameraAtSubject writes the OBJECTS store (non-undoable without companion snapshot). E2E must include an undo round-trip after every add path.
 - addObjectItem gates: isAnimatableTrack = Q0(trackObjectKind).
 
 ### Payload model (exact)
@@ -39,15 +43,19 @@ Bundle offsets cited from MAP.md; all constants re-verified against raw bundle b
 - Camera tab: 13 tiles; bP moves (orbit/dolly_in/dolly_out/dolly_zoom/crane_up/crane_down/spiral/pan_sweep) = canvas tiles (y5r: KCe pose at m5r t-fractions; loop = 3s ping-pong); still/path/follow/transform/manual = icon tiles (I5r icons, fallback 'video').
 - Every tile: draggable, dragstart → e3r payload + draggingAction signal + effectAllowed copy; title tooltips (a1QB8W/w2DmPr/1YVTmS IT-guesses; T91vKp/Cd1cVD exact).
 - Add-button N5r on each tile: enabled = selectedId!=null && canDropActionOnObject(selectedId,payload); disabled title "Select an object this can act on" (F); click → appendActionToObject + palette closes.
-- Simple-figure switch notice (animate tab, when selected is simple_figure): text IT-guess + "Switch to human" button → pickPersonKind (we have person-kind switch from round 6 A2) wrapped in gesture + undo-toast on failure.
+- Perform section (play + rig-transform tiles) ALWAYS visible (audit P2-7 — verbatim $||O gates only on search). Simple-figure switch notice (animate tab, when selected is simple_figure): interpolated user-named name → built with createElement/textContent (SKILL #55) + "Switch to human" button → pickPersonKind with error-toast + Undo retry (removeHumanOnly:true, MAP §1 — extend main.js:270 version). Add-button inside draggable tiles: draggable=false (verbatim N5r). Dhe geometry DECISION: left-border handle, drag-left = widen (our geometry sign −1) — recorded divergence from the ambiguous edge:'right' sign:1.
 - onActionsOpened → clearSelection. Palette collapsed by default (not persisted — live signal only).
 
+### r8b extraction prerequisite (audit P1-3 — SKILL #49)
+aim/seed helpers are NOT in the 68 units: Zo/cN/s$/kv/NP/Fp/YN/subjectAimPoint (@4901465–4904700, @4316182), seedPathStart/enterPathEdit (@5539606), the TIMELINE lane-drop controller (n3r consumer — lane-drop math must come from bytes, NOT guessed), updateObjectTransform + dropSegmentOnObject (BUr segment sibling). Extract all before writing ui.js lane handlers + store seed/aim ports.
+
 ### Viewport drop (BUr verbatim port)
-- document dragover: only when dataTransfer.types includes MIME; compute candidates = ids passing canDropActionOnObject (frozen per drag via draggingAction token); apply idle glow emissive 0x3a6fd8 intensity .4 to candidate meshes.
+- dragover/dragleave/drop listeners on renderer.domElement ONLY (verbatim; audit P2-5 — document-scope would make the whole page a drop surface). Segment-drag sibling (canDropSegmentOnObject/dropSegmentOnObject) = explicit non-goal (r8b extracts it for reference only).
+- Candidates: computed when draggingAction transitions null→payload (equivalent of the live reactive effect; frozen during drag), cleared by tile dragend → clearDraggingAction (NOT canvas dragleave).
 - dragover on canvas: raycast candidates (NDC from rect, intersectObjects true, walk up userData.objectId); hovered → 0x33cc88 .9; dropEffect = hit ? 'copy' : 'none'.
 - drop: preventDefault, MDe(getData(MIME)), appendActionToObject(objectId, payload), clear hover.
 - dragleave/dragend: restore emissive — SAVE prior emissive per material before first write (lantern-glow pipeline owns some emissive states; restore, never zero).
-- Material sharing: applyClay makes ONE material per model instance → per-object emissive safe. Primitives/per-object materials likewise.
+- Material sharing: applyClay makes ONE material per model instance → per-object emissive safe. Primitives/per-object materials likewise. Audit P2-6 additions: (a) restore must `delete m.userData.glowAt` (env walk re-stamps lantern emissive only when the marker differs); (b) collapsed wrapper gets overflow:hidden (live relies on unavailable reveal CSS); loops are hover-only (startLoop on pointerenter), dispose only at app teardown; (c) camera/spot GLB clones SHARE materials (gltf.scene.clone(true)) → ≥2 cameras makes glow all-or-nothing — clone materials per instance in objects.js for cameras/spotlights (recorded divergence, needed for correct drop UX).
 
 ### Tile preview renderers (verbatim class ports, one instance each)
 - ClipTileRenderer (D5r): WebGLRenderer(antialias,alpha) 128², PerspCam(35,1,.1,20) at (.7,1.3,3.1)→(0,.85,0); hemi(0xffffff,0x445566,2.4)+dir(0xffffff,2)@(2,4,3); loads humanoid GLB (our C.HUMANOID_URL), $he normalize (roughness 1, M_Main→#f29a5c), rot y π, scale to 1.75, center; AnimationMixer all clips; setClip pose at IDe(clip)*.35; drawImage blit to tile canvas; hover rAF loop; pendingPoses drain on stopLoop; dispose→forceContextLoss.
@@ -59,21 +67,27 @@ Bundle offsets cited from MAP.md; all constants re-verified against raw bundle b
 - Lane dragover: track from data-track-id; startS = px→s (reuse block-drag conversion + magnet markers); highlight lane.
 - Drop: MDe parse → n3r(payload) duration → addActionToTrack(trackId, payload, startS). Ghost/caret visuals = approximation (light lane highlight + snap line); live's exact ghost spec not in extracted scope (EDITOR_UX §6 only says "at snapped start").
 
+### E2E + lifecycle (audit P2-9)
+- HTML5 DnD in agent-browser: synthetic DragEvent with ONE shared `new DataTransfer()` across dragstart→dragover→drop (Chromium). CAN verify: e3r/MDe round-trip, draggingAction state, candidates + glow hexes (rAF waits, SKILL #45), drop → store mutation + undo entry + segment selected + palette close, requestedTab one-shot, no cross-talk with the window Files drop handler. CANNOT verify: native drag image, OS cancel/Esc, effectAllowed cursor enforcement.
+- STORE-LEVEL ORACLE (SKILL #50) for the pure fns: placeItemS/LHr/n3r/sje/a$ — assert reference vs port at 1e-4.
+- Palette DOM: build ONCE, filter in place (SKILL #31 — resize handle + search input hold capture/caret); stopLoop() when tiles unmount/filter-change (live has a latent orphan-rAF here).
+
 ### CSS approximations (documented)
 - Live CSS chunk unavailable — class names recorded in MAP.md §10. Our styling follows our existing HUD language (navball window style). Colors: --stage-action-object/camera/human as new CSS vars consistent with our plan-canvas palette. 128² thumbs CSS-scaled, icon thumbs 32px.
 
 ### Explicit non-goals this round
 - Components column (Xqt cache, prop drag-drop, VUr/$Ur ghost drop, component MIME V6): future round — our Scene-dock add-grid covers object creation. MAP.md keeps the verbatim extraction.
 - Chat panel width groups (leftDock/chat clamps) — not palette scope.
+- Onboarding hooks (data-onboard-target="actions"/"dance-tile"/highlightActions) — non-goals (audit P3-13). Segment-drag drop (BUr sibling) — non-goal, r8b reference only.
 
 ## R8-2 Height-curve editor (cam-path, plan + timeline seam)
-- Source: fn_class_rDr.js (round-7 dump: heightMove/pressCurve* family) + eFr curve UI spec (C-rated). Canvas in the Action section for cam-path items (and plan-side per MAP): curve points draggable in a 2D plot (x = path arc fraction, y = height), scrub sync with playhead, double-click add point? — VERIFY against rDr verbatim before porting (SKILL #2: never trust the summary).
+- Source: fn_class_rDr.js (round-7 dump: heightMove/pressCurve* family) + EDITOR_UX §7. Audit P2-10 corrections: press-ON-LINE adds a point (not double-click); scrub = seek startS+u·durationS; Alt breaks handles; release commits setPathHeightCurve. Placement: the PLAN CANVAS scene-node (per bytes) — the "Action section canvas" was a guess; resolve from bytes before implementing.
 
 ## R8-3 Through-the-lens cameras view
 - Port draws the frame guide; "adopt evaluated camera pose" button/mapping on camera select — verify live behavior from EDITOR_UX §4 before implementing.
 
 ## R8-4 Aspect picker
-- 6 presets @3920360; page.recordAspect exists — dropdown UI on the page/settings row.
+- Presets = Zae table at ~char 3920650 (audit P2-11 — @3920360 was wrong; "1.85:1" at char 3920556); values byte-match our C.ASPECT_KEYS/ASPECTS. Camera inspector already ships the Aspect select (ui.js:597) — R8-4 = settings-row control only; page.recordAspect single-source.
 
 ## Verification plan
 - E2E per feature (agent-browser + __app): open palette, tab switch, search filter, tile hover loop (rAF advancing), add via tile button (item lands on track + segment selected), drag to viewport (glow colors + drop adds action), drag to lane (item at snapped start), palette closes after add, requestedTab on selection, figure switch notice.
