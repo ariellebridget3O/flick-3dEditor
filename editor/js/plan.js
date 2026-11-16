@@ -19,7 +19,7 @@
 // + per-tick seekPerformance (show plays while drawing).
 import * as THREE from 'three';
 import { C } from './const.js';
-import { polylineOf, buildTangents, arcLength } from './curves.js';   // nx / mT / MR (round-2 exact)
+import { polylineOf, buildTangents, arcLength, pointAtDistance, heightAt } from './curves.js';   // nx / mT / MR (round-2 exact)
 import { camTransformKeysAt } from './tracks.js';                      // cZt (round-2 exact)
 import { itemDuration, packItems } from './schema.js';
 
@@ -658,6 +658,82 @@ export function replaceMoveFromSamples(facade, e, n, r, s) {                    
   return facade.updateTrackItems(d, v => [y, ...v.filter(x => x.id !== m?.id)]), !0;
 }
 
+// ---- height-curve family (verbatim: lBe/MZt/Sje/Kat/rre/Yhe/sLr/iLr/oLr/lLr/cLr/dLr/Tje/uLr/NZt/Kzt) ----
+const lBe = .2, MZt = 4, eLr = .1, Zat = 1 / eLr, $ie = .02, iye = 9, aLr = .01;   // consts_curve
+const rre = (t, e) => ({ u: t, heightM: e, in: [0, 0], out: [0, 0], auto: !0 });   // rre
+const Sje = t => Math.round(t * Zat) / Zat;                                         // Sje — round to .1
+const NZt = (t, e) => Math.min(e, Math.max(lBe, t));                                // NZt — clamp [.2, maxM]
+const Kat = (t, e = MZt) => Sje(Math.max(lBe, Math.min(t, e)));                     // Kat — round+clamp
+function Yhe(t) {                                                                   // Yhe — auto tangents ∓Δu/3
+  return t.map((e, n) => {
+    if (!e.auto) return e;
+    const r = t[n - 1], s = t[n + 1];
+    return { ...e, in: [r ? -(e.u - r.u) / 3 : 0, 0], out: [s ? (s.u - e.u) / 3 : 0, 0] };
+  });
+}
+function iLr(t, e) {                                                                // iLr — pace remap (piecewise linear)
+  if (!t || t.length < 2) return e;
+  const n = e * (t.length - 1), r = Math.min(t.length - 2, Math.floor(n));
+  return t[r] + (t[r + 1] - t[r]) * (n - r);
+}
+function sLr(t) {                                                                   // sLr — curve from item (9 samples or stored)
+  if (t.heightCurve) return t.heightCurve;
+  const e = polylineOf(t.anchors), n = arcLength(e),
+    r = l => Math.max(0, pointAtDistance(e, iLr(t.pace, l) * n)[1]),
+    s = Array.from({ length: iye }, (l, c) => r(c / (iye - 1))),
+    o = s.every(l => Math.abs(l - s[0]) < aLr)
+      ? [rre(0, s[0]), rre(1, s[s.length - 1])]
+      : s.map((l, c) => rre(c / (iye - 1), l));
+  return Yhe(o);
+}
+function oLr(t, e) {                                                                // oLr — press-on-line insert
+  const n = t.findIndex(s => s.u > e);
+  if (n <= 0 || e - t[n - 1].u < $ie || t[n].u - e < $ie) return null;
+  const r = [...t];
+  r.splice(n, 0, rre(e, heightAt(t, e)));
+  return { curve: Yhe(r), index: n };
+}
+function lLr(t, e, n, r) {                                                          // lLr — point move (u neighbor-clamped, ends pinned)
+  const s = t.length - 1,
+    a = e === 0 ? 0 : e === s ? 1 : Math.min(t[e + 1].u - $ie, Math.max(t[e - 1].u + $ie, n.u)),
+    o = t[e],
+    l = { ...o, u: a, heightM: n.heightM, in: Tje(o.in, n.heightM, r), out: Tje(o.out, n.heightM, r) };
+  return Yhe(t.map((c, d) => d === e ? l : c));
+}
+function dLr([t, e], n, r) { return [t, NZt(n + e, r) - n]; }                       // dLr — handle delta height-clamped
+function Tje([t, e], n, r) {                                                        // Tje — keep handle height within range
+  const s = n + e, a = NZt(s, r);
+  if (a === s) return [t, e];
+  const o = Math.max(0, (a - n) / e) || 0;
+  return [t * o, a - n];
+}
+function cLr(t, e, n, r, s) {                                                       // cLr — handle drag (mirror unless Alt-broken)
+  const a = t[e],
+    o = n === "in" ? Math.min(r.u - a.u, -.005) : Math.max(r.u - a.u, .005),
+    l = r.heightM - a.heightM,
+    c = dLr([o, l], a.heightM, s.rangeM),
+    d = n === "in" ? "out" : "in";
+  let u = a[d];
+  if (!s.broken) {
+    const f = s.rangeM || 1,
+      m = Math.hypot(c[0], c[1] / f) || 1,
+      g = Math.hypot(u[0], u[1] / f) || Math.abs(o);
+    u = Tje([-c[0] / m * g, -c[1] / m * g], a.heightM, s.rangeM);
+  }
+  const h = { ...a, [n]: c, [d]: u };
+  delete h.auto;
+  return t.map((f, m) => m === e ? h : f);
+}
+function uLr(t, e) {                                                                // uLr — remove interior point
+  return e <= 0 || e >= t.length - 1 ? t : Yhe(t.filter((n, r) => r !== e));
+}
+
+function ujeH(obj, propDims) {                       // uje — object height (humanoid jP·scaleY / prop dims / aid 0)
+  if (obj.kind === 'humanoid' || obj.kind === 'simple_figure') return 1.75 * obj.scale[1];
+  const cat = obj.kind === 'prop' && obj.propKey ? propDims?.(obj.propKey) : undefined;
+  if (cat) return (cat[1] || 1) * obj.scale[1];
+  return obj.kind === 'target' || obj.kind === 'spotlight' ? 0 : obj.scale[1];
+}
 export class PlanStore {
   constructor(app) {
     this.a = app;
@@ -722,6 +798,103 @@ export class PlanStore {
   drawing() { return !!this.drawingFor; }
   stroking() { return !!this.strokeClock; }
   toggleMatchDrawSpeed() { this.matchDrawSpeed = !this.matchDrawSpeed; this.a.markAutosave?.(); }
+  // ---- height-curve editor (rDr heightMove family, verbatim) ----
+  heightMaxM() {                                                                                     // rDr.heightMaxM
+    const e = this.setBounds(), n = !!e && Math.max(e.maxX - e.minX, e.maxZ - e.minZ) > WLr;
+    const objs = this.a.objects.all();
+    let s = 0;
+    for (const { id: o, obj: l } of this.entries()) {
+      if (l.kind === 'camera' || l.kind === 'target' || l.kind === 'spotlight') continue;            // fie
+      s = Math.max(s, this._objectMaxY(o, l, objs).maxY);
+    }
+    const a = n ? GLr : MZt;
+    return s <= a ? a : Math.min(ZLr, Math.ceil(s + qLr));
+  }
+  _objectMaxY(id, obj, objs) {                                                                       // VDe @5264034 (same math as store.js)
+    const propDims = this._propDims();
+    if (obj.kind !== 'group') {
+      const a = Zo(obj, objs);
+      return { minY: a.position[1], maxY: a.position[1] + ujeH({ ...obj, scale: a.scale }, propDims) };
+    }
+    let lo = Infinity, hi = -Infinity;
+    for (const [cid, c] of Object.entries(objs)) {
+      if (c.parentId !== id || c.kind === 'camera' || c.kind === 'target' || c.kind === 'spotlight') continue;
+      const a = Zo(c, objs);
+      lo = Math.min(lo, a.position[1]);
+      hi = Math.max(hi, a.position[1] + ujeH({ ...c, scale: a.scale }, propDims));
+    }
+    return lo === Infinity ? { minY: obj.position[1], maxY: obj.position[1] } : { minY: lo, maxY: hi };
+  }
+  heightMove() {                                                                                     // rDr.heightMove verbatim
+    const e = this.a.objects.selectedIds, n = e.length === 1 ? e[0] : null;
+    if (!n || this.a.objects.get(n)?.kind !== 'camera' || this.stroking()) return null;
+    const r = this.a.show.show.tracks.find(a => a.characterId === n),
+      s = r?.items.find(a => a.kind === 'cam-path' && a.anchors?.length > 1);
+    if (!r || s?.kind !== 'cam-path') return null;
+    return { trackId: r.id, itemId: s.id, startS: s.startS, durationS: itemDuration(s), curve: sLr(s), drawn: !!s.heightCurve, maxM: this.heightMaxM() };
+  }
+  heightCurveShown() { return !!this.heightMove(); }
+  curveDrag = null;
+  pressCurveLine(e) {                                                                                // press ON the line inserts a point
+    const n = this.heightMove();
+    if (this.locked() || !n) return null;
+    const r = oLr(n.curve, e.u);
+    if (!r) return null;
+    this.holdCurve(r.index, null);
+    this.writeCurve(r.curve);
+    this.curveDrag.changed = !0;
+    this.showCurveMoment(r.curve[r.index].u);
+    return r.index;
+  }
+  pressCurvePoint(e, n = null) {
+    const r = this.heightMove();
+    if (this.locked() || !r?.curve[e]) return;
+    this.holdCurve(e, n);
+    this.showCurveMoment(r.curve[e].u);
+  }
+  dragCurve(e, n = !1) {
+    const r = this.heightMove(), s = this.curveDrag;
+    if (!r || !s) return;
+    const a = { u: e.u, heightM: Kat(e.heightM, r.maxM) },
+      o = s.side ? cLr(r.curve, s.index, s.side, e, { broken: n, rangeM: r.maxM }) : lLr(r.curve, s.index, a, r.maxM);
+    this.writeCurve(o);
+    s.changed = !0;
+    this.showCurveMoment(o[s.index].u);
+  }
+  releaseCurve() {
+    const e = this.curveDrag;
+    if (!e) return;
+    this.curveDrag = null;
+    this.a.page.seek(e.returnS);
+    this.a.show.endEditGesture();
+    if (e.changed) this.a.onHeightDrawn?.({ updated: e.redrawn });   // toast hook (live onHeightDrawn)
+  }
+  scrubCurve(e) {
+    if (this.locked()) return;
+    this.showCurveMoment(Math.min(1, Math.max(0, e)));
+  }
+  removeCurvePoint(e) {
+    const n = this.heightMove();
+    if (this.locked() || !n) return;
+    const r = uLr(n.curve, e);
+    if (r !== n.curve) {
+      this.a.show.beginEditGesture();
+      this.writeCurve(r);
+      this.a.show.endEditGesture();
+    }
+  }
+  holdCurve(e, n) {
+    this.a.show.beginEditGesture();
+    this.curveDrag = { index: e, side: n, returnS: this.a.page.playheadS, redrawn: !!this.heightMove()?.drawn, changed: !1 };
+  }
+  writeCurve(e) {
+    const n = this.heightMove();
+    if (n) this.a.show.setPathHeightCurve(n.trackId, n.itemId, e);
+  }
+  showCurveMoment(e) {
+    const n = this.heightMove();
+    if (n) this.a.page.seek(n.startS + e * n.durationS);
+  }
   // ---- zoom / center commands (seq'd like the live signals) ----
   zoomBy(kind) { this.zoomCommand = { kind, seq: ++this._zoomSeq }; }
   zoomIn() { this.zoomBy("in"); } zoomOut() { this.zoomBy("out"); } zoomToFit() { this.zoomBy("fit"); }
@@ -1012,6 +1185,127 @@ function dye(t, e) {                                                            
 }
 const easeCubicOut = Te => 1 - (1 - Te) ** 3;
 
+// ---- height-curve editor panel (eFr @5439371 verbatim constants + interaction model) ----
+const hRuler = 14, hChart = 64, hPad = 8, hPointHit = 8, hHandleHit = 7, hRes = 160;   // r8/A5/Lg/QRr/JRr/fat
+
+export function buildCurvePanel(host, store, app) {
+  const panel = document.createElement('div');
+  panel.className = 'curve-panel';
+  panel.style.display = 'none';
+  panel.innerHTML = `<div class="curve-head"><span>Height</span><span class="curve-max"></span></div>`;
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'curve-chart');
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Camera height curve');
+  panel.appendChild(svg);
+  host.appendChild(panel);
+
+  let drag = null;           // 'scrub' | 'curve'
+  let selIdx = null;
+  let width = 0;
+
+  const xOf = u => hPad + u * (width - 2 * hPad);
+  const yOf = (h, maxM) => hRuler + hChart - hPad - (h / maxM) * (hChart - 2 * hPad);
+  const toPx = e => {
+    const r = svg.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (svg.clientWidth / (r.width || 1)), y: (e.clientY - r.top) * (svg.clientHeight / (r.height || 1)) };
+  };
+  const toCurve = (px, maxM) => ({
+    u: Math.min(1, Math.max(0, (px.x - hPad) / (width - 2 * hPad))),
+    heightM: (hRuler + hChart - hPad - px.y) / (hChart - 2 * hPad) * maxM,
+  });
+  const hitPoint = (px, curve, maxM) => curve.findIndex(p => Math.hypot(px.x - xOf(p.u), px.y - yOf(p.heightM, maxM)) <= hPointHit);
+  const sideOk = (i, side, len) => side === 'in' ? i > 0 : i < len - 1;
+  const handleAt = (px, curve, maxM, i) => {
+    for (const side of ['in', 'out']) {
+      const p = curve[i];
+      const hx = xOf(p.u + p[side][0]), hy = yOf(p.heightM + p[side][1], maxM);
+      if (Math.hypot(px.x - hx, px.y - hy) <= hHandleHit) return side;
+    }
+    return null;
+  };
+
+  function render() {
+    const hm = store.heightMove();
+    const show = !!hm && app.page.viewportMode === 'plan' && app.page.mode === 'edit' && !app.page.playing;
+    panel.style.display = show ? 'flex' : 'none';
+    if (!show || !hm) { svg.innerHTML = ''; return; }
+    const { curve, maxM, startS, durationS, drawn } = hm;
+    width = svg.clientWidth || 320;
+    svg.setAttribute('viewBox', `0 0 ${width} ${hRuler + hChart}`);
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', hRuler + hChart);
+    panel.classList.toggle('drawn', !!drawn);
+    panel.querySelector('.curve-max').textContent = `max ${maxM.toFixed(0)}m`;   // lltqsv equiv
+    const parts = [];
+    parts.push(`<rect class="curve-ruler" x="0" y="0" width="${width}" height="${hRuler}"/>`);
+    for (const f of [.25, .5, .75]) parts.push(`<line class="curve-grid" x1="0" x2="${width}" y1="${hRuler + hPad + f * (hChart - 2 * hPad)}" y2="${hRuler + hPad + f * (hChart - 2 * hPad)}"/>`);
+    // polyline (fat=160 ZA samples)
+    const pts = [];
+    for (let i = 0; i <= hRes; i++) { const u = i / hRes; pts.push(`${xOf(u).toFixed(1)},${yOf(heightAt(curve, u), maxM).toFixed(1)}`); }
+    parts.push(`<polyline class="curve-line" points="${pts.join(' ')}"/>`);
+    // playhead (tFr): vertical line at the current u when the playhead is inside the item
+    const u = durationS > 0 ? (app.page.playheadS - startS) / durationS : -1;
+    if (u >= 0 && u <= 1) parts.push(`<line class="curve-playhead" x1="${xOf(u)}" x2="${xOf(u)}" y1="${hRuler}" y2="${hRuler + hChart}"/>`);
+    // selected point handles (C gate: in only i>0, out only i<len-1)
+    if (selIdx !== null && curve[selIdx]) {
+      const p = curve[selIdx];
+      for (const side of ['in', 'out']) {
+        if (!sideOk(selIdx, side, curve.length)) continue;
+        const hx = xOf(p.u + p[side][0]), hy = yOf(p.heightM + p[side][1], maxM);
+        parts.push(`<line class="curve-handle-arm" x1="${xOf(p.u)}" y1="${yOf(p.heightM, maxM)}" x2="${hx}" y2="${hy}"/>`);
+        parts.push(`<circle class="curve-handle" cx="${hx}" cy="${hy}" r="4"/>`);
+      }
+      parts.push(`<text class="curve-value" x="${Math.min(xOf(p.u) + 9, width - 40)}" y="${Math.max(yOf(p.heightM, maxM) - 8, 11)}">${p.heightM.toFixed(1)}m</text>`);   // ceZTpI equiv
+    }
+    curve.forEach((p, i) => parts.push(`<circle class="curve-point${i === selIdx ? ' sel' : ''}" data-i="${i}" cx="${xOf(p.u)}" cy="${yOf(p.heightM, maxM)}" r="5"/>`));
+    svg.innerHTML = parts.join('');
+    svg.dataset.disabled = store.locked() ? '' : 'false';
+  }
+
+  svg.addEventListener('pointerdown', e => {
+    if (store.locked() || e.button !== 0) return;
+    try { svg.setPointerCapture(e.pointerId); } catch { }
+    const px = toPx(e);
+    const hm = store.heightMove();
+    if (!hm) return;
+    if (px.y < hRuler) { drag = 'scrub'; store.scrubCurve(toCurve(px, hm.maxM).u); return; }
+    drag = 'curve';
+    if (selIdx !== null && hm.curve[selIdx]) {
+      const side = handleAt(px, hm.curve, hm.maxM, selIdx);
+      if (side && sideOk(selIdx, side, hm.curve.length)) { store.pressCurvePoint(selIdx, side); return; }
+    }
+    const hit = hitPoint(px, hm.curve, hm.maxM);
+    if (hit >= 0) { selIdx = hit; store.pressCurvePoint(hit, null); return; }
+    const idx = store.pressCurveLine(toCurve(px, hm.maxM));
+    selIdx = idx === null ? null : idx;
+    if (idx === null) drag = null;
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const hm = store.heightMove();
+    if (!hm) return;
+    const px = toPx(e);
+    if (drag === 'scrub') store.scrubCurve(toCurve(px, hm.maxM).u);
+    else store.dragCurve(toCurve(px, hm.maxM), e.altKey);
+  });
+  const finish = () => { store.releaseCurve(); drag = null; };   // releaseCurve no-ops when no drag is open — heals lost pointerups
+  svg.addEventListener('pointerdown', e => {                     // recover from a lost pointerup: never stack brackets
+    if (store.curveDrag) store.releaseCurve();
+  });
+  svg.addEventListener('pointerup', finish);
+  svg.addEventListener('pointercancel', finish);
+  svg.addEventListener('dblclick', e => {
+    const hm = store.heightMove();
+    if (!hm || store.locked()) return;
+    const hit = hitPoint(toPx(e), hm.curve, hm.maxM);
+    if (hit > 0 && hit < hm.curve.length - 1) { selIdx = null; store.removeCurvePoint(hit); render(); }
+  });
+
+  return { render };
+}
+
 export class PlanCanvas {
   constructor(app, host, store) {
     this.app = app; this.store = store; this.host = host;
@@ -1033,15 +1327,17 @@ export class PlanCanvas {
     this._tip = null;                  // tap-or-draw focus tooltip
     this._bar = null; this._camChip = null;
     this._buildBar();
+    this._curve = buildCurvePanel(this.host, store, app);   // r8-2: height-curve editor (eFr port)
     this._wire();
     this._wireEscape();
     app.onViewportMode = () => this._syncShown();
-    if (app.page?.subscribe) app.page.subscribe(() => this._syncShown());
-    if (app.objects?.subscribe) app.objects.subscribe(() => { if (this.shown()) this._syncBar(true); });
-    if (app.show?.subscribe) app.show.subscribe(() => { if (this.shown()) this._syncBar(true); });
+    if (app.page?.subscribe) app.page.subscribe(() => { this._syncShown(); if (this.shown()) this._syncCurvePanel(); });
+    if (app.objects?.subscribe) app.objects.subscribe(() => { if (this.shown()) { this._syncBar(true); this._syncCurvePanel(); } });
+    if (app.show?.subscribe) app.show.subscribe(() => { if (this.shown()) { this._syncBar(true); this._syncCurvePanel(); } });
     this._onStrokeClock = this._onTip = null;
     store._onZoomPercent = v => { this._zoomPct = v; this._syncZoomBar(); };
     store._onStrokeClock = c => this._syncTimer(c);
+    this._curveTick = () => this._curve && this.shown() && this._curve.render();
     store._onTip = on => this._syncBar();
     this.setVisible(app.page?.viewportMode === 'plan');
   }
@@ -1056,6 +1352,7 @@ export class PlanCanvas {
     if (tb) tb.style.display = on ? 'none' : (this.app.objects?.selectedIds?.length ? 'flex' : 'none');
   }
   setVisible(v) { this.canvas.style.display = v ? 'block' : 'none'; if (v) { this.w = OLr(this.w); } }
+  _syncCurvePanel() { if (this._curve) this._curve.render(); }   // r8-2: height-curve panel
 
   // ---- deps snapshot for reducers ($()) ----
   _deps() {
@@ -1074,6 +1371,7 @@ export class PlanCanvas {
     const re = window.devicePixelRatio || 1, ae = Math.round(q * re), ie = Math.round(Y * re);
     (Z.width !== ae || Z.height !== ie) && (Z.width = ae, Z.height = ie);
     const Ee = this.store.drawFrame(nowMs);                                     // ticks the stroke + {stroke, dimPathOf, focus}
+    if (this.shown()) this._curve?.render();                                    // r8-2: curve panel playhead sync
     this._items = this.store.items();
     this.w = ILr(jLr(this.w, q, Y), this._items);                               // resize keeps world center; fit once
     const xe = this._lastFrameMs === null ? 0 : nowMs - this._lastFrameMs; this._lastFrameMs = nowMs;

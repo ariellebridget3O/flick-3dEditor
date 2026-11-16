@@ -64,6 +64,20 @@ function parentLockedTRS(obj, objs, patch, propDims) {
 function keepAimPoint(obj, objs, aimWorld, propDims) {
   return parentLockedTRS(obj, objs, { position: aimWorld, rotation: [0, 0, 0], scale: [1, 1, 1] }, propDims).position;
 }
+// Kzt @4325070 — heightCurve validation (u monotonic 0..1, height 0..Y2r=20, handles well-formed)
+const CURVE_MAX_H = 20;                                  // Y2r
+function validHeightCurve(t) {
+  if (!Array.isArray(t) || t.length < 2) return undefined;
+  const okHandle = h => Array.isArray(h) && h.length === 2 && h.every(Number.isFinite);
+  return t.every((n, r) => {
+    if (!n || typeof n !== 'object') return false;
+    const { u, heightM, in: o, out: l } = n;
+    return typeof u === 'number' && (r === 0 ? u === 0 : u > t[r - 1].u)
+      && (r < t.length - 1 || u === 1)
+      && typeof heightM === 'number' && heightM >= 0 && heightM <= CURVE_MAX_H
+      && okHandle(o) && okHandle(l) && o[0] <= 0 && l[0] >= 0;
+  }) ? t : undefined;
+}
 // kv @4911593 — lookAt rotation (yaw+pitch) from position→aim, then rotateY(π) (camera faces −Z)
 const _kvObj = new THREE.Object3D();
 function lookAtEulerRZ(pos, aim) {
@@ -743,6 +757,16 @@ export class ShowStore extends StoreBase {
       idx = index + 1;
     });
     return idx;
+  }
+  setPathHeightCurve(trackId, itemId, curve) {           // @5556468 — cam-path gate + Kzt validation
+    const tr = this.show.tracks.find(t => t.id === trackId);
+    const it = tr?.items.find(i => i.id === itemId);
+    if (!it || it.kind !== 'cam-path' || !validHeightCurve(curve)) return false;
+    this._commit(trackId, t => {
+      const i = t.items.findIndex(x => x.id === itemId);
+      if (i >= 0) t.items[i] = { ...t.items[i], heightCurve: curve };
+    });
+    return true;
   }
   movePathAnchor(trackId, itemId, index, pos) {
     this._commit(trackId, t => {
