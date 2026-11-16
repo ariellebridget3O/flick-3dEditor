@@ -441,3 +441,126 @@ context via `drawImage`. (`IP=Brt=Frt=Hrt=128`.)
     known exactly from the DOM capture.
 13. Byte offsets: use the byte ranges in this MAP (grep -bo verified). r7-style
     char+nonascii byte math is off by up to ~8 KB in this region.
+
+## 14. r8b additions — aim / seed / lane-drop second pass (extracted by scripts/r8b_extract.py)
+
+All units below live in this directory as `fn_<name>.js` (verbatim slice + header with
+**byte ranges**), indexed in `fn_index_r8b.json`, each validated with `node --check`
+(wrapped) and **byte-identity-verified** by re-slicing the bundle as raw UTF-8 bytes.
+Engine reused from `scripts/r8_palette_extract.py` (correct real-byte UTF-8 math).
+
+### A. TRS compose / validation / lookAt  (camera aim math)
+| name | char range | byte range | size | role |
+|---|---|---|---|---|
+| CP | 4900781..4900993 | 4907712..4907924 | 212 | TRS → Matrix4 (euler XYZ → quat → compose; scratch zb/hie/GB/qB) |
+| wDe | 4901053..4901342 | 4907984..4908273 | 289 | Matrix4 → TRS decompose + euler-flip normalization (s2e wraps to (−π,π]) |
+| pie | 4901342..4901413 | 4908273..4908344 | 71 | local TRS from parent world TRS: inv(parent)·child (cN dep) |
+| VWt | 4901413..4901465 | 4908344..4908396 | 52 | world TRS: parent·child (Zo dep) |
+| cN | 4901465..4901598 | 4908396..4908529 | 133 | transform validation/normalization vs parent (turnCameraToward dep) |
+| s$ | 4901598..4901685 | 4908529..4908616 | 87 | target-reposition: world pos so target keeps pointing at aim point |
+| Zo | 4901839..4902028 | 4908770..4908959 | 189 | BASE TRS compose for an object from the objects store |
+| el | 4902133..4902191 | 4909064..4909122 | 58 | is humanoid/simple_figure |
+| Xu | 4902336..4902445 | 4909267..4909376 | 109 | object is a target referenced by some camera (canOwnTrack dep) |
+| Dj_scratch | 4904646..4904662 | 4911577..4911593 | 16 | `const Dj=new di` — scratch Object3D for kv |
+| kv | 4904662..4904808 | 4911593..4911739 | 146 | lookAt rotation pos→target + rotateY(π) (camera faces −Z) |
+
+### B. Camera-item subject predicates
+| name | char range | byte range | size | role |
+|---|---|---|---|---|
+| consts_V2r | 4316085..4316182 | 4323016..4323113 | 97 | V2r = Set of camera-item kinds (cam-still/move/path/follow/transform/manual) |
+| Fp | 4316182..4316220 | 4323113..4323151 | 38 | Fp(item) = V2r.has(item.kind) — "is camera item" (NOT needs-subject) |
+| XN | 4316220..4316328 | 4323151..4323259 | 108 | item aim point (module form): resolver(subjectId)+aimOffsetUnits |
+| $6 | 4316328..4316391 | 4323259..4323322 | 63 | item.aimOffsetUnits ‖ 0 |
+| U2r | 4316391..4316425 | 4323322..4323356 | 34 | items.some(YN) |
+| YN | 4316425..4316569 | 4323356..4323500 | 144 | needs camera target (subjectlessItem): cam-move ≠ pan_sweep / cam-path aim=subject with subjectId===null |
+
+### C. Subject aim height (NP family)
+| name | char range | byte range | size | role |
+|---|---|---|---|---|
+| consts_MIr | 5247744..5247757 | 5263806..5263819 | 13 | MIr=.7 default aim margin |
+| uje | 5247757..5247952 | 5263819..5264014 | 195 | object height units (humanoid jP·scaleY; prop dims; target 0) |
+| VDe | 5247952..5248332 | 5264014..5264394 | 380 | vertical extent (minY/maxY) incl. group children via Zo+uje |
+| NP | 5248332..5248466 | 5264394..5264528 | 134 | NP(objectId, objects, margin=MIr) = minY − objY + margin·max(0,maxY−minY) |
+
+### D. Timeline magnet / px→time core
+| name | char range | byte range | size | role |
+|---|---|---|---|---|
+| consts_Kne_O8 | 5138388..5138409 | 5154444..5154465 | 21 | Kne=12 MAGNET RADIUS px; O8=1e-6 eps |
+| wie | 5138409..5138469 | 5154465..5154525 | 60 | item → {startS, endS:startS+yd} |
+| MP | 5138469..5138534 | 5154525..5154590 | 65 | max endS = append position |
+| oje | 5138534..5138642 | 5154590..5154698 | 108 | span overlap test (eps) |
+| Xne | 5138642..5138853 | 5154698..5154909 | 211 | magnet snap to markers (tries marker & marker−duration) |
+| _ie | 5138853..5139339 | 5154909..5155395 | 486 | THE MAGNET PLACER → {startS, guidesS} |
+| W5r | 5139339..5139472 | 5155395..5155528 | 133 | collision-free placer (radius 0) — used by placeItemS, NOT the lane drop |
+| lje | 5139472..5139627 | 5155528..5155683 | 155 | left-collapse normalize |
+| G5r | 5139627..5139667 | 5155683..5155723 | 40 | span center (reorder comparator) |
+| q5r | 5139667..5140109 | 5155723..5156165 | 442 | segment-drag plan {kind:"move"/"reorder"} |
+| kGt | 5140109..5140383 | 5156165..5156439 | 274 | apply reorder splice |
+| consts_timeline_px | 5164648..5164714 | 5180708..5180774 | 66 | UAr=5, zAr=4 drag-threshold px, WAr=.05 min dur, p2e=3 min block px, GAr zoom steps, qAr=80 |
+| ZAr | 5164714..5165006 | 5180774..5181066 | 292 | object-action block label |
+| s9_mime | 5140383..5140495 | 5156439..5156551 | 112 | s9="application/x-stage-object" (object list → timeline panel MIME) + SGt/kie/TGt |
+
+### E. Lane-drop controller + parents
+| name | char range | byte range | size | role |
+|---|---|---|---|---|
+| nCr | 5170765..5176954 | 5186825..5193014 | 6189 | THE LANE: dragover ghost {startS,durationS,guidesS} via Z()/_ie, drop → MDe(getData($v)) → G() → Z() → onAddAction(trackId,item,startS); ghostBlock/ghostCaret/snapGuide inline JSX; segment pointer drag/duplicate + trim handles |
+| KAr | 5165006..5168927 | 5181066..5184987 | 3921 | TIMELINE PANEL: magnet toggle, range tool xTr, ruler VAr, lanes→nCr; panel-level s9 object drop |
+| SCr | 5180427..5183715 | 5196487..5199775 | 3288 | BOTTOM-PANEL FACTORY: `n=(c,d,u)=>{t.addActionToTrack(c,d,u),t.dismissActions()}` = onAddAction; keyframe factories |
+| gVr | 5572082..5572917 | 5588172..5589007 | 835 | 3rd MDe(getData($v)) consumer: hotkey key-slot drop (clips only) |
+
+### F. Store methods (aim/seed/segment-drop) + transform hook
+| name | char range | byte range | size | role |
+|---|---|---|---|---|
+| updateObjectTransform | 5265294..5265392 | 5281356..5281454 | 98 | DEFAULT objects-store hook: objects[id].set({...obj,...patch}) |
+| aimCameraAtSubject | 5531472..5531839 | 5547561..5547928 | 367 | AIM FLOW (guard: existing Fp item with startS<s && kind!=="cam-still") |
+| subjectAimPoint | 5531839..5531977 | 5547928..5548066 | 138 | Zo(obj).position + NP + dy |
+| turnCameraToward | 5531977..5532187 | 5548066..5548276 | 210 | cN(obj,{...Zo,rotation:kv(pos,target)}).rotation |
+| seedPathStart | 5539606..5539708 | 5555695..5555797 | 102 | appendPathAnchor([...Zo(obj,objects).position]) |
+| enterPathEdit | 5539708..5539886 | 5555797..5555975 | 178 | selectedSegment+performancePaint+editInteraction="editingPath" |
+| appendPathAnchor | 5541210..5541465 | 5557299..5557554 | 255 | anchor Y via anchorPosFor, mT-smooth, select last |
+| placeItemS | 5528347..5528395 | 5544436..5544484 | 48 | atS===void 0 ? MP(items) : W5r(items,durationS,atS) |
+| canDropSegmentOnObject | 5547519..5547647 | 5563608..5563736 | 128 | draggedSegment && canOwnTrack && Art(segment, kind) |
+| dropSegmentOnObject | 5547647..5548018 | 5563736..5564107 | 371 | duplicateItem into track(characterId) at MP(items); segmentDropTaken=true |
+| duplicateItem | 5548018..5548375 | 5564107..5564464 | 357 | clone item (an() id, DHr ref-strip) into target track |
+
+### G. updateObjectTransform wiring slices
+| name | char range | byte range | size | role |
+|---|---|---|---|---|
+| wire_BHr_ctor | 5524027..5525186 | 5540116..5541275 | 1159 | BHr performance-store constructor body: 5th ctor arg `a` stored as `this.updateObjectTransform` |
+| wire_newBHr | 5788299..5788473 | 5804389..5804563 | 174 | `performanceStore=new BHr(objects, editInteraction, recording, isPreviewPlaying, objectsStore.updateObjectTransform)` |
+| wire_facade_uot | 5792185..5792247 | 5808275..5808337 | 62 | facade: `updateObjectTransform=this.objectsStore.updateObjectTransform;` |
+| wire_facade_epe | 5804949..5804999 | 5821039..5821089 | 50 | facade: `enterPathEdit=this.performanceStore.enterPathEdit;` |
+
+### r8b gotchas / surprises
+1. **Lane drop does NOT use W5r.** The palette→lane drop goes `Z()` → `_ie()` (magnet,
+   radius `Kne/ppsPx` = 12 px / px-per-second, bypassed by holding Alt). `W5r` is the
+   no-magnet placer used by `placeItemS` (store add flows with explicit atS).
+2. **Ghost visuals are inline JSX in nCr** (no separate painter fn): `mr.ghostBlock`
+   span when `durationS>0` (left=W.startS*ppsPx, width=max(durationS*ppsPx,p2e)),
+   `mr.ghostCaret` span when durationS===0 (n3r→0 payloads: path/play), plus
+   `mr.snapGuide` spans at each `guidesS` (magnet guides). Same `ghostBlock` reused
+   for the cross-track duplicate ghost (`duplicateGhost` prop).
+3. **Magnet markers** for a lane drop = all startS/endS of OTHER tracks' blocks
+   (`U(null)` over allBlocks), NOT the lane's own items (obstacles = `V(null)` = own
+   lane minus dragged). Snap tries marker and marker−durationS.
+4. **Drop duration comes from n3r(item)** (r8 §8) computed inside `Z()` BEFORE the
+   snap, so magnet markers also try `marker−durationS` alignment (end-snapping).
+5. `onAddAction` chain: nCr `g(trackId,item,startS)` → SCr `n=(c,d,u)=>{t.addActionToTrack(c,d,u);t.dismissActions()}` → store `addActionToTrack(trackId,payload,atS)` (r8 §) → per-kind add*Item. Segment drop instead uses `dropSegmentOnObject`→`duplicateItem` (no addActionToTrack).
+6. `aimCameraAtSubject` guard aborts when ANY camera-kind item (Fp) with `startS<s`
+   exists and isn't `cam-still` — i.e. never re-aim mid-camera-sequence; it also
+   repositions the camera's target object (`s$`) unless another YN (subjectless)
+   item references it, then `turnCameraToward` (kv+cN) on the camera itself.
+7. `subjectAimPoint` = Zo Y + NP (default margin MIr=.7 of height above minY) + dy.
+   The item-level twin is XN (resolver-based, for KCe rendering).
+8. `kv` uses a shared scratch `Object3D` (`Dj=new di`) — not reentrant; port must
+   instantiate per call or per module like the bundle does (single shared scratch).
+9. `wDe` euler flip: after decompose, tries the (x+π, π−y, z+π) variant when
+   |x|+|z| is smaller by >1e-9 — needed for gimbal-friendly camera rotations.
+10. Three `MDe(getData($v))` consumers total: BUr (viewport, r8), nCr (timeline
+    lanes), gVr (hotkey key-slots, clips only). The timeline PANEL root has a
+    separate s9 ("application/x-stage-object") drop that creates a track from an
+    object (`addTrackForObject`) — different MIME, different flow.
+11. Segment pointer-drag magnet: `s && !(metaKey||ctrlKey)` (Alt-drag = duplicate to
+    another lane via `document.elementFromPoint(...).closest("[data-track-id]")`).
+12. fn_consts_Bit.js hex comments corrected: 3829720=**0x3A6FD8**, 3394696=**0x33CC88**
+    (code untouched; same fix applied to the purpose string in fn_index.json).

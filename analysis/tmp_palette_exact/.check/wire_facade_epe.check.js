@@ -1,0 +1,3 @@
+(() => {
+enterPathEdit=this.performanceStore.enterPathEdit;
+});

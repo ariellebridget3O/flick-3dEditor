@@ -1,0 +1,3 @@
+(() => {
+updateObjectTransform=this.objectsStore.updateObjectTransform;
+});

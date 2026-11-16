@@ -1485,7 +1485,7 @@
    "DUr"
   ],
   "anchor": "const Bit=3829720",
-  "purpose": "drop-highlight emissive consts: Bit=3829720 (0x3A7C58) + Hit=.4 idle intensity; OUr=3394696 (0x33D948) hover + LUr=.9; DUr=t=>\"emissive\" in t (glowable material test)",
+  "purpose": "drop-highlight emissive consts: Bit=3829720 (0x3A6FD8) + Hit=.4 idle intensity; OUr=3394696 (0x33CC88) hover + LUr=.9; DUr=t=>\"emissive\" in t (glowable material test)",
   "params": "-> consts"
  },
  {
