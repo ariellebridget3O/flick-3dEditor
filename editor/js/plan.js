@@ -705,7 +705,7 @@ function Tje([t, e], n, r) {                                                    
   const s = n + e, a = NZt(s, r);
   if (a === s) return [t, e];
   const o = Math.max(0, (a - n) / e) || 0;
-  return [t * o, a - n];
+  return [t * o, e * o];
 }
 function cLr(t, e, n, r, s) {                                                       // cLr — handle drag (mirror unless Alt-broken)
   const a = t[e],
@@ -1219,6 +1219,7 @@ export function buildCurvePanel(host, store, app) {
   const sideOk = (i, side, len) => side === 'in' ? i > 0 : i < len - 1;
   const handleAt = (px, curve, maxM, i) => {
     for (const side of ['in', 'out']) {
+      if (!sideOk(i, side, curve.length)) continue;               // verbatim C(i,side,len) gates INSIDE the find (review P3-9)
       const p = curve[i];
       const hx = xOf(p.u + p[side][0]), hy = yOf(p.heightM + p[side][1], maxM);
       if (Math.hypot(px.x - hx, px.y - hy) <= hHandleHit) return side;
@@ -1261,9 +1262,14 @@ export function buildCurvePanel(host, store, app) {
     }
     curve.forEach((p, i) => parts.push(`<circle class="curve-point${i === selIdx ? ' sel' : ''}" data-i="${i}" cx="${xOf(p.u)}" cy="${yOf(p.heightM, maxM)}" r="5"/>`));
     svg.innerHTML = parts.join('');
-    svg.dataset.disabled = store.locked() ? '' : 'false';
+    if (store.locked()) svg.dataset.disabled = '';
+    else svg.removeAttribute('data-disabled');
   }
 
+  // recover from a lost pointerup BEFORE the main handler opens a fresh drag (review P0-1:
+  // same-element listeners fire in registration order — registering after would release the
+  // drag the main handler just opened on the same dispatch)
+  svg.addEventListener('pointerdown', () => { if (store.curveDrag) store.releaseCurve(); });
   svg.addEventListener('pointerdown', e => {
     if (store.locked() || e.button !== 0) return;
     try { svg.setPointerCapture(e.pointerId); } catch { }
@@ -1274,7 +1280,7 @@ export function buildCurvePanel(host, store, app) {
     drag = 'curve';
     if (selIdx !== null && hm.curve[selIdx]) {
       const side = handleAt(px, hm.curve, hm.maxM, selIdx);
-      if (side && sideOk(selIdx, side, hm.curve.length)) { store.pressCurvePoint(selIdx, side); return; }
+      if (side) { store.pressCurvePoint(selIdx, side); return; }
     }
     const hit = hitPoint(px, hm.curve, hm.maxM);
     if (hit >= 0) { selIdx = hit; store.pressCurvePoint(hit, null); return; }
@@ -1291,9 +1297,6 @@ export function buildCurvePanel(host, store, app) {
     else store.dragCurve(toCurve(px, hm.maxM), e.altKey);
   });
   const finish = () => { store.releaseCurve(); drag = null; };   // releaseCurve no-ops when no drag is open — heals lost pointerups
-  svg.addEventListener('pointerdown', e => {                     // recover from a lost pointerup: never stack brackets
-    if (store.curveDrag) store.releaseCurve();
-  });
   svg.addEventListener('pointerup', finish);
   svg.addEventListener('pointercancel', finish);
   svg.addEventListener('dblclick', e => {
@@ -1303,7 +1306,20 @@ export function buildCurvePanel(host, store, app) {
     if (hit > 0 && hit < hm.curve.length - 1) { selIdx = null; store.removeCurvePoint(hit); render(); }
   });
 
-  return { render };
+  function tick() {   // review P2-7: per-frame update touches ONLY the playhead line
+    if (panel.style.display === 'none') return;
+    const hm = store.heightMove();
+    if (!hm) return;
+    let line = svg.querySelector('.curve-playhead');
+    const u = hm.durationS > 0 ? (app.page.playheadS - hm.startS) / hm.durationS : -1;
+    if (u >= 0 && u <= 1) {
+      if (!line) { render(); return; }             // rare: appeared — full render once
+      line.setAttribute('x1', xOf(u));
+      line.setAttribute('x2', xOf(u));
+    } else if (line) line.remove();
+  }
+
+  return { render, tick };
 }
 
 export class PlanCanvas {
@@ -1371,7 +1387,7 @@ export class PlanCanvas {
     const re = window.devicePixelRatio || 1, ae = Math.round(q * re), ie = Math.round(Y * re);
     (Z.width !== ae || Z.height !== ie) && (Z.width = ae, Z.height = ie);
     const Ee = this.store.drawFrame(nowMs);                                     // ticks the stroke + {stroke, dimPathOf, focus}
-    if (this.shown()) this._curve?.render();                                    // r8-2: curve panel playhead sync
+    if (this.shown()) this._curve?.tick();                                      // r8-2: playhead-only update (review P2-7: no full innerHTML churn per rAF)
     this._items = this.store.items();
     this.w = ILr(jLr(this.w, q, Y), this._items);                               // resize keeps world center; fit once
     const xe = this._lastFrameMs === null ? 0 : nowMs - this._lastFrameMs; this._lastFrameMs = nowMs;

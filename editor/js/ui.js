@@ -1166,22 +1166,30 @@ function wireLaneActionDrop(app, lanes, pps, magnet, layout) {
       obstacles: own,
       markersS: markers,
       radiusS: magnet && !alt ? MAGNET_PX / pps : 0,
-      fallbackStartS: maxEnd(own.map(o => o)),
+      fallbackStartS: own.reduce((m, o) => Math.max(m, o.endS), 0),   // review P1-2: maxEnd(interval objects) = NaN — reduce on endS (verbatim MP)
     });
     return { startS, durationS: defaultDurationFor(payload), guidesS };
   };
   const clearGhost = lb => {
+    lb.__laneDropState = null;
     lb.querySelectorAll('.ghost-blk,.ghost-caret,.snap-guide').forEach(g => g.remove());
     lb.classList.remove('lane-drop');
   };
   lanes.querySelectorAll('.lane-body').forEach(lb => {
+    lb.__laneDropState = null;                     // review P2-6: skip rebuild when unchanged (verbatim O() dedupe)
     lb.addEventListener('dragover', e => {
       if (!e.dataTransfer.types.includes(ACTION_MIME)) return;
       const payload = app.show.draggingAction;
       if (!payload) return;
+      // review P2-5: verbatim resolves the payload through the track owner — non-resolving = dropEffect none, no ghost
+      const resolved = app.show.resolveActionForObject(lb.dataset.char, payload);
+      if (!resolved) { e.dataTransfer.dropEffect = 'none'; return; }
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
       const z = laneBodyZ(lb, e.clientX, e.altKey, payload);
+      const key = z.startS + '/' + z.durationS;
+      if (lb.__laneDropState === key) return;
+      lb.__laneDropState = key;
       lb.classList.add('lane-drop');
       lb.querySelectorAll('.ghost-blk,.ghost-caret,.snap-guide').forEach(g => g.remove());
       for (const g of z.guidesS) {
@@ -1211,8 +1219,7 @@ function wireLaneActionDrop(app, lanes, pps, magnet, layout) {
       try { app.show.addActionToTrack(lb.dataset.trackId, payload, z.startS); }
       finally { app.show.endEditGesture(); }
       app.palette?.dismiss();          // SCr chain: addActionToTrack → dismissActions
-      refreshTimeline(app);
-      refreshInspector(app);
+      refreshInspector(app);           // timeline refresh comes via show.subscribe (review P3-12)
     });
   });
 }
@@ -1581,7 +1588,9 @@ function buildViewportOverlays(app) {
   const actionsBtn = document.getElementById('btnActions');
   if (actionsBtn) {
     actionsBtn.onclick = () => app.palette?.toggle();
+    // aria-pressed tracks open state — close()/dismiss() emit no store event, so poll on page changes too
     app.objects.subscribe(() => actionsBtn.setAttribute('aria-pressed', String(!!app.palette?.state.open)));
+    app.page.subscribe(() => actionsBtn.setAttribute('aria-pressed', String(!!app.palette?.state.open)));
   }
   // round 6 B6: snap toggle + B5 shade switch
   const snapBtn = document.getElementById('btnSnap');

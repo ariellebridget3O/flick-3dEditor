@@ -704,12 +704,29 @@ export class App {
     const mesh = id ? this.meshById.get(id) : null;
     const pose = mesh?.userData?.evalPose;
     if (!inCam || obj?.kind !== 'camera' || !pose) {
-      if (this._lensActive) {
+      if (this._lensActive && !inCam) {
+        // review P1-4: restore the SAVED editor viewpoint (position + quaternion + orbit target)
+        const save = this._lensSave;
+        if (save) {
+          this.camera.position.copy(save.position);
+          this.camera.quaternion.copy(save.quaternion);
+          if (this.orbit) this.orbit.target.copy(save.target);
+        }
         this.camera.fov = C.EDITOR_FOV;
         this.camera.updateProjectionMatrix();
         this._lensActive = false;
+        this._lensSave = null;
       }
+      // still inside cameras view but no pose (deselection): freeze the last lens frame (review P3-11)
       return;
+    }
+    if (!this._lensActive) {
+      // first activation: save the editor viewpoint
+      this._lensSave = {
+        position: this.camera.position.clone(),
+        quaternion: this.camera.quaternion.clone(),
+        target: this.orbit ? this.orbit.target.clone() : null,
+      };
     }
     this.camera.position.copy(pose.position);
     this.camera.quaternion.copy(pose.quaternion);

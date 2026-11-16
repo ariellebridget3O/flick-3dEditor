@@ -65,7 +65,7 @@ function keepAimPoint(obj, objs, aimWorld, propDims) {
   return parentLockedTRS(obj, objs, { position: aimWorld, rotation: [0, 0, 0], scale: [1, 1, 1] }, propDims).position;
 }
 // Kzt @4325070 — heightCurve validation (u monotonic 0..1, height 0..Y2r=20, handles well-formed)
-const CURVE_MAX_H = 20;                                  // Y2r
+const CURVE_MAX_H = C.HEIGHT_CURVE_MAX;                  // Y2r = 100 (bundle-verified)
 function validHeightCurve(t) {
   if (!Array.isArray(t) || t.length < 2) return undefined;
   const okHandle = h => Array.isArray(h) && h.length === 2 && h.every(Number.isFinite);
@@ -449,6 +449,8 @@ export class ShowStore extends StoreBase {
     return o?.kind === 'target' && Object.values(this._objs()).some(c => c.kind === 'camera' && c.targetId === id);
   }
   canOwnTrack(id) { return !this.isCameraTarget(id); }   // BHr @5543438
+  setDraggingAction(payload) { this.draggingAction = payload; }        // BHr @5543181 (verbatim surface)
+  clearDraggingAction() { this.draggingAction = null; }                // BHr @5543229
   resolveActionForObject(id, payload) {                  // BHr @5543283 = a$(payload, kind)
     return remapAction(payload, this._objs()[id]?.kind);
   }

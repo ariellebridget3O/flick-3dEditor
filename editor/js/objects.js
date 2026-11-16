@@ -291,6 +291,7 @@ export class ObjectManager {
       const model = gltf.scene.clone(true);
       model.traverse(o => {   // r8 (audit P2-6c): clone materials per instance — shared materials would make the palette drop-glow all-or-nothing across cameras
         if (!o.isMesh) return;
+        o.geometry = o.geometry.clone();   // review P2-4: clone(true) still SHARES geometry — dispose() would kill siblings' buffers
         const m = o.material;
         o.material = Array.isArray(m) ? m.map(x => x.clone()) : m.clone();
       });
@@ -371,7 +372,8 @@ export class ObjectManager {
       model.traverse(o => {
         if (o.isMesh) {
           o.castShadow = false; o.receiveShadow = false;
-          const m = o.material;   // r8 (audit P2-6c): per-instance materials (see _loadCameraGlb)
+          o.geometry = o.geometry.clone();   // review P2-4 (see _loadCameraGlb)
+          const m = o.material;   // r8 (audit P2-6c): per-instance materials
           o.material = Array.isArray(m) ? m.map(x => x.clone()) : m.clone();
         }
       });

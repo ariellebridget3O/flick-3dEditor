@@ -123,7 +123,7 @@
     import { createPalette, installActionDrop } from './js/palette.js';
     const app = await boot(document.getElementById('viewport'));
     buildUI(app);
-    createPalette(app);          // r8: the Actions window (M5r port)
+    app._paletteDispose = createPalette(app);   // r8: the Actions window (M5r port) — dispose kept for teardown
     installActionDrop(app);      // r8: viewport action-drop (BUr port)
     window.__app = app;   // test hook
     const p = new URLSearchParams(location.search);

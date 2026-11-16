@@ -407,8 +407,9 @@ class CameraTileRenderer {
       let last = performance.now(), acc = 0;
       const tick = now => {
         if (this.disposed || token !== this.loopToken) return;
-        acc += (now - last) / 1e3; last = now;
-        this.mixer?.update((now - last) / 1e3);
+        const dt = (now - last) / 1e3; last = now;      // review P2-2: ONE diff — the second read was always 0 (frozen mixer)
+        acc += dt;
+        this.mixer?.update(dt);
         this.applyPose(action, triangleWave((acc % CAM_LOOP) / CAM_LOOP));
         this.renderTo(canvas);
         this.rafId = requestAnimationFrame(tick);
@@ -553,7 +554,8 @@ export function createPalette(app) {
   };
   const addButtonHTML = payload => {
     const enabled = canAdd(payload);
-    return `<button class="tile-add" draggable="false" aria-disabled="${!enabled}" title="${enabled ? 'Add to selected object' : TILE_TITLES.addDisabled}" data-add-payload='${JSON.stringify(payload)}'>${iconSVG('add', 'xs')}</button>`;
+    const tip = enabled ? 'Add to selected object' : TILE_TITLES.addDisabled;
+    return `<button class="tile-add" draggable="false" aria-disabled="${!enabled}" aria-label="${tip}" title="${tip}" data-add-payload='${JSON.stringify(payload)}'>${iconSVG('add', 'xs')}</button>`;   // review P3-14: N5r aria-label
   };
   const tileHTML = ({ draggable = true, title, thumb, icon, name, payload, colorVar }) => `
     <div class="tile" ${draggable ? 'draggable="true"' : ''} title="${title ?? ''}" data-payload='${JSON.stringify(payload)}'>
@@ -568,11 +570,10 @@ export function createPalette(app) {
       const canvas = el.querySelector('canvas.tile-thumb');
       if (canvas) {
         el.addEventListener('pointerenter', () => {
-          state.hoverTile = { canvas, action: thumbAction.action, kind: thumbAction.kind };
           const r = state.renderers;
           (thumbAction.kind === 'clip' ? r.clip : thumbAction.kind === 'cube' ? r.cube : r.camera).startLoop(canvas, thumbAction.action);
         });
-        el.addEventListener('pointerleave', () => stopHoverLoop());
+        el.addEventListener('pointerleave', () => { stopHoverLoop(); thumbAction.draw(canvas); });   // review P2-3: restore the still thumb
         thumbAction.draw(canvas);   // static still (L5r .35 / B5r / m5r)
       }
     }
@@ -608,6 +609,7 @@ export function createPalette(app) {
 
   // ---- render (tab panes; live M5r move/animate/camera structure) ----
   const render = () => {
+    stopHoverLoop();                                   // review P2-12: a re-render rebuilds canvases — stop any hover loop first
     const query = state.query.trim().toLowerCase();
     const matches = s => !query || s.toLowerCase().includes(query);
     if (state.requestedTab) state.tab = state.requestedTab;
@@ -638,7 +640,7 @@ export function createPalette(app) {
     let notice = null;
     const selId = app.objects.selectedId;
     const selObj = selId != null ? app.objects.get(selId) : null;
-    if (state.tab === 'animate' && selObj?.kind === 'simple_figure' && !query) {
+    if (state.tab === 'animate' && selObj?.kind === 'simple_figure') {   // review P3-13: verbatim has no query gate
       notice = document.createElement('div');
       notice.className = 'palette-notice';
       const txt = document.createElement('div');
@@ -709,17 +711,6 @@ export function createPalette(app) {
 const GLOW_IDLE = 0x3a6fd8, GLOW_IDLE_I = .4, GLOW_HOVER = 0x33cc88, GLOW_HOVER_I = .9;
 let _dropRestore = null;
 
-function collectGlowMats(app, id) {
-  const mesh = app.meshById.get(id);
-  if (!mesh) return [];
-  const mats = new Map();
-  mesh.traverse(o => {
-    if (!o.isMesh) return;
-    const list = Array.isArray(o.material) ? o.material : [o.material];
-    for (const m of list) if (m?.emissive) mats.set(m, m);
-  });
-  return [...mats.keys()];
-}
 function applyGlow(app, ids, hex, intensity) {
   for (const id of ids) {
     const mesh = app.meshById.get(id);
@@ -773,7 +764,6 @@ export function installActionDrop(app) {
     const payload = app.show.draggingAction;
     if (!payload) return;
     e.preventDefault();                                // allow drop
-    e.dataTransfer.dropEffect = 'copy';
     if (!candidates) candidates = computeCandidates(payload);
     // raycast candidates → hovered object (walk up parents for userData.objectId)
     const rect = el.getBoundingClientRect();
@@ -792,6 +782,7 @@ export function installActionDrop(app) {
       if (hitId) applyGlow(app, [hitId], GLOW_HOVER, GLOW_HOVER_I);
       hoverId = hitId;
     }
+    e.dataTransfer.dropEffect = hoverId ? 'copy' : 'none';   // review P3-6: verbatim hit-conditional
   });
   el.addEventListener('dragleave', e => {
     if (e.relatedTarget && el.contains(e.relatedTarget)) return;
