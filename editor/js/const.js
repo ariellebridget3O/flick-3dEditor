@@ -121,6 +121,7 @@ export const C = {
   FOCAL_STEPS: [14, 18, 24, 35, 50, 85, 135, 200], // bT/yT
   SENSOR_W: 35,              // Lzt/Fzt — full-frame width constant
   SHAKE_VALUES: ['off', 'subtle', 'medium', 'heavy'], // Xst (rigs may add 'stride')
+  ASPECT_KEYS: ['16:9', '9:16', '1:1', '4:3', '1.85:1', '2.39:1'],   // Zae order (round 6: aspect select)
   ASPECTS: {                 // Zae (old Gae)
     '16:9': [1920, 1080], '9:16': [1080, 1920], '1:1': [1080, 1080],
     '4:3': [1440, 1080], '1.85:1': [1920, 1038], '2.39:1': [1920, 804],

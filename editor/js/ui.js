@@ -6,7 +6,7 @@ import { C, CLIPS, CAM_MOVES, CAM_MOVE_PRESETS } from './const.js';
 import { normalizeLight } from './env.js';
 import { itemDuration } from './schema.js';
 import { showLayout, ITEM_LABELS, fovFromFocal } from './tracks.js';
-import { MAGNET_PX, maxEnd, placeAvoiding, repackSequential, planMove, moveItemToIndex, clampKeyTime, canDuplicateOnto } from './place.js';
+import { MAGNET_PX, maxEnd, placeAvoiding, repackSequential, planMove, moveItemToIndex, clampKeyTime, canDuplicateOnto, appendPlace } from './place.js';
 import { createRangeTool, renderTakeRange, wireRangeToolGlobal } from './takerange.js';
 import { stickFromDelta } from './navball.js';
 
@@ -43,11 +43,13 @@ export function buildUI(app) {
     app.page.changed();          // nav ball pad / lasso button visibility ride this
     updateFrameGuide(app);
   });
-  $('modeSwitch').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    [...$('modeSwitch').children].forEach(x => x.classList.toggle('on', x === b));
-    app.page.controlMode = b.dataset.m;
-    app._applyControlMode();
+  // round 6 E2: Default/Unreal control-mode switch REMOVED by user direction
+  // (standard units/format only; controlMode stays 'default' — WASD nav unaffected)
+  document.querySelectorAll('[data-collapse]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panel = document.getElementById(btn.dataset.collapse);
+      panel?.classList.toggle('collapsed');
+    });
   });
 
   // open/save
@@ -279,23 +281,57 @@ export function syncToolHighlight(app) {   // toolbar reflects the gizmo's actua
 // ================= inspector =================
 function refreshInspector(app) {
   const body = document.getElementById('inspectorBody');
+  if (!body) return;
+  renderObjectSection(app, body);
+}
+
+// ---------- object section (live-exact M$r: NO clip dropdown, NO playing, NO add-action buttons) ----------
+const COLORABLE = new Set(['cube', 'sphere', 'cylinder', 'prop', 'humanoid', 'simple_figure', 'group']);
+function renderObjectSection(app, body) {
   const id = app.objects.selectedId;
   const obj = id ? app.objects.get(id) : null;
-  if (!obj) { body.innerHTML = '<div class="hint">Select an object</div>'; return; }
-  const num = (label, value, step, cb) =>
-    `<label class="row">${label}<input type="number" step="${step}" value="${fmt(value)}" data-k="${label}"></label>`;
-  const vec = (label, v, step, cb) => `<div class="vec-row"><span>${label}</span>
+  const seg = app.page.selectedSegment;            // Action section renders BELOW the object section (live jVr)
+  if (!obj) {
+    body.innerHTML = seg ? '' : '<div class="hint">Select an object or an action</div>';
+    if (seg) renderActionSection(app, body);
+    return;
+  }
+  const isPerson = obj.kind === 'humanoid' || obj.kind === 'simple_figure';
+  const isCam = obj.kind === 'camera';
+  const driven = app.manipulator?._isTrackDriven?.(id) && app.page.playing === false ? false : app.manipulator?._isTrackDriven?.(id);
+  const vec = (label, v, step) => `<div class="vec-row"><span>${label}</span>
     <input type="number" step="${step}" value="${fmt(v?.[0])}" data-k="${label}0">
     <input type="number" step="${step}" value="${fmt(v?.[1])}" data-k="${label}1">
     <input type="number" step="${step}" value="${fmt(v?.[2])}" data-k="${label}2"></div>`;
   let html = `<div class="insp-kind">${obj.kind}</div>
-    <label class="row">Name<input type="text" id="inspName" value="${escAttr(obj.name ?? '')}"></label>
-    ${vec('position', obj.position ?? [0, 0, 0], 0.1)}
-    ${obj.kind !== 'camera' ? vec('rotation', obj.rotation ?? [0, 0, 0], 0.05) : ''}
-    ${obj.kind !== 'camera' ? vec('scale', obj.scale ?? [1, 1, 1], 0.05) : ''}`;
-  if (obj.kind === 'camera') {
+    <label class="row">Name<input type="text" id="inspName" value="${escAttr(obj.name ?? '')}"></label>`;
+  // person-kind toggle (live P$r): single person selection only
+  if (isPerson) html += `<div class="person-kind">
+    <button data-pk="simple_figure" class="${obj.kind === 'simple_figure' ? 'on' : ''}" title="Switch to a procedural Figure">Figure</button>
+    <button data-pk="humanoid" class="${obj.kind === 'humanoid' ? 'on' : ''}" title="Switch to a rigged Human">Human</button>
+  </div>`;
+  // drivenBy hint (live: while the object is actively driven by an item at the playhead)
+  if (driven) {
+    const tr = app.show.trackOf(id);
+    const it = tr?.items.find(i => app.page.playheadS >= i.startS && app.page.playheadS < i.startS + itemDuration(i));
+    html += `<div class="driven-hint">Driven by ${escAttr(blockLabel(it ?? { kind: '?' }, isPerson))} — path edits are live</div>`;
+  }
+  html += `${vec('position', obj.position ?? [0, 0, 0], 0.1)}`;
+  if (obj.kind !== 'camera') html += `${vec('rotation', obj.rotation ?? [0, 0, 0], 0.05)}${vec('scale', obj.scale ?? [1, 1, 1], 0.05)}`;
+  if (obj.kind === 'simple_figure') html += vec('head', obj.headRotation ?? [0, 0, 0], 0.05);
+  // color row (live R$r — colorable kinds; group swatch starts at first child color)
+  if (COLORABLE.has(obj.kind)) {
+    let col = obj.color;
+    if (obj.kind === 'group' && col == null) {
+      const kid = Object.values(app.objects.all()).find(o => o.parentId === id && o.color != null);
+      if (kid) col = kid.color;
+    }
+    html += `<label class="color-row">Color<span><input type="color" id="inspColor" value="${col ? rgbHex(col) : '#e2e0dc'}"><button class="ghost small" id="inspColorClear" title="Clear color">✕</button></span></label>`;
+  }
+  if (isCam) {
     html += `<label class="row">Focal mm<input type="number" step="1" min="14" max="200" value="${obj.focalLengthMm ?? 50}" data-k="focalLengthMm"></label>
-      <label class="row">Shake<select data-k="shake">${C.SHAKE_VALUES.map(s => `<option ${obj.shake === s ? 'selected' : ''}>${s}</option>`).join('')}</select></label>`;
+      <label class="row">Aspect<select data-k="recordAspect">${C.ASPECT_KEYS.map(a => `<option value="${a}" ${app.page.recordAspect === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
+      <label class="row">Shake<select data-k="shake">${C.SHAKE_VALUES.map(v => `<option ${obj.shake === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
   }
   if (obj.kind === 'spotlight') {
     const sp = obj.spotlight ?? C.SPOT_DEFAULTS;
@@ -305,57 +341,51 @@ function refreshInspector(app) {
       <label class="row">Intensity<input type="number" step="5" min="0" max="100" value="${sp.intensity}" data-k="spotlight.intensity"></label>
       <label class="row">Diffusion<input type="number" step="5" min="0" max="100" value="${sp.diffusion}" data-k="spotlight.diffusion"></label>`;
   }
-  if (obj.kind === 'humanoid') {
-    const others = Object.entries(app.objects.all()).filter(([, o]) => o.kind !== 'camera');
-    html += `<label class="row">Clip<select data-k="animation.clip">
-      ${Object.keys(CLIPS).filter(c => c !== 'a_tpose').map(c => `<option ${obj.animation?.clip === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
-      <label class="row">Playing<input type="checkbox" ${obj.animation?.playing ? 'checked' : ''} data-k="animation.playing"></label>`;
-  }
-  if (obj.kind === 'prop') html += `<div class="row readonly">prop: ${obj.propKey}</div>`;
-  // actions
-  // action buttons gated by kind (live: clips are humanoids-only, camera actions camera-only)
-  const isPerson = obj.kind === 'humanoid' || obj.kind === 'simple_figure';
-  const isCam = obj.kind === 'camera';
+  if (obj.kind === 'prop') html += `<div class="row readonly">prop: ${escAttr(obj.propKey)}</div>`;
+  // actions (kind-gated; add-action buttons REMOVED — the lane "+" and +Track are the add paths)
   html += `<div class="insp-actions">
-    ${isPerson ? '<button data-act="walk">＋ Walk path</button>' : ''}
-    ${isCam ? '<button data-act="campath">＋ Camera path</button>' : ''}
-    ${obj.kind === 'humanoid' ? '<button data-act="clip">＋ Clip</button>' : ''}
-    ${isCam ? '<button data-act="cammove">＋ Camera move</button>' : ''}
     <button data-act="focus">Focus</button>
     <button data-act="dup">Duplicate</button>
     <button data-act="del">Delete</button>
   </div>`;
   body.innerHTML = html;
 
-  // object-store mutations are gesture-bracketed so undo covers them (live observer history)
-  const objectOp = fn => {
-    app.show.beginEditGesture();
-    try { fn(); } finally { app.show.endEditGesture(); }
-  };
+  const objectOp = fn => { app.show.beginEditGesture(); try { fn(); } finally { app.show.endEditGesture(); } };
   body.querySelectorAll('input, select').forEach(inp => {
     inp.onchange = () => {
       const k = inp.dataset.k;
       if (!k) return;
       const v = parseFloat(inp.value);
       objectOp(() => {
-      if (k === 'position0') app.objects.update(id, { position: withIdx(obj.position, 0, v) });
-      else if (k === 'position1') app.objects.update(id, { position: withIdx(obj.position, 1, v) });
-      else if (k === 'position2') app.objects.update(id, { position: withIdx(obj.position, 2, v) });
-      else if (k.startsWith('rotation')) app.objects.update(id, { rotation: withIdx(obj.rotation, +k.slice(-1), v) });
-      else if (k.startsWith('scale')) app.objects.update(id, { scale: withIdx(obj.scale, +k.slice(-1), v) });
-      else if (k === 'focalLengthMm') { app.objects.update(id, { focalLengthMm: Math.min(200, Math.max(14, v)) }); if (obj.kind === 'camera') app.page.focalLengthMm = Math.min(200, Math.max(14, v)); }
-      else if (k === 'shake') app.objects.update(id, { shake: inp.value });
-      else if (k === 'spotlight.shape') app.objects.update(id, { spotlight: { ...obj.spotlight, shape: inp.value } });
-      else if (k === 'spotlight.intensity') app.objects.update(id, { spotlight: { ...obj.spotlight, intensity: clampNum(v, 0, 100) } });
-      else if (k === 'spotlight.diffusion') app.objects.update(id, { spotlight: { ...obj.spotlight, diffusion: clampNum(v, 0, 100) } });
-      else if (k === 'animation.clip') app.objects.update(id, { animation: { clip: inp.value, playing: obj.animation?.playing ?? true } });   // live setObjectAnimation: playing ?? true
-      else if (k === 'animation.playing') app.objects.update(id, { animation: { clip: obj.animation?.clip ?? 'idle', playing: inp.checked } });
-      app.objects.changed();
+        if (k === 'position0') app.objects.update(id, { position: withIdx(obj.position, 0, v) });
+        else if (k === 'position1') app.objects.update(id, { position: withIdx(obj.position, 1, v) });
+        else if (k === 'position2') app.objects.update(id, { position: withIdx(obj.position, 2, v) });
+        else if (k.startsWith('rotation')) app.objects.update(id, { rotation: withIdx(obj.rotation, +k.slice(-1), v) });
+        else if (k === 'head0' || k === 'head1' || k === 'head2') app.objects.update(id, { headRotation: withIdx(obj.headRotation, +k.slice(-1), v) });
+        else if (k.startsWith('scale')) app.objects.update(id, { scale: withIdx(obj.scale, +k.slice(-1), v) });
+        else if (k === 'focalLengthMm') { app.objects.update(id, { focalLengthMm: Math.min(200, Math.max(14, v)) }); app.page.focalLengthMm = Math.min(200, Math.max(14, v)); }
+        else if (k === 'recordAspect') { app.page.recordAspect = inp.value; app.onAspect?.(); app.markAutosave?.(); }
+        else if (k === 'shake') app.objects.update(id, { shake: inp.value });
+        else if (k === 'spotlight.shape') app.objects.update(id, { spotlight: { ...(obj.spotlight ?? C.SPOT_DEFAULTS), shape: inp.value } });
+        else if (k === 'spotlight.intensity') app.objects.update(id, { spotlight: { ...(obj.spotlight ?? C.SPOT_DEFAULTS), intensity: clampNum(v, 0, 100) } });
+        else if (k === 'spotlight.diffusion') app.objects.update(id, { spotlight: { ...(obj.spotlight ?? C.SPOT_DEFAULTS), diffusion: clampNum(v, 0, 100) } });
+        app.objects.changed();
       });
     };
   });
   const nameEl = body.querySelector('#inspName');
   if (nameEl) nameEl.onchange = () => objectOp(() => app.objects.update(id, { name: nameEl.value }));
+  // person-kind switch (live pickPersonKind — mesh rebuilds via syncOne kind check)
+  body.querySelectorAll('.person-kind button').forEach(b => b.onclick = () => {
+    if (b.dataset.pk === obj.kind) return;
+    objectOp(() => { app.objects.update(id, { kind: b.dataset.pk }); app.objects.changed(); });
+    refreshInspector(app); refreshTimeline(app);
+  });
+  // color row
+  const colEl = body.querySelector('#inspColor');
+  if (colEl) colEl.oninput = () => objectOp(() => { app.objects.update(id, { color: colEl.value }); app.objects.changed(); });
+  const colClear = body.querySelector('#inspColorClear');
+  if (colClear) colClear.onclick = () => objectOp(() => { app.objects.update(id, { color: undefined }); app.objects.changed(); refreshInspector(app); });
   body.querySelector('.insp-actions')?.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const act = b.dataset.act;
@@ -364,31 +394,172 @@ function refreshInspector(app) {
       if (deleteObjects(app, [id])) app.toast('Paired targets can\u2019t be deleted — delete their camera instead');
     });
     if (act === 'dup') objectOp(() => { const nid = app.objects.duplicate(id, app.show); if (nid) app.objects.select([nid]); });
-    if (act === 'walk' && isPerson) {
-      const item = app.show.addPathItem(id, app.page.playheadS);
-      app.pathEditor.enterPaint(app.show.trackOf(id).id, item.id);
-      app.pathEditor.seedFirstAnchor();
-    }
-    if (act === 'campath' && isCam) {
-      const item = app.show.addItem(id, { kind: 'cam-path', anchors: [], speedUnitsPerS: 2, aim: 'travel' });
-      app.pathEditor.enterPaint(app.show.trackOf(id).id, item.id);
-      app.pathEditor.seedFirstAnchor();
-    }
-    if (act === 'clip' && obj.kind === 'humanoid') {
-      app.show.addItem(id, { kind: 'clip', clip: 'idle', durationS: C.ITEM_DEFAULT_DUR });
-    }
-    if (act === 'cammove' && isCam) {
-      app.show.addItem(id, { kind: 'cam-move', move: 'orbit', direction: 'ccw', angleDeg: 360, durationS: CAM_MOVE_PRESETS.orbit.durationS, heightDeltaUnits: 0, distanceScale: 1 });
-    }
-    refreshTimeline(app);
   });
+  if (seg) renderActionSection(app, body);
 }
+
+// ---------- Action section (live fVr — the ONLY clip editor; renders INSIDE the Properties panel) ----------
+function renderActionSection(app, body) {
+  const seg = app.page.selectedSegment;
+  if (!seg) return;
+  const tr = app.show.show.tracks.find(t => t.id === seg.trackId);
+  const it = tr?.items.find(i => i.id === seg.itemId);
+  if (!it) return;
+  const charName = escAttr(app.objects.get(tr.characterId)?.name ?? '?');
+  const objOpts = sel => Object.entries(app.objects.all())
+    .map(([oid, o]) => `<option value="${oid}" ${sel === oid ? 'selected' : ''}>${escAttr(o.name ?? o.kind)}</option>`).join('');
+  const patch = p => { app.show.patchItem(seg.trackId, seg.itemId, p); refreshTimeline(app); refreshInspector(app); };
+  const film = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>';
+  let html = `<div class="act-section" id="actionSection">
+    <div class="act-title">${film} Action</div>
+    <div class="kind-row"><span class="k-tag">${ITEM_LABELS[it.kind] ?? it.kind}</span><span>on</span><b>${charName}</b></div>`;
+  if (it.kind === 'path') {
+    html += `<label class="row">Gait<select data-actf="gait">${C.GAITS.map(g => `<option ${it.gait === g ? 'selected' : ''}>${g}</option>`).join('')}</select></label>
+      <label class="row">Aim<select data-actf="aim">${['travel', 'subject', 'locked'].map(a => `<option ${it.aim === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
+      <label class="row">Subject<select data-actf="subject"><option value="">—</option>${objOpts(it.subjectId)}</select></label>
+      <label class="row">Speed<input type="number" data-actf="speed" min="0.2" step="0.1" value="${it.speedUnitsPerS ?? 1.4}"></label>
+      <button class="primary small" data-actf="edit">Edit path</button>`;
+  }
+  if (it.kind === 'cam-path') {
+    html += `<label class="row">Aim<select data-actf="aim">${['travel', 'subject', 'locked'].map(a => `<option ${it.aim === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
+      <label class="row">Subject<select data-actf="subject"><option value="">—</option>${objOpts(it.subjectId)}</select></label>
+      <label class="row">Speed<input type="number" data-actf="speed" min="0.2" step="0.1" value="${it.speedUnitsPerS ?? 2}"></label>
+      <button class="primary small" data-actf="edit">Edit path</button>`;
+  }
+  if (it.kind === 'clip') {
+    html += `<label class="row">Clip<select data-actf="clip">${Object.keys(CLIPS).filter(c => c !== 'a_tpose').map(c => `<option ${it.clip === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
+      <label class="row">Duration<input type="number" data-actf="dur" min="0.1" step="0.1" value="${it.durationS ?? 5}"></label>`;
+  }
+  if (it.kind === 'cam-move') {
+    html += `<label class="row">Move<select data-actf="move">${CAM_MOVES.map(m => `<option ${it.move === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>
+      <label class="row">Direction<select data-actf="dir"><option ${it.direction === 'ccw' ? 'selected' : ''}>ccw</option><option ${it.direction === 'cw' ? 'selected' : ''}>cw</option></select></label>
+      <label class="row">Angle°<input type="number" data-actf="angle" min="15" max="360" value="${it.angleDeg ?? CAM_MOVE_PRESETS[it.move ?? 'orbit'].angleDeg}"></label>
+      <label class="row">HeightΔ<input type="number" data-actf="height" min="0.5" max="20" step="0.5" value="${it.heightDeltaUnits ?? 0}"></label>
+      <label class="row">Dist×<input type="number" data-actf="dist" min="0.1" max="4" step="0.1" value="${it.distanceScale ?? 1}"></label>
+      <label class="row">Duration<input type="number" data-actf="dur" min="0.1" step="0.5" value="${it.durationS ?? 8}"></label>`;
+  }
+  if (it.kind === 'cam-still') html += `<label class="row">Duration<input type="number" data-actf="dur" min="0.1" step="0.5" value="${it.durationS ?? 5}"></label>`;
+  if (it.kind === 'cam-follow') html += `<label class="row">Object<select data-actf="follow"><option value="">—</option>${objOpts(it.objectId)}</select></label>`;
+  if (it.kind === 'rotate') {
+    html += `<label class="row">Axis<select data-actf="axis">${['x', 'y', 'z'].map(a => `<option ${it.axis === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
+      <label class="row">Speed °/s<input type="number" data-actf="deg" step="15" value="${it.degPerS ?? 90}"></label>`;
+  }
+  if (it.kind === 'revolve') {
+    html += `<label class="row">Center<select data-actf="center"><option value="">—</option>${objOpts(it.centerObjectId)}</select></label>
+      <label class="row">Speed °/s<input type="number" data-actf="deg" step="15" value="${it.degPerS ?? 60}"></label>`;
+  }
+  if (it.kind === 'scale') html += `<label class="row">Factor<input type="number" data-actf="factor" min="0.1" step="0.1" value="${it.factor ?? 2}"></label>`;
+  if (it.kind === 'transform' || it.kind === 'cam-transform' || it.kind === 'rig-transform') {
+    const keys = it.keys ?? [];
+    const selectedTS = seg.tS;
+    html += `<div class="hint">${keys.length} keys · drag the object while this action is selected to capture a key at the playhead</div>
+      <div class="kf-cluster">
+        <button data-actf="kprev" title="Previous key">◀</button>
+        <button data-actf="ktoggle" title="Add or remove a key at the playhead">◆ Key</button>
+        <button data-actf="knext" title="Next key">▶</button>
+      </div>`;
+    if (keys.length) {
+      html += `<div class="key-list">${keys.map(k =>
+        `<div class="key-row${selectedTS !== undefined && Math.abs(k.tS - selectedTS) <= KEY_EPS ? ' sel' : ''}" data-ts="${k.tS}">
+          <span>◆ ${k.tS.toFixed(2)}s</span>
+          <button class="ghost small key-jump" data-ts="${k.tS}">↦</button>
+          <button class="ghost small key-del" data-ts="${k.tS}">✕</button>
+        </div>`).join('')}</div>`;
+    }
+  }
+  html += `<button class="ghost small act-remove" data-actf="remove">Remove action</button></div>`;
+  body.insertAdjacentHTML('beforeend', html);
+
+  const root = document.getElementById('actionSection');
+  root.querySelectorAll('[data-actf]').forEach(el => {
+    const f = el.dataset.actf;
+    if (f === 'gait') el.onchange = e => patch({ gait: e.target.value });
+    if (f === 'aim') el.onchange = e => patch({ aim: e.target.value });
+    if (f === 'subject') el.onchange = e => patch({ subjectId: e.target.value || null });
+    if (f === 'follow') el.onchange = e => patch({ objectId: e.target.value || null });
+    if (f === 'center') el.onchange = e => patch({ centerObjectId: e.target.value || null });
+    if (f === 'speed') el.onchange = e => patch({ speedUnitsPerS: Math.max(0.2, +e.target.value || 0.2) });
+    if (f === 'clip') el.onchange = e => patch({ clip: e.target.value, durationS: CLIPS[e.target.value] ?? 5 });
+    if (f === 'move') el.onchange = e => {
+      const p = CAM_MOVE_PRESETS[e.target.value];
+      patch({ move: e.target.value, durationS: p.durationS, angleDeg: p.angleDeg, heightDeltaUnits: p.heightDeltaUnits, distanceScale: p.distanceScale });
+    };
+    if (f === 'dir') el.onchange = e => patch({ direction: e.target.value });
+    if (f === 'angle') el.onchange = e => patch({ angleDeg: clampNum(+e.target.value, 15, 360) });
+    if (f === 'height') el.onchange = e => patch({ heightDeltaUnits: clampNum(+e.target.value, 0.5, 20) });
+    if (f === 'dist') el.onchange = e => patch({ distanceScale: clampNum(+e.target.value, 0.1, 4) });
+    if (f === 'dur') el.onchange = e => app.show.trimItem(seg.trackId, seg.itemId, +e.target.value);
+    if (f === 'edit') el.onclick = () => app.pathEditor.enterPaint(seg.trackId, seg.itemId);
+    if (f === 'axis') el.onchange = e => patch({ axis: e.target.value });
+    if (f === 'deg') el.onchange = e => { const v = +e.target.value; if (!Number.isNaN(v)) patch({ degPerS: v }); };
+    if (f === 'factor') el.onchange = e => { const v = +e.target.value; if (!Number.isNaN(v) && v > 0) patch({ factor: v }); };
+    if (f === 'remove') el.onclick = () => { app.show.removeItem(seg.trackId, seg.itemId); app.page.selectedSegment = null; refreshTimeline(app); refreshInspector(app); };
+    if (f === 'kprev') el.onclick = () => {
+      const keys = (it.keys ?? []).map(k => k.tS).sort((a, b) => a - b);
+      const t = app.page.playheadS - it.startS;
+      const prev = [...keys].reverse().find(k => k < t - KEY_EPS);
+      if (prev !== undefined) { app.page.selectedSegment = { ...seg, tS: prev }; app.page.seek(it.startS + prev); refreshTimeline(app); refreshInspector(app); }
+    };
+    if (f === 'knext') el.onclick = () => {
+      const keys = (it.keys ?? []).map(k => k.tS).sort((a, b) => a - b);
+      const t = app.page.playheadS - it.startS;
+      const next = keys.find(k => k > t + KEY_EPS);
+      if (next !== undefined) { app.page.selectedSegment = { ...seg, tS: next }; app.page.seek(it.startS + next); refreshTimeline(app); refreshInspector(app); }
+    };
+    if (f === 'ktoggle') el.onclick = () => {
+      const t = app.page.playheadS - it.startS;
+      const existing = (it.keys ?? []).find(k => Math.abs(k.tS - t) <= KEY_EPS);
+      if (existing) {  // remove at playhead
+        if (it.kind === 'rig-transform') app.show.removeRigKeyframe(seg.trackId, seg.itemId, existing.tS);
+        else if (it.kind === 'cam-transform') app.show.removeCameraKeyframe(seg.trackId, seg.itemId, existing.tS);
+        else app.show.removeTransformKeyframe(seg.trackId, seg.itemId, existing.tS);
+        if (seg.tS !== undefined && Math.abs(seg.tS - existing.tS) <= KEY_EPS) app.page.selectedSegment = { trackId: seg.trackId, itemId: seg.itemId };
+      } else {         // capture at playhead (captureFocused*Pose)
+        const char = tr.characterId;
+        const o = app.objects.get(char);
+        const mesh = app.meshById.get(char);
+        if (!o || !mesh) return;
+        const key = { tS: Math.max(0, t), position: [mesh.position.x, mesh.position.y, mesh.position.z], rotation: [mesh.rotation.x, mesh.rotation.y, mesh.rotation.z], scale: [mesh.scale.x, mesh.scale.y, mesh.scale.z] };
+        if (it.kind === 'cam-transform') key.focalLengthMm = o.focalLengthMm ?? 50;
+        if (it.kind === 'rig-transform') key.joints = {};
+        if (it.kind === 'transform') app.show.addTransformKeyframe(seg.trackId, seg.itemId, key);
+        else if (it.kind === 'cam-transform') app.show.addCameraKeyframe(seg.trackId, seg.itemId, key);
+        else app.show.addRigKeyframe(seg.trackId, seg.itemId, key);
+      }
+      refreshTimeline(app); refreshInspector(app);
+    };
+  });
+  // key list: jump / delete
+  const selRow = root.querySelector('.key-row.sel');
+  if (selRow) selRow.scrollIntoView({ block: 'nearest' });
+  root.querySelectorAll('.key-jump').forEach(b => b.onclick = () => {
+    const tS = +b.dataset.ts;
+    app.page.selectedSegment = { trackId: seg.trackId, itemId: seg.itemId, tS };
+    app.page.seek(it.startS + tS);
+    refreshTimeline(app); refreshInspector(app);
+  });
+  root.querySelectorAll('.key-del').forEach(b => b.onclick = () => {
+    const tS = +b.dataset.ts;
+    if (it.kind === 'rig-transform') app.show.removeRigKeyframe(seg.trackId, seg.itemId, tS);
+    else if (it.kind === 'cam-transform') app.show.removeCameraKeyframe(seg.trackId, seg.itemId, tS);
+    else app.show.removeTransformKeyframe(seg.trackId, seg.itemId, tS);
+    const sel2 = app.page.selectedSegment;
+    if (sel2?.tS !== undefined && Math.abs(sel2.tS - tS) <= KEY_EPS) app.page.selectedSegment = { trackId: seg.trackId, itemId: seg.itemId };
+    refreshTimeline(app); refreshInspector(app);
+  });
+  const sec = document.getElementById('actionSection');
+  if (sec) sec.scrollIntoView({ block: 'nearest' });
+}
+// rgbHex: '#rrggbb' from '#rgb' or css color string used by objects.color (T() override)
+const rgbHex = c => { const s = String(c); return /^#[0-9a-f]{6}$/i.test(s) ? s : '#e2e0dc'; };
+
 const withIdx = (arr, i, v) => { const a = [...(arr ?? [0, 0, 0])]; a[i] = v; return a; };
 const clampNum = (v, a, b) => Math.min(b, Math.max(a, v));
 const fmt = v => Number.isFinite(v) ? Math.round(v * 1000) / 1000 : 0;
 const escAttr = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // ================= hierarchy =================
+const hierCollapsed = new Set();   // group ids whose children are collapsed (round 6)
 export function refreshHierarchy(app) {
   const el = document.getElementById('hierarchy');
   if (!el) return;
@@ -396,17 +567,42 @@ export function refreshHierarchy(app) {
   // tree order: roots in insertion order, each immediately followed by its children (indented)
   const rows = [];
   const seen = new Set();
+  const anyChildHidden = id => {
+    // a group's children hide when the group is collapsed OR an ancestor is collapsed
+    for (const gid of hierCollapsed) {
+      if (gid === id) return true;
+      let p = objs[id]?.parentId;
+      while (p) { if (p === gid) return true; p = objs[p]?.parentId; }
+    }
+    return false;
+  };
   const emit = (id, o, depth) => {
     if (seen.has(id)) return;
     seen.add(id);
-    rows.push(`<div class="hier-row ${app.objects.selectedIds.includes(id) ? 'sel' : ''}" data-id="${id}" style="padding-left:${8 + depth * 14}px">
-      <span class="hier-kind k-${o.kind}"></span>${escAttr(o.name ?? o.kind)}</div>`);
+    const isGroup = o.kind === 'group';
+    const kids = Object.entries(objs).filter(([, c]) => c.parentId === id);
+    const hidden = anyChildHidden(id) ? ' hidden-child' : '';
+    const chev = isGroup
+      ? `<button class="hier-toggle" data-group="${id}" title="${hierCollapsed.has(id) ? 'Expand group' : 'Collapse group'}">${hierCollapsed.has(id) ? '▸' : '▾'}</button>`
+      : '';
+    rows.push(`<div class="hier-row ${app.objects.selectedIds.includes(id) ? 'sel' : ''}${hidden}" data-id="${id}" style="padding-left:${8 + depth * 14}px">
+      ${chev}<span class="hier-kind k-${o.kind}"></span>${escAttr(o.name ?? o.kind)}${isGroup ? ` <span style="color:var(--text-dim)">(${kids.length})</span>` : ''}</div>`);
+    if (isGroup && hierCollapsed.has(id)) return;   // children not rendered while collapsed
     for (const [cid, c] of Object.entries(objs)) if (c.parentId === id) emit(cid, c, depth + 1);
   };
   for (const [id, o] of Object.entries(objs)) if (!o.parentId || !objs[o.parentId]) emit(id, o, 0);
   for (const [id, o] of Object.entries(objs)) emit(id, o, 0);   // orphans/late parents — safety net
   el.innerHTML = rows.join('');
-  el.querySelectorAll('.hier-row').forEach(r => r.onclick = () => app.objects.select([r.dataset.id]));
+  el.querySelectorAll('.hier-row').forEach(r => r.onclick = e => {
+    if (e.target.closest('.hier-toggle')) return;              // chevron owns the click
+    app.objects.select([r.dataset.id]);
+  });
+  el.querySelectorAll('.hier-toggle').forEach(t => t.onclick = e => {
+    e.stopPropagation();
+    const gid = t.dataset.group;
+    if (hierCollapsed.has(gid)) hierCollapsed.delete(gid); else hierCollapsed.add(gid);
+    refreshHierarchy(app);
+  });
 }
 
 // ================= cameras (pills + footer) =================
@@ -526,13 +722,14 @@ function buildTimeline(app) {
   };
   magBtn.after(rangeBtn);
 
+  // round 6 A2: live rCr Add-track dropdown (search + every object WITHOUT a track —
+  // all animatable kinds incl. groups; the old silent first-candidate add felt like a no-op)
   $('btnAddTrack').onclick = () => {
-    const objs = Object.entries(app.objects.all()).filter(([id, o]) =>
-      !app.show.trackOf(id) && (isPersonKindO(o.kind) || o.kind === 'camera'));
-    if (!objs.length) { app.toast('No animatable objects (add a Human or Camera first)'); return; }
-    const [id] = objs[0];
-    app.show.ensureTrack(id);
-    refreshTimeline(app);
+    const paired = o => o.kind === 'target' && Object.values(app.objects.all()).some(c => c.targetId === o.id);
+    const cands = Object.entries(app.objects.all())
+      .filter(([id, o]) => !app.show.trackOf(id) && !o.parentId && !paired(o));
+    if (!cands.length) { app.toast('Every object already has a track'); return; }
+    openAddTrackMenu(app, $('btnAddTrack'), cands);
   };
   app.onTimeline = () => refreshTimeline(app);
 }
@@ -665,6 +862,49 @@ function wireTimelineInteractions(app, lanes, pps, magnet, layout) {
     openAddMenu(app, b);
   });
   lanes.querySelectorAll('.blk').forEach(b => wireBlock(app, b, pps, magnet, layout, lanes));
+  // round 6: empty-lane click clears the selected segment (live clearFocus) — closes the Action section
+  lanes.querySelectorAll('.lane-body').forEach(lb => lb.addEventListener('click', e => {
+    if (e.target !== lb) return;
+    if (app.page.selectedSegment) {
+      app.page.selectedSegment = null;
+      refreshTimeline(app);
+      refreshInspector(app);
+    }
+  }));
+}
+
+// live rCr: portal dropdown above the button — search input + object options
+function openAddTrackMenu(app, btn, cands) {
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  const render = list => {
+    menu.innerHTML = '<input class="ctx-search" placeholder="Search…">' +
+      (list.length
+        ? list.map(([id, o]) => '<button data-id="' + id + '">' + escAttr(o.name ?? o.kind) +
+            ' <span style="color:var(--text-dim)">· ' + o.kind + '</span></button>').join('')
+        : '<div class="hint" style="padding:8px 10px">No matches</div>');
+    const search = menu.querySelector('.ctx-search');
+    search.oninput = () => {
+      const q = search.value.trim().toLowerCase();
+      render(q ? cands.filter(([id, o]) => (o.name ?? '') + ' ' + o.kind.toLowerCase().includes(q)) : cands);
+      menu.querySelector('.ctx-search').focus();
+    };
+    menu.querySelectorAll('button').forEach(b => b.onclick = () => {
+      menu.remove();
+      app.show.ensureTrack(b.dataset.id);
+      refreshTimeline(app);
+      refreshInspector(app);
+    });
+  };
+  render(cands);
+  document.body.appendChild(menu);
+  const r = btn.getBoundingClientRect();
+  const mw = Math.max(r.width, 200);
+  menu.style.left = Math.min(r.left, innerWidth - mw - 8) + 'px';
+  menu.style.top = Math.max(8, r.top - menu.offsetHeight - 6) + 'px';   // above the button (live portal)
+  menu.style.minWidth = mw + 'px';
+  menu.querySelector('.ctx-search')?.focus();
+  setTimeout(() => document.addEventListener('click', e => { if (!menu.contains(e.target)) menu.remove(); }, { once: true }), 0);
 }
 
 function openAddMenu(app, btn) {
@@ -682,8 +922,13 @@ function openAddMenu(app, btn) {
   menu.onclick = ev => {
     const b = ev.target.closest('button'); if (!b) return;
     menu.remove();
-    addItemKind(app, char, b.dataset.kind, app.page.playheadS);
+    const item = addItemKind(app, char, b.dataset.kind, app.page.playheadS);
     refreshTimeline(app);
+    if (item) {                                   // round 6: new item becomes the selected segment
+      app.page.selectedSegment = { trackId: btn.dataset.track, itemId: item.id };
+      refreshInspector(app);
+      document.querySelector('.blk[data-item="' + item.id + '"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    }
   };
   setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
 }
@@ -697,7 +942,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
     if (app._tl.justDragged) { app._tl.justDragged = false; return; }  // live L.current suppress
     app.page.selectedSegment = { trackId, itemId };
     refreshTimeline(app);
-    refreshSegInspector(app);
+    refreshInspector(app);
   };
 
   blockEl.onpointerdown = e => {
@@ -840,7 +1085,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       }
       app.show.changed();
       refreshTimeline(app);
-      refreshSegInspector(app);
+      refreshInspector(app);
     };
     const cancel = () => {
       window.removeEventListener('pointermove', mv);
@@ -880,7 +1125,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
         app.show.endEditGesture();
         app._tl.interaction = null;
         refreshTimeline(app);
-        refreshSegInspector(app);
+        refreshInspector(app);
       };
       window.addEventListener('pointermove', mv);
       window.addEventListener('pointerup', finish);      // was `up` (undefined) — froze the timeline
@@ -922,7 +1167,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
         }
         app.show.changed();
         refreshTimeline(app);
-        refreshSegInspector(app);
+        refreshInspector(app);
       };
       const finishKey = () => {
         window.removeEventListener('pointermove', mv);
@@ -971,141 +1216,6 @@ function addItemKind(app, charId, kind, startS) {
     case 'cam-follow': return add({ kind: 'cam-follow', durationS: 5, objectId: null });
     case 'cam-transform': return add({ kind: 'cam-transform', durationS: 4, keys: [] });
   }
-}
-
-function refreshSegInspector(app) {
-  const el = document.getElementById('segInspector');
-  const seg = app.page.selectedSegment;
-  if (!seg) { el.style.display = 'none'; return; }
-  const tr = app.show.show.tracks.find(t => t.id === seg.trackId);
-  const it = tr?.items.find(i => i.id === seg.itemId);
-  if (!it) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-  const patch = p => { app.show.patchItem(seg.trackId, seg.itemId, p); refreshTimeline(app); refreshSegInspector(app); };
-  const objOpts = sel => Object.entries(app.objects.all())
-    .map(([id, o]) => `<option value="${id}" ${sel === id ? 'selected' : ''}>${escAttr(o.name ?? o.kind)}</option>`).join('');
-  let html = `<div class="seg-title">${ITEM_LABELS[it.kind] ?? it.kind}
-    <button class="ghost small" id="segDel">Delete</button></div>`;
-  if (it.kind === 'path') {
-    html += `<label>Gait<select id="segGait">${C.GAITS.map(g => `<option ${it.gait === g ? 'selected' : ''}>${g}</option>`).join('')}</select></label>
-      <label>Aim<select id="segAim">${['travel', 'subject', 'locked'].map(a => `<option ${it.aim === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
-      <label>Subject<select id="segSubject"><option value="">—</option>${objOpts(it.subjectId)}</select></label>
-      <label>Speed<input type="number" id="segSpeed" min="0.2" step="0.1" value="${it.speedUnitsPerS ?? 1.4}"></label>
-      <button class="primary small" id="segEdit">Edit path</button>`;
-  }
-  if (it.kind === 'cam-path') {
-    html += `<label>Aim<select id="segAim">${['travel', 'subject', 'locked'].map(a => `<option ${it.aim === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
-      <label>Subject<select id="segSubject"><option value="">—</option>${objOpts(it.subjectId)}</select></label>
-      <label>Speed<input type="number" id="segSpeed" min="0.2" step="0.1" value="${it.speedUnitsPerS ?? 2}"></label>
-      <button class="primary small" id="segEdit">Edit path</button>`;
-  }
-  if (it.kind === 'clip') {
-    html += `<label>Clip<select id="segClip">${Object.keys(CLIPS).filter(c => c !== 'a_tpose').map(c => `<option ${it.clip === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
-      <label>Duration<input type="number" id="segDur" min="0.1" step="0.1" value="${it.durationS ?? 5}"></label>`;
-  }
-  if (it.kind === 'cam-move') {
-    html += `<label>Move<select id="segMove">${CAM_MOVES.map(m => `<option ${it.move === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>
-      <label>Direction<select id="segDir"><option ${it.direction === 'ccw' ? 'selected' : ''}>ccw</option><option ${it.direction === 'cw' ? 'selected' : ''}>cw</option></select></label>
-      <label>Angle°<input type="number" id="segAngle" min="15" max="360" value="${it.angleDeg ?? CAM_MOVE_PRESETS[it.move ?? 'orbit'].angleDeg}"></label>
-      <label>HeightΔ<input type="number" id="segHeight" min="0.5" max="20" step="0.5" value="${it.heightDeltaUnits ?? 0}"></label>
-      <label>Dist×<input type="number" id="segDist" min="0.1" max="4" step="0.1" value="${it.distanceScale ?? 1}"></label>
-      <label>Duration<input type="number" id="segDur" min="0.1" step="0.5" value="${it.durationS ?? 8}"></label>`;
-  }
-  if (it.kind === 'cam-still') {
-    html += `<label>Subject<select id="segSubject"><option value="">—</option>${objOpts(it.subjectId)}</select></label>
-      <label>Duration<input type="number" id="segDur" min="0.1" step="0.5" value="${it.durationS ?? 5}"></label>`;
-  }
-  if (it.kind === 'cam-follow') {
-    html += `<label>Object<select id="segFollow"><option value="">—</option>${objOpts(it.objectId)}</select></label>`;
-  }
-  // ---- segment editors for object kinds (live setRotateAxis/setObjectItemSpeed/setRevolveCenter/setScaleFactor) ----
-  if (it.kind === 'rotate') {
-    html += `<label>Axis<select id="segAxis">${['x', 'y', 'z'].map(a => `<option ${it.axis === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
-      <label>Speed °/s<input type="number" id="segDeg" step="15" value="${it.degPerS ?? 90}"></label>`;
-  }
-  if (it.kind === 'revolve') {
-    html += `<label>Center<select id="segCenter"><option value="">—</option>${objOpts(it.centerObjectId)}</select></label>
-      <label>Speed °/s<input type="number" id="segDeg" step="15" value="${it.degPerS ?? 60}"></label>`;
-  }
-  if (it.kind === 'scale') {
-    html += `<label>Factor<input type="number" id="segFactor" min="0.1" step="0.1" value="${it.factor ?? 2}"></label>`;
-  }
-  if (it.kind === 'transform' || it.kind === 'cam-transform' || it.kind === 'rig-transform') {
-    const keys = it.keys ?? [];
-    const selectedTS = seg.tS;
-    html += `<div class="hint">${keys.length} keys · drag the object while this segment is selected to capture a key at the playhead</div>
-      <button class="primary small" id="segKey">⦿ Key at playhead</button>`;
-    if (keys.length) {
-      html += `<div class="key-list">${keys.map(k =>
-        `<div class="key-row${selectedTS !== undefined && Math.abs(k.tS - selectedTS) <= KEY_EPS ? ' sel' : ''}" data-ts="${k.tS}">
-          <span>◆ ${k.tS.toFixed(2)}s</span>
-          <button class="ghost small key-jump" data-ts="${k.tS}">↦</button>
-          <button class="ghost small key-del" data-ts="${k.tS}">✕</button>
-        </div>`).join('')}</div>`;
-    }
-  }
-  el.innerHTML = html;
-  el.querySelector('#segDel').onclick = () => { app.show.removeItem(seg.trackId, seg.itemId); app.page.selectedSegment = null; refreshTimeline(app); el.style.display = 'none'; };
-  const bind = (id, ev, cb) => { const n = el.querySelector(id); if (n) n[ev] = cb; };
-  bind('#segGait', 'onchange', e => patch({ gait: e.target.value }));
-  bind('#segAim', 'onchange', e => patch({ aim: e.target.value }));
-  bind('#segSubject', 'onchange', e => patch({ subjectId: e.target.value || null }));
-  bind('#segFollow', 'onchange', e => patch({ objectId: e.target.value || null }));
-  bind('#segSpeed', 'onchange', e => patch({ speedUnitsPerS: Math.max(0.2, +e.target.value || 0.2) }));
-  bind('#segClip', 'onchange', e => patch({ clip: e.target.value, durationS: CLIPS[e.target.value] ?? 5 }));
-  bind('#segMove', 'onchange', e => {
-    const p = CAM_MOVE_PRESETS[e.target.value];
-    patch({ move: e.target.value, durationS: p.durationS, angleDeg: p.angleDeg, heightDeltaUnits: p.heightDeltaUnits, distanceScale: p.distanceScale });
-  });
-  bind('#segDir', 'onchange', e => patch({ direction: e.target.value }));
-  bind('#segAngle', 'onchange', e => patch({ angleDeg: clampNum(+e.target.value, 15, 360) }));
-  bind('#segHeight', 'onchange', e => patch({ heightDeltaUnits: clampNum(+e.target.value, 0.5, 20) }));
-  bind('#segDist', 'onchange', e => patch({ distanceScale: clampNum(+e.target.value, 0.1, 4) }));
-  bind('#segDur', 'onchange', e => app.show.trimItem(seg.trackId, seg.itemId, +e.target.value));
-  bind('#segEdit', 'onclick', () => app.pathEditor.enterPaint(seg.trackId, seg.itemId));
-  bind('#segAxis', 'onchange', e => patch({ axis: e.target.value }));
-  bind('#segDeg', 'onchange', e => { const v = +e.target.value; if (!Number.isNaN(v)) patch({ degPerS: v }); });
-  bind('#segCenter', 'onchange', e => patch({ centerObjectId: e.target.value || null }));
-  bind('#segFactor', 'onchange', e => { const v = +e.target.value; if (!Number.isNaN(v) && v > 0) patch({ factor: v }); });
-  bind('#segKey', 'onclick', () => {
-    // captureFocused*Pose (minimal port — exact store API)
-    const t = app.page.playheadS - it.startS;
-    const char = tr.characterId;
-    const obj = app.objects.get(char);
-    const mesh = app.meshById.get(char);
-    if (!obj || !mesh) return;
-    const key = {
-      tS: Math.max(0, t),
-      position: [mesh.position.x, mesh.position.y, mesh.position.z],
-      rotation: [mesh.rotation.x, mesh.rotation.y, mesh.rotation.z],
-      scale: [mesh.scale.x, mesh.scale.y, mesh.scale.z],
-    };
-    if (it.kind === 'cam-transform') key.focalLengthMm = obj.focalLengthMm ?? 50;
-    if (it.kind === 'rig-transform') key.joints = {};
-    if (it.kind === 'transform') app.show.addTransformKeyframe(seg.trackId, seg.itemId, key);
-    else if (it.kind === 'cam-transform') app.show.addCameraKeyframe(seg.trackId, seg.itemId, key);
-    else app.show.addRigKeyframe(seg.trackId, seg.itemId, key);
-    refreshTimeline(app);
-    refreshSegInspector(app);
-  });
-  // key list: jump / delete (deleteSelectedKeyframe equivalent per-key)
-  const selRow = el.querySelector('.key-row.sel');
-  if (selRow) selRow.scrollIntoView({ block: 'nearest' });
-  el.querySelectorAll('.key-jump').forEach(b => b.onclick = () => {
-    const tS = +b.dataset.ts;
-    app.page.selectedSegment = { trackId: seg.trackId, itemId: seg.itemId, tS };
-    app.page.seek(it.startS + tS);
-    refreshTimeline(app); refreshSegInspector(app);
-  });
-  el.querySelectorAll('.key-del').forEach(b => b.onclick = () => {
-    const tS = +b.dataset.ts;
-    if (it.kind === 'rig-transform') app.show.removeRigKeyframe(seg.trackId, seg.itemId, tS);
-    else if (it.kind === 'cam-transform') app.show.removeCameraKeyframe(seg.trackId, seg.itemId, tS);
-    else app.show.removeTransformKeyframe(seg.trackId, seg.itemId, tS);
-    const sel = app.page.selectedSegment;
-    if (sel?.tS !== undefined && Math.abs(sel.tS - tS) <= KEY_EPS) app.page.selectedSegment = { trackId: seg.trackId, itemId: seg.itemId };
-    refreshTimeline(app); refreshSegInspector(app);
-  });
 }
 
 function updatePlayhead(app, t) {
