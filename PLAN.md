@@ -95,9 +95,24 @@ Derived scope: PLAN round-5 backlog ranked order + HANDOFF seam items. User feed
 - [x] R8-4 Aspect-ratio picker: Zae presets in the stage header.
 - Extraction durability: analysis/tmp_palette_exact/ (122 byte-verified units + MAP.md) is the permanent registry for the palette + aim-math + lane-drop + height-curve families.
 
+## Round 9 (2026-11-17) — COMPLETE (pixel oracle vs live flick.art)
+Top-ranked backlog item: the R7/R8 verbatim-fn oracle generalized to a PIXEL harness against the live site.
+- [x] R9-1 live access path (durable): email login passes headless incl. turnstile; stage editor gated by posthog flags `stage-3d`+`stage-scene-node` → enabled via `$override_feature_flags` injected into the `ph_phc_*_posthog` persistence blob; deep link `/canvas/<projectId>?view=stage&scene=<sceneId>`; scenes live in supabase table `stage_scenes` (column `scene`), readable via REST (anon key = bundle `zDn` literal + session JWT from `sb-auth-auth-token`). f6r migration chain in the bundle byte-matches our schema.js port.
+- [x] R9-2 oracle fixture: live default scene captured (orbit ccw 360° 5s + cam-still 5s + figure + light az/el + recordAspect) → editor/samples/live_oracle_scene1.json; oracle method = through-the-lens Cameras view on both sides (fully scene-determined, no editor-orbit matching); live canvas (58,100) 805x452, deterministic across sessions (widest body run 291px @y144 twice).
+- [x] R9-3 three render-path P0s found + fixed + verified (FIDELITY round-9 for offsets): lens shot the INSIDE of the adopted camera's own mesh (now hidden w/ labels); lens fov was editor fov (now pose.fovDeg every frame = Z_(focal, recordAspect) @3927291); aim resolver was mesh-bbox (now verbatim W = ROr + NP catalog height, figure aim 0.7·1.75).
+- [x] R9-4 review round: SHIP WITH FIXES → P1-1 (fov per-frame), P1-2 (_subjectPos any-kind objectPoseAt), P1-3 (plan aimHeightOf .7), P2-1 (spotlight NP k=.5), P2-2 (freeze keeps lens-hidden) all applied + E2E re-verified.
+- RESULT: mean abs pixel diff 1.3/255, **97.81% pixels ≤8** (residual = AA edges + live's DOM label). Harness scripts r9_*.py in scripts/.
+
+### Known divergences (ledger, from the R9 review)
+- Zae decimal aspects (live stores `1.85`/`2.39` literals; we divide w/h → 0.0045° fov delta).
+- Live keeps the adopted camera's DOM "Camera 1" label in cameras view (ours: none).
+- Item-less camera in cameras view: live renders a feed from the mesh pose; ours freezes (no evalPose).
+- Live cameras view = XXr feed WALL (pager + tiles + labels); ours = full-viewport lens (single-camera case near-identical).
+- Live W-resolver `objectPoseAt` folds rig quaternion/yaw at t — ours returns position only (aim uses position only too).
+
 ## Backlog (ranked — next rounds)
-- [ ] P1 Pixel oracle vs live flick.art (site reachable; login creds in CONTEXT.md; scene-match + screenshot diff harness — the R7/R8 oracle pattern generalizes: verbatim-fn reference + ordered-stream diffs)
 - [ ] P1 Skybox P1 (PLAN skybox roadmap: sebh/UnrealEngineSkyAtmosphere MIT dome + night + weather-coupled uniforms + PMREM IBL; full design in analysis/R7_SKYBOX_RESEARCH.md)
+- [ ] P1 Pixel oracle ROUND 2: widen beyond the lens view — editor-view default framing, daylight table stops, finish composer (force stage-finish manual both sides), second camera / cam-path feed; script the live-session flow (login → flag override → deep link) into scripts/pixel_oracle/ for re-runnable regression
 - [ ] P2 Rig posing UX (xqr joint spheres + captureFocusedRigPose + Fzr multi-joint)
 - [ ] P2 Held-pose baking (bakeRigPoseSegment flow: rig key @t=0)
 - [ ] P2 Shake apply (Dzt/oEr — constants ready), spawn grid, deleteFocused cascade, cam-follow offset UI
