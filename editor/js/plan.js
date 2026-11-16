@@ -1004,7 +1004,7 @@ export class PlanStore {
     }
     return { id: e.id, position: r, rotation: e.rotation };
   }
-  aimHeightOf(id) {                                                                                    // NP (VDe + uje + MIr=.5)
+  aimHeightOf(id) {                                                                                    // NP (VDe + uje + MIr=.7 — review P1-3: .5 is NIr, the spotlight branch only)
     const objs = this.a.objects.all(), o = objs[id]; if (!o) return 0;
     let minY = Infinity, maxY = -Infinity;
     if (o.kind === 'group') {
@@ -1015,7 +1015,7 @@ export class PlanStore {
       if (minY === Infinity) { minY = o.position?.[1] ?? 0; maxY = minY; }
     } else { const p = Zo(o, objs).position[1]; minY = p; maxY = p + this._heightOf(o, objs); }
     const org = Zo(o, objs).position[1];
-    return minY - org + .5 * Math.max(0, maxY - minY);
+    return minY - org + .7 * Math.max(0, maxY - minY);
   }
   _heightOf(o, objs) {                                                                                 // uje
     if (el(o.kind)) return 1.75 * (o.scale?.[1] ?? 1);

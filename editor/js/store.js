@@ -599,12 +599,12 @@ export class ShowStore extends StoreBase {
     const newIdx = this.appendPathAnchor(p.trackId, p.itemId, [wp[0], seedY, wp[2]]);
     if (page && newIdx >= 0) page.paint = { ...page.paint, selectedAnchor: newIdx };
   }
-  subjectHeightOffset(subjectId, objs) {                 // NP @5264414 — minY−y + MIr(.7)·max(0, maxY−minY)
+  subjectHeightOffset(subjectId, objs, k = C.SUBJECT_AIM_K) {  // NP @5264414 — minY−y + k·max(0, maxY−minY); n=.7 (MIr) default, spotlight branch passes NIr=.5 (review P2-1)
     const o = objs[subjectId];
     if (!o) return 0;
     const { minY, maxY } = objectWorldBounds(subjectId, o, objs, this._hooks?.propDims);
     const y = worldTRSof(objs, subjectId).position[1];
-    return minY - y + C.SUBJECT_AIM_K * Math.max(0, maxY - minY);
+    return minY - y + k * Math.max(0, maxY - minY);
   }
   subjectAimPoint(subjectId, extraOffset = 0) {          // @5531839
     const objs = this._objs();

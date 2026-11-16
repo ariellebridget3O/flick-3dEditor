@@ -463,11 +463,10 @@ export class App {
         const personSubjectAim = isPerson && item.aim === 'subject' && !!item.subjectId;
         let subjectPos = personSubjectAim ? null : self._subjectPos(item.subjectId, absTime);
         if (isSpot && subjectPos) {
-          const subj = objects[item.subjectId];
-          const k = subj?.kind === 'spotlight' ? 0.5 : C.SUBJECT_AIM_K;
-          const h = self._boxOf(item.subjectId);
-          const size = h ? h.getSize(new THREE.Vector3()) : new THREE.Vector3(1.75, 1.75, 1.75);
-          subjectPos = [subjectPos[0], subjectPos[1] + k * size.y, subjectPos[2]];
+          // review P2-1: verbatim spotlight branch @5715687 — te(subj) + NP(subj, ·, NIr=.5)
+          // with the CATALOG height (VDe/uje), not the mesh bbox
+          const np = self.show.subjectHeightOffset(item.subjectId, objects, 0.5);
+          subjectPos = [subjectPos[0], subjectPos[1] + np, subjectPos[2]];
         }
         const st = pathStateAt(personSubjectAim ? { ...item, aim: 'travel' } : item, elapsedInItem, subjectPos);
         if (personSubjectAim && st.yawRad !== null) {
@@ -510,6 +509,15 @@ export class App {
       if (track) {
         const state = evalCharacterTrack(track, t);
         if (state?.position) return state.position;
+      }
+    } else if (obj) {
+      // review P1-2: live objectPoseAt (te @5715449 / le @5718434) evaluates ANY kind at t —
+      // non-persons fold their track items (Q + ne path apply) onto the base TRS. Props/
+      // targets on paths aimed at by preceding cam items at past t need the folded pose.
+      const track = this.layout().tracks.find(tr => tr.characterId === subjectId);
+      if (track && track.items.length) {
+        const state = evalObjectItems(track, t, true, this.resolvers(), obj);
+        if (state && state.mode !== 'base' && state.position) return state.position.toArray();
       }
     }
     const m = this.meshById.get(subjectId);
@@ -723,12 +731,13 @@ export class App {
         this._lensSave = null;
       }
       // still inside cameras view but no pose (deselection): freeze the last lens frame (review P3-11)
-      // lens content hiding (pixel-oracle R9): the adopted camera's own mesh must NOT be
-      // rendered — the lens camera sits inside it (we were shooting the inside of the lens
-      // model). Same for the 3D name labels (live cameras view shows none). Re-adopt safe.
-      this._lensHideRestore?.();
-      this._lensHideRestore = null;
-      this._lensObjId = null;
+      // review P2-2: the freeze must KEEP the mesh/labels hidden (restoring them re-shoots the
+      // lens interior for the freeze duration) — restore only when actually leaving cameras view
+      if (!inCam) {
+        this._lensHideRestore?.();
+        this._lensHideRestore = null;
+        this._lensObjId = null;
+      }
       return;
     }
     if (!this._lensActive) {
@@ -739,7 +748,7 @@ export class App {
         target: this.orbit ? this.orbit.target.clone() : null,
       };
     }
-    if (this._lensObjId !== id) {
+    if (this._lensObjId !== id || !this._lensHideRestore) {
       // hide (or re-hide for a newly adopted camera): mesh subtree (incl. its frustum child)
       // + every name-label sprite. Restored on deactivate / re-adopt.
       this._lensHideRestore?.();
@@ -750,13 +759,16 @@ export class App {
       }
       this._lensHideRestore = () => { for (const [o, v] of hidden) { o.visible = v; } };
       this._lensObjId = id;
-      // pixel-oracle R9: the feed renders at the camera's EVALUATED lens fov (live measured
-      // 31.32° = Z_(35mm, 16/9)) — not the editor fov (was 50: figure 1.66× too small in frame)
-      const fov = pose.fovDeg ?? C.EDITOR_FOV;
-      if (this.camera.fov !== fov) {
-        this.camera.fov = fov;
-        this.camera.updateProjectionMatrix();
-      }
+    }
+    // pixel-oracle R9: the feed renders at the camera's EVALUATED lens fov (live measured
+    // 31.32° = Z_(35mm, 16/9)) — not the editor fov (was 50: figure 1.66× too small in frame).
+    // review P1-1: applied EVERY frame (live ce() sets Te.fov=x.fovDeg per-frame; the aspect
+    // picker's updateFrameGuide overwrites camera.fov mid-lens and scrubbing crosses items
+    // with different focal/fov)
+    const fov = pose.fovDeg ?? C.EDITOR_FOV;
+    if (this.camera.fov !== fov) {
+      this.camera.fov = fov;
+      this.camera.updateProjectionMatrix();
     }
     this.camera.position.copy(pose.position);
     this.camera.quaternion.copy(pose.quaternion);
