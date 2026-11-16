@@ -693,6 +693,29 @@ export class App {
     }
   }
 
+  // r8-3: through-the-lens cameras view — the editor camera adopts the selected camera's
+  // evaluated pose (evalPose set every frame by updateCameraMarkers). Orbit disabled while
+  // active; fov keeps the record-aspect frame-guide value (updateFrameGuide).
+  updateCameraThroughLens() {
+    const inCam = this.page.stageView === 'cameras';
+    if (this.orbit) this.orbit.enabled = !inCam;
+    const id = this.objects.selectedId;
+    const obj = id ? this.objects.get(id) : null;
+    const mesh = id ? this.meshById.get(id) : null;
+    const pose = mesh?.userData?.evalPose;
+    if (!inCam || obj?.kind !== 'camera' || !pose) {
+      if (this._lensActive) {
+        this.camera.fov = C.EDITOR_FOV;
+        this.camera.updateProjectionMatrix();
+        this._lensActive = false;
+      }
+      return;
+    }
+    this.camera.position.copy(pose.position);
+    this.camera.quaternion.copy(pose.quaternion);
+    this._lensActive = true;
+  }
+
   // ================= camera marker evaluation (edit mode) =================
   updateCameraMarkers() {
     const layout = this.layout();
@@ -800,6 +823,9 @@ export class App {
     this.env.applyDaylight(this.light);
     // 6. camera markers (UGr.v-equivalent: page focal + record aspect + target aim)
     this.updateCameraMarkers();
+    // 6b. r8-3: through-the-lens — cameras view renders THROUGH the selected camera
+    // (position+quaternion from mesh.userData.evalPose; fov stays the record-aspect guide fov)
+    this.updateCameraThroughLens();
     // 7. bounds + fog/near/far
     this.fogNearFar.tick(now);
     // 8. spotlight tick (oOr): light params, shadow slots, cookies, beams — every frame

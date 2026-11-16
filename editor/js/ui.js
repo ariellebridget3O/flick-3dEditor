@@ -188,6 +188,17 @@ export function buildUI(app) {
   }, 100);
 
   // frame guide update on aspect change
+  // r8-4: aspect picker (Zae presets, settings-row control; camera inspector select remains the other entry)
+  const aspectPicker = document.getElementById('aspectPicker');
+  if (aspectPicker) {
+    aspectPicker.value = app.page.recordAspect ?? '16:9';
+    aspectPicker.onchange = () => {
+      app.page.recordAspect = aspectPicker.value;
+      app.page.changed();
+      updateFrameGuide(app);
+    };
+    app.objects.subscribe?.(() => { aspectPicker.value = app.page.recordAspect ?? '16:9'; });
+  }
   app.onAspect = () => updateFrameGuide(app);
   updateFrameGuide(app);
 }
