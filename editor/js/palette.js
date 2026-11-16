@@ -584,6 +584,20 @@ export function createPalette(app) {
     if (!btn || btn.getAttribute('aria-disabled') === 'true') return;
     addPayload(JSON.parse(btn.dataset.addPayload));
   });
+  // live reactive canAddAction: add-button enable states track the selection (cheap DOM update);
+  // full re-render only when the SELECTED OBJECT changes (switch notice + clip gates)
+  app.objects.subscribe(() => {
+    if (!state.open) return;
+    const selChanged = app.objects.selectedId !== state._renderedSelId;
+    if (selChanged) { render(); return; }
+    pane().querySelectorAll('.tile-add').forEach(btn => {
+      let payload;
+      try { payload = JSON.parse(btn.dataset.addPayload); } catch { return; }
+      const enabled = canAdd(payload);
+      btn.setAttribute('aria-disabled', String(!enabled));
+      btn.title = enabled ? 'Add to selected object' : TILE_TITLES.addDisabled;
+    });
+  });
 
   const drawThumb = (canvas, kind, action) => {
     const r = state.renderers;
@@ -664,6 +678,7 @@ export function createPalette(app) {
       });
       sections.push(`<div class="tile-grid">${tiles.join('')}</div>`);
     }
+    state._renderedSelId = app.objects.selectedId;
     pane().innerHTML = sections.join('');
     if (notice) pane().prepend(notice);
     root.style.width = state.open ? `${state.width}px` : '0px';

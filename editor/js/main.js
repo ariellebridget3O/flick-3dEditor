@@ -282,6 +282,7 @@ export class App {
     this.show.beginEditGesture();
     try { this.objects.update(id, { kind }); }                    // update() already fires changed()
     finally { this.show.endEditGesture(); }
+    this.palette?.render?.();   // r8: the animate tab (switch notice + add-button states) reflects the kind change
   }
   tickDrawPreview() {  // z port: pose the mesh to the stroke preview ghost; restore on end
     const d = this._drawPreview;
