@@ -35,35 +35,39 @@ Mission: reconstruct the flick.art 3D Stage editor runtime for local offline pre
 - [x] UI sweep A (chrome/inspector/keys): 2 P1 + 4 P2 + 5 P3 — ALL fixed (id-keyed track cloning, undo gestures for object ops, kind gating, camera rows, focal sync, hierarchy tree, scene-name, toolbar highlight, escaping, hygiene)
 - [x] Gap matrix (analysis/ROUND5_GAP_MATRIX.md): 164 rows, Top-20 ranked; complaint verdicts: pose=FIXED, path-keyframes=diamonds+heightCurve-editor-partial, no-ops=regression-restored+gated, spotlight=FIXED
 
-## Round 6 (2026-11-16) — user deep-audit + polish round (IN PROGRESS)
+## Round 6 (2026-11-16) — COMPLETE (user deep-audit + polish round)
 User verdict: "the editing ux flow is largely broken along esp. anything animation related. need a deep audit and polishing round." Scope below made durable from the user message (examples were "not exhaustive" — treat as symptom classes, find siblings):
 
 ### A. Animation editing UX (P0 class — user's top complaint)
-- [ ] A1 Humanoid inspector: `clip` dropdown must actually switch clips at rest AND mid-playback; the CLIP-segment property editor must be a DIFFERENT UI from the humanoid-selected inspector (currently they look the same/confusing)
-- [ ] A2 Timeline track `+` button and the track dropdown menu = no-ops today (user: "inspector panel is the real one the logic is correctly wired") — wire both to real menus
-- [ ] A3 The clip/segment editor panel sits BELOW the track and CANNOT close — MOVE it into the property inspector on the right, closable
+- [x] A1 Humanoid inspector: `clip` dropdown must actually switch clips at rest AND mid-playback; the CLIP-segment property editor must be a DIFFERENT UI from the humanoid-selected inspector (currently they look the same/confusing)
+- [x] A2 Timeline track `+` button and the track dropdown menu = no-ops today (user: "inspector panel is the real one the logic is correctly wired") — wire both to real menus
+- [x] A3 The clip/segment editor panel sits BELOW the track and CANNOT close — MOVE it into the property inspector on the right, closable
 ### B. Viewport bugs/refinements
-- [ ] B1 Selection pad (rounded-edge square below selected object) misplaced → REMOVE entirely (user: visual clutter)
-- [ ] B2 Gizmo axis line on hover (thick solid, blocking) → remove, or thin + subtle + fading animation
-- [ ] B3 Floating object toolbar: semi-transparent panel bg, smaller panel↔button padding, flatter icon style, NO colors
-- [ ] B4 Group editor logic "completely broken" — root-cause + fix (create/enter/edit children/ungroup/delete cascade)
-- [ ] B5 Viewport shade modes: flat vs shaded + wireframe ("what the original has and beyond, including wireframe")
-- [ ] B6 Snap not working + ground grid view (esp. for snap)
+- [x] B1 Selection pad (rounded-edge square below selected object) misplaced → REMOVE entirely (user: visual clutter)
+- [x] B2 Gizmo axis line on hover (thick solid, blocking) → remove, or thin + subtle + fading animation
+- [x] B3 Floating object toolbar: semi-transparent panel bg, smaller panel↔button padding, flatter icon style, NO colors
+- [x] B4 Group editor logic "completely broken" — root-cause + fix (create/enter/edit children/ungroup/delete cascade)
+- [x] B5 Viewport shade modes: flat vs shaded + wireframe ("what the original has and beyond, including wireframe")
+- [x] B6 Snap not working + ground grid view (esp. for snap)
 ### C. Top-down view (P1 — "completely missed, study carefully")
-- [ ] Port the live 2D plan canvas (stage-plan, SDr painter @~5500400, viewportMode 3d↔plan @5786130): grid fade, footprints, camera wedges, spotlight pools, paths, group boxes, marquee, focus, callout, pan/zoom/center-on/zoom-fit, click-select, drag items, DRAW STROKES → paths, drop components. NOT 3D — an editor-UX surface that's easier top-down
+- [x] Port the live 2D plan canvas (stage-plan, SDr painter @~5500400, viewportMode 3d↔plan @5786130): grid fade, footprints, camera wedges, spotlight pools, paths, group boxes, marquee, focus, callout, pan/zoom/center-on/zoom-fit, click-select, drag items, DRAW STROKES → paths, drop components. NOT 3D — an editor-UX surface that's easier top-down
 ### D. Lighting / time of day (P1 — design round required)
-- [ ] D1 Easier time-of-day editing (exact clock input)
-- [ ] D2 Geographic sun solving: exact time of day + north-hemisphere default + true-north convention + reasonable altitude → exact lighting direction (solar position math)
-- [ ] D3 Sun ball OPTIONAL but conforms to computed time-of-day; dragging ball away from pre-calculated → switch to CUSTOM mode until geography params re-run
-- [ ] D4 Altitude + true geography; summer/winter seasonality (date) all feed the solver
-- [ ] D5 Weather (clear/cloudy/rain/fog) changes tone + sunlight intensity
-- [ ] D6 Quick GI / quick AO for sky-light effect — refine beyond current flick visual quality (SSAO exists in finish composer; extend hemisphere/sky coupling)
-- [ ] D7 Indoor: base ambient for indirect lighting with GOOD DEFAULTS from real 3D lighting theory
+- [x] D1 Easier time-of-day editing (exact clock input)
+- [x] D2 Geographic sun solving: exact time of day + north-hemisphere default + true-north convention + reasonable altitude → exact lighting direction (solar position math)
+- [x] D3 Sun ball OPTIONAL but conforms to computed time-of-day; dragging ball away from pre-calculated → switch to CUSTOM mode until geography params re-run
+- [x] D4 Altitude + true geography; summer/winter seasonality (date) all feed the solver
+- [x] D5 Weather (clear/cloudy/rain/fog) changes tone + sunlight intensity
+- [x] D6 Quick GI / quick AO for sky-light effect — refine beyond current flick visual quality (SSAO exists in finish composer; extend hemisphere/sky coupling)
+- [x] D7 Indoor: base ambient for indirect lighting with GOOD DEFAULTS from real 3D lighting theory
 ### E. UI layout
-- [ ] E1 Separate property inspector/editor FROM scene operations (scene graph + object addition) — two panels, top-down or tabbed
-- [ ] E2 Remove Default-vs-Unreal switch (user: no unreal support, standard units/format only)
+- [x] E1 Separate property inspector/editor FROM scene operations (scene graph + object addition) — two panels, top-down or tabbed
+- [x] E2 Remove Default-vs-Unreal switch (user: no unreal support, standard units/format only)
 
-### Round-6 source map (bundle offsets to re-read before porting)
+### Round-6 outcome (see FIDELITY.md round-6 log + commit messages 7108d3f..d2a8e51 for full E2E detail)
+- A1-A3, B1-B6, C, D1-D7, E1-E2 ALL DONE and E2E-verified; design audited (ROUND6_DESIGN.md revised); full diff code-reviewed (0 P0; 6 P1 + 5 P2 found → ALL fixed + re-verified).
+- ROOT CAUSES found for user complaints: lane-add menu threw 'appendPlace is not defined' on every click (missing import since inception); the "thick axis line" = stock TransformControls helper AXIS/DELTA lines (live ozr rewrite has none); the "misplaced pad" = SelectionFootprints quad (removed); the confusing "clip dropdown" = a port invention (live has NO clip dropdown in the object inspector — R2 verified; segment editor lives INSIDE the Properties panel, not below the track); "+ Track" silently added for an arbitrary candidate (now a live rCr search dropdown).
+- Deferred (P3s from review, noted for future rounds): cam-still subject select vs live fVr, drivenBy paused-state semantics, plan canvas + Cameras-stageView interaction, height-curve editor on plan (backlog), actions palette M5r (backlog), spawn grid 5×6 (backlog).
+
 - Plan canvas: `stage-plan` canvas @5502648; painter SDr @~5500400; items() §22 (Dst footprints, wedge, pool); §32 painter order; viewportMode 3d↔plan @5786130; EDITOR_UX.md §7 is the distilled spec
 - DOM_REFERENCE.md = rendered-DOM ground truth for switches, menus, inspector chrome
 
