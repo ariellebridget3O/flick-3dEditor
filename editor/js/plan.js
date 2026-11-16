@@ -1,51 +1,1038 @@
-// plan.js — round 6 (C): the 2D top-down plan canvas (live stage-plan/SDr port).
-// Spec source: R1 research + analysis/ROUND6_DESIGN.md §C. NOT a 3D view — an editor-UX
-// surface that is easier top-down. Key live constants: pxPerM 14..170 default 34; grid 1m
-// fade 8→24 + 5m majors; pools .14/.24; paths dash [2,4] 1.4px; group boxes dash [4,3] +8px
-// pad label 11px +14 below; move snap .25 (Vie) / rotate 15° (Yat); marker hit 12px.
+// plan.js — round 7 (R7-1): the 2D top-down plan canvas as an EXACT PORT of the live bundle
+// subsystem (function-level, from analysis/tmp_plan_exact/fn_*.js verbatim extractions —
+// every function below carries its bundle name in a comment and reproduces the bundle math
+// 1:1; validated by the oracle harness scripts/r7_plan_oracle.mjs against the raw bundle fns).
+//
+// Live architecture (MAP.md §0):
+//   page-store planShown gate → rDr (PlanStore: items/paths/intents/stroke) → rBr (PlanCanvas:
+//   pure reducers DLr/DZt/HLr → intents → store.apply) → SDr painter (+$Ir/FDr edge + ZIr label).
+// This file ports all of it with the same names, same math, same pass order.
+//
+// Round-6 handroll divergences fixed here (see MAP.md §3 DIFF TABLE): rotate-handle mirror,
+// figure footprint 2x, wheel-pan sign, marquee either-dim rule, time-based stroke sampling,
+// dwell-aware smoothing + mHr re-spread, figure body/stripe/head/face-arc/tick, ellipse -yaw,
+// ellipse hit <=1, rotated square pool, callout ellipse case + lens dots + RDr tick, endStroke
+// replace semantics (new id + focal carry + aim rules), selection semantics (unconditional
+// parentId??id promotion, keep-selection on member click, deselect at pointerdown), paths paint
+// order (between non-char and char passes), resize re-center, 3-state pill + delete + person
+// toggle + match-speed-only-while-drawing, stroke timer, zoom bar, Esc chain, drawPreview ghost
+// + per-tick seekPerformance (show plays while drawing).
 import * as THREE from 'three';
 import { C } from './const.js';
-import { showLayout } from './tracks.js';
-import { polylineOf, buildTangents, arcLength } from './curves.js';
+import { polylineOf, buildTangents, arcLength } from './curves.js';   // nx / mT / MR (round-2 exact)
+import { camTransformKeysAt } from './tracks.js';                      // cZt (round-2 exact)
 import { itemDuration } from './schema.js';
 
-const PPM_MIN = 14, PPM_MAX = 170, PPM_DEFAULT = 34;
-const FIT_MARGIN = 48;
-const MARKER_HIT_PX = 12, FOOT_SLOP_PX = 8;
-const MOVE_THRESH_PX = 3, MARQUEE_MIN_PX = 4;
-const SNAP_M = 0.25, SNAP_DEG = 15;
-const LENS_AHEAD_M = 4.2;
-const POOL_A_SEL = 0.24, POOL_A = 0.14;
-const Z_ORDER = { prop: 0, cube: 0, sphere: 0, cylinder: 0, group: 0, humanoid: 1, simple_figure: 1, target: 2, spotlight: 3, camera: 3 };  // tit
-const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
+// ============================================================================
+// PART A — consts (verbatim from bundle; names in comments)
+// ============================================================================
+const Uhe = 34, iqt = 14, oqt = Uhe * 5, Fst = .26, Ost = 4.2, lqt = 12, VIr = 34, cqt = 6,   // consts_planview
+  yT = [14, 18, 24, 35, 50, 85, 135, 200];
+const HZt = 1, oye = 5, sit = 8, iDr = 24, oDr = [[-9, -1], [9, -1], [9, 11], [-9, 11]],     // consts_painter
+  lDr = [[-4, -1], [-6.5, -8], [6.5, -8], [4, -1]], cDr = .32, dDr = 6, uDr = 7, hDr = 12,
+  pDr = 6, fDr = 12, mDr = 16, gDr = 8, ait = 6, bDr = .14, yDr = .24, ZY = 12, pL = 8,
+  KY = 4.5, vDr = .5, xDr = 2.4, wDr = 14, iit = 11, lye = 18, l$ = 12, Cje = 11;
+const RIr = 1.299, sA = 1.75 / RIr, PP = [.406 * sA, 1.059 * sA, .289 * sA], Nie = .125 * sA, // consts_figbody (jP=1.75)
+  Pie = 72 * Math.PI / 180, Pst = "#ffffff", BIr = "#1c0f09", HIr = .72;
+const WIr = 16, GIr = .72, qIr = 28, $2e = 4;                                                  // consts_labelpos
+const Rst = 22, uN = 13;                                                                       // consts_edgeind
+const Vie = .25, Yat = Math.PI / 12, Qat = 3, Jat = 4, SLr = 4, TLr = 48, ALr = .8, CLr = 720; // consts_state
+const eit = 40, VLr = .05, ULr = 4e3, zLr = .05, WLr = 20, GLr = 12, qLr = 4, ZLr = 50,       // consts_drag
+  KLr = .18, XLr = .12, YLr = 1.6, QLr = 1.4, JLr = { minX: -3, minZ: -3, maxX: 3, maxZ: 3 },
+  tit = { prop: 0, cube: 0, sphere: 0, cylinder: 0, group: 0, humanoid: 1, simple_figure: 1, target: 2, spotlight: 3, camera: 3 },
+  eDr = .4, tDr = 1;
+const fHr = .3, mHr = .7, gHr = .25, bHr = .1, yHr = .2, Tit = 1e4;                            // consts_stroke
+const Aje = .2, pLr = .005, fLr = .02, mLr = 2, gLr = 1;                                       // consts_wheel
+const yLr = 2, vLr = 8;                                                                        // consts_hit
+const K2r = 32;                                                                                // consts_K2r
+const Htt = 1.4, Qae = .01;                                                                    // consts_speeds
+const JCe = "walk";                                                                            // consts_gait (default humanoid path gait)
+const QWt = { shape: "round", intensity: 70, diffusion: 30 }, JWt = 16, eGt = 3, tGt = 55;     // consts_spotlight
+const YZt = 2;                                                                                 // consts_YZt (camera steady speed)
+const oit = .35;                                                                               // consts_oit
+const nBr = 320;                                                                               // consts_cursor: centerOn ease ms
+const Hv = 50;                                                                                 // consts_Hv default focalLengthMm
+const Zae = [                                                                                  // consts_aspects
+  { key: "16:9", aspect: 16 / 9 }, { key: "9:16", aspect: 9 / 16 }, { key: "1:1", aspect: 1 },
+  { key: "4:3", aspect: 4 / 3 }, { key: "1.85:1", aspect: 1.85 }, { key: "2.39:1", aspect: 2.39 }];
+const aDr = { background: "--plan-background", grid: "--plan-grid", gridMajor: "--plan-grid-major", // consts_palette
+  human: "--plan-human", camera: "--plan-camera", object: "--plan-object", light: "--plan-light",
+  prop: "--plan-prop", propEdge: "--plan-prop-edge", accent: "--plan-accent", accentSoft: "--plan-accent-soft",
+  panel: "--plan-panel", text: "--plan-text", textDim: "--plan-text-dim" };
+const XOr = 70 * Math.PI / 180, YOr = 35 * Math.PI / 180, CZt = 1.6;                           // consts_CZt (walker eye height)
 
-// real three scratch (getWorldPosition/Quaternion need working .set/.copy)
-const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3();
-const _q1 = new THREE.Quaternion();
-const _e1 = new THREE.Euler();
+// real three scratch (Lst/H2e/Z8r/K8r/uL/qY/xb/nDr in the bundle)
+const Lst = new THREE.Euler(), H2e = new THREE.Vector3();
+const Z8r = new THREE.Vector3(), K8r = new THREE.Euler();
+const uL = new THREE.Quaternion(), qY = new THREE.Quaternion(), xb = new THREE.Euler(), nDr = new THREE.Vector3(0, 1, 0);
 
-export class PlanView {
-  constructor(app, host) {
-    this.app = app;
-    this.host = host;
+// ============================================================================
+// PART B — pure geometry / view helpers (verbatim ports; exported for the oracle)
+// ============================================================================
+export function Am(t) { return Zae.find(e => e.key === t) ?? Zae[0]; }                         // aspect key → {aspect}
+export function Z_(t, e = 16 / 9) { return 2 * Math.atan(35 / Math.max(e, 1) / 2 / t) * 180 / Math.PI; }  // fovDeg(focal, aspect) — XCe(t)=35/max(t,1) @3920783
+export function tDe(t, e) { let n = (e - t) % (2 * Math.PI); return n > Math.PI && (n -= 2 * Math.PI), n < -Math.PI && (n += 2 * Math.PI), n; } // signed angle diff
+const Ntt = 2 * Math.PI;
+function ybe(t, e) { return t - Math.round((t - e) / Ntt) * Ntt; }                             // wrap to 2π near e
+export function GA(t, e) {                                                                       // euler flip resolver
+  const n = [t, [t[0] + Math.PI, Math.PI - t[1], t[2] + Math.PI]]; let r = e, s = 1 / 0;
+  for (const a of n) { const o = [ybe(a[0], e[0]), ybe(a[1], e[1]), ybe(a[2], e[2])],
+    l = Math.abs(o[0] - e[0]) + Math.abs(o[1] - e[1]) + Math.abs(o[2] - e[2]); l < s && (s = l, r = o); }
+  return r;
+}
+export function Bzt(t, e) {                                                                      // transform key interp (lerp)
+  if (t.length === 0) return null; const n = t[0];
+  if (e <= n.tS || t.length === 1) return { position: n.position, rotation: n.rotation, scale: n.scale };
+  const r = t[t.length - 1]; if (e >= r.tS) return { position: r.position, rotation: r.rotation, scale: r.scale };
+  let s = t.findIndex(d => d.tS >= e); s <= 0 && (s = 1);
+  const a = t[s - 1], o = t[s], l = o.tS - a.tS, c = l <= 0 ? 0 : (e - a.tS) / l;
+  const L = (p, q) => p.map((v, i) => v + (q[i] - v) * c);
+  return { position: L(a.position, o.position), rotation: L(a.rotation, o.rotation), scale: L(a.scale, o.scale) };
+}
+export function el(t) { return t === "humanoid" || t === "simple_figure"; }                     // is walker
+export function fie(t) { return t === "camera" || t === "target" || t === "spotlight"; }        // is stage fixture
+export function Q0(t) { return t === "humanoid" || t === "simple_figure" || t === "cube" || t === "sphere" || t === "cylinder" || t === "prop" || t === "group" || t === "target" || t === "spotlight"; } // path-drawable
+export function Zo(t, e) {                                                                        // stored pose (VWt parent compose)
+  const n = { position: t.position, rotation: t.rotation, scale: t.scale }, r = t.parentId ? e[t.parentId] : void 0;
+  return r ? composePose({ position: r.position, rotation: r.rotation, scale: r.scale }, n) : n;
+}
+const _pm = new THREE.Matrix4(), _pm2 = new THREE.Matrix4(), _pe = new THREE.Euler(), _pq = new THREE.Quaternion(), _pv = new THREE.Vector3(), _pv2 = new THREE.Vector3();
+export function composePose(parent, child) {                                                      // VWt: child-local → parent-world
+  _pm.compose(_pv.set(...(parent.position ?? [0, 0, 0])), _pq.setFromEuler(_pe.set(...(parent.rotation ?? [0, 0, 0]))), _pv2.set(...(parent.scale ?? [1, 1, 1])));
+  _pm2.compose(_pv.set(...(child.position ?? [0, 0, 0])), _pq.setFromEuler(_pe.set(...(child.rotation ?? [0, 0, 0]))), _pv2.set(...(child.scale ?? [1, 1, 1])));
+  _pm2.premultiply(_pm); _pm2.decompose(_pv, _pq, _pv2);
+  return { position: [_pv.x, _pv.y, _pv.z], rotation: eulerOf(_pq), scale: [_pv2.x, _pv2.y, _pv2.z] };
+}
+export function pie(t, e) {                                                                        // world → parent-local
+  _pm.compose(_pv.set(...(t.position ?? [0, 0, 0])), _pq.setFromEuler(_pe.set(...(t.rotation ?? [0, 0, 0]))), _pv2.set(...(t.scale ?? [1, 1, 1]))).invert();
+  _pm2.compose(_pv.set(...(e.position ?? [0, 0, 0])), _pq.setFromEuler(_pe.set(...(e.rotation ?? [0, 0, 0]))), _pv2.set(...(e.scale ?? [1, 1, 1])));
+  _pm2.premultiply(_pm); _pm2.decompose(_pv, _pq, _pv2);
+  return { position: [_pv.x, _pv.y, _pv.z], rotation: eulerOf(_pq), scale: [_pv2.x, _pv2.y, _pv2.z] };
+}
+function eulerOf(q) { const e = new THREE.Euler().setFromQuaternion(q, 'XYZ'); return [e.x, e.y, e.z]; }
+export function Rhe(t) {                                                                           // pool half-angle rad from scale
+  const e = (Math.abs(t.x) + Math.abs(t.y) + Math.abs(t.z)) / 3;
+  return Math.min(tGt, Math.max(eGt, JWt * e)) * Math.PI / 180;
+}
+export function TDe(t) {                                                                           // POOL SOLVER (no min-radius clamp)
+  const e = Z8r.set(0, 0, -1).applyEuler(K8r.set(...t.rotation)), n = t.position[1];
+  if (n <= 0 || e.y > -.05) return null;
+  const r = n / -e.y, [s, a, o] = t.scale;
+  return { x: t.position[0] + e.x * r, z: t.position[2] + e.z * r, radiusM: r * Math.tan(Rhe({ x: s, y: a, z: o })) };
+}
+export function BR(t) { return t.spotlight ?? QWt; }                                               // spotlight cfg accessor
+export function i9(t) {                                                                            // plan yaw of euler (screen-up = -Z)
+  Lst.set(t[0], t[1], t[2], "XYZ"), H2e.set(0, 0, -1).applyEuler(Lst);
+  return Math.atan2(-H2e.x, -H2e.z);
+}
+export function FU(t) { return { x: -Math.sin(t), z: -Math.cos(t) }; }                              // forward of yaw
+export function hqt(t, e) { return Math.atan(Math.tan(t * Math.PI / 360) * e); }                    // horiz half-fov
+export function Dst(t, e, propDims) {                                                               // FOOTPRINT (bundle-exact)
+  const n = e.position[0], r = e.position[2], s = i9(e.rotation), [a, , o] = e.scale;
+  switch (t.kind) {
+    case "group": return null;
+    case "camera": case "target": case "spotlight": return { shape: "marker", x: n, z: r, yawRad: s };
+    case "humanoid": return { shape: "ellipse", x: n, z: r, halfWidthM: Fst * a, halfDepthM: Fst * o, yawRad: s };
+    case "simple_figure": return { shape: "rect", x: n, z: r, halfWidthM: PP[0] * a / 2, halfDepthM: PP[2] * o / 2, yawRad: s };
+    case "sphere": case "cylinder": return { shape: "ellipse", x: n, z: r, halfWidthM: a / 2, halfDepthM: o / 2, yawRad: s };
+    default: {
+      const l = t.propKey ? propDims?.(t.propKey) : void 0, [c, , d] = l ?? [1, 1, 1];
+      return { shape: "rect", x: n, z: r, halfWidthM: c * a / 2, halfDepthM: d * o / 2, yawRad: s };
+    }
+  }
+}
+export function dqt(t) {                                                                            // footprint bbox (m)
+  let e = 0, n = 0;
+  if (t.shape !== "marker") {
+    const r = Math.cos(t.yawRad), s = Math.sin(t.yawRad), a = t.halfWidthM, o = t.halfDepthM;
+    t.shape === "rect" ? (e = Math.abs(a * r) + Math.abs(o * s), n = Math.abs(a * s) + Math.abs(o * r))
+      : (e = Math.hypot(a * r, o * s), n = Math.hypot(a * s, o * r));
+  }
+  return { minX: t.x - e, minZ: t.z - n, maxX: t.x + e, maxZ: t.z + n };
+}
+export function iu(t, e) { return { x: t.widthPx / 2 + (e.x - t.centerX) * t.pxPerM, y: t.heightPx / 2 + (e.z - t.centerZ) * t.pxPerM }; }
+export function S1(t, e) { return { x: t.centerX + (e.x - t.widthPx / 2) / t.pxPerM, z: t.centerZ + (e.y - t.heightPx / 2) / t.pxPerM }; }
+export function UDe(t, e, n) { return { ...t, centerX: t.centerX - e / t.pxPerM, centerZ: t.centerZ - n / t.pxPerM }; }
+export function mqt(t, e, n) { return Math.min(n, Math.max(e, t)); }
+export function fqt(t, e, n) {                                                                      // zoom at anchor
+  const r = S1(t, e), s = mqt(t.pxPerM * n, iqt, oqt);
+  return { ...t, pxPerM: s, centerX: r.x - (e.x - t.widthPx / 2) / s, centerZ: r.z - (e.y - t.heightPx / 2) / s };
+}
+export function zIr(t, e, n) {                                                                      // fit to bbox (1e-6 floor, NO 2m span)
+  const r = Math.max(1e-6, e.maxX - e.minX), s = Math.max(1e-6, e.maxZ - e.minZ),
+    a = Math.min((t.widthPx - 2 * n) / r, (t.heightPx - 2 * n) / s);
+  return { ...t, centerX: (e.minX + e.maxX) / 2, centerZ: (e.minZ + e.maxZ) / 2, pxPerM: mqt(a, iqt, oqt) };
+}
+export function uqt(t) {                                                                            // union bbox (m)
+  if (!t.length) return null;
+  const e = { minX: 1 / 0, minZ: 1 / 0, maxX: -1 / 0, maxZ: -1 / 0 };
+  for (const n of t) { const r = dqt(n); e.minX = Math.min(e.minX, r.minX), e.minZ = Math.min(e.minZ, r.minZ), e.maxX = Math.max(e.maxX, r.maxX), e.maxZ = Math.max(e.maxZ, r.maxZ); }
+  return e;
+}
+export function Rie(t, e) {                                                                         // footprint bbox (px, marker pad 12)
+  const n = dqt(t), r = iu(e, { x: n.minX, z: n.minZ }), s = iu(e, { x: n.maxX, z: n.maxZ }), a = t.shape === "marker" ? lqt : 0;
+  return { minX: r.x - a, minY: r.y - a, maxX: s.x + a, maxY: s.y + a };
+}
+export function pqt(t, e) {                                                                         // lens endpoints (4.2m ahead)
+  const n = r => { const s = FU(r); return { x: t.x + s.x * Ost, z: t.z + s.z * Ost }; };
+  return [n(t.yawRad - e), n(t.yawRad + e)];
+}
+export function UIr(t, e, n = !1) {                                                                 // focal from half-fov (+yT snap)
+  const a = 50 * Math.tan(hqt(Z_(50, e), e)) / Math.tan(Math.max(.001, Math.abs(t)));
+  if (!n) { const o = yT[0], l = yT[yT.length - 1]; return Math.round(Math.min(l, Math.max(o, a))); }
+  return yT.reduce((o, l) => Math.abs(l - a) < Math.abs(o - a) ? l : o);
+}
+export function zDe(t, e, n) {                                                                      // callout geometry (ellipse +12 case!)
+  const r = iu(e, t),
+    s = t.shape === "marker" ? VIr : t.shape === "ellipse" ? Math.max(t.halfWidthM, t.halfDepthM) * e.pxPerM + 12 : Math.max(t.halfWidthM, t.halfDepthM) * 1.2 * e.pxPerM + 10,
+    a = FU(t.yawRad), o = { x: r.x + a.x * s, y: r.y + a.z * s };
+  if (n === void 0) return { center: r, ringRadiusPx: s, rotate: o };
+  const [l, c] = pqt(t, n);
+  return { center: r, ringRadiusPx: s, rotate: o, lens: [iu(e, l), iu(e, c)] };
+}
+export function aqt(t) {                                                                            // label contrast color
+  const e = Number.parseInt(t.slice(1, 7), 16); if (Number.isNaN(e)) return Pst;
+  const n = e >> 16 & 255, r = e >> 8 & 255, s = e & 255;
+  return (.2126 * n + .7152 * r + .0722 * s) / 255 > HIr ? BIr : Pst;
+}
+export function aMr(t, e) {                                                                         // drop children whose parent selected
+  const n = new Set(t); return t.filter(r => { const s = e[r]?.parentId; return !s || !n.has(s); });
+}
+export function hL(t) { return { x: t[0], z: t[2] }; }
+export function rit(t, e) {                                                                         // resample keys → 41 pts
+  const n = t[0].tS, r = t[t.length - 1].tS;
+  return Array.from({ length: eit + 1 }, (s, a) => e(n + (r - n) * a / eit));
+}
+const QOr = (t, e) => Math.max(-e, Math.min(e, t)), Gat = t => Math.atan2(Math.sin(t), Math.cos(t));
+export function xM(t, e, n) {                                                                       // head-look solver (70°/35°)
+  const r = n[0] - e[0], s = n[1] - e[1], a = n[2] - e[2], o = Math.hypot(r, a);
+  if (o < 1e-6) return { bodyYawRad: t, headPitchRad: 0, headYawRad: 0 };
+  const l = Math.atan2(-r, -a), c = Gat(l - t), d = Math.sign(c) * Math.min(Math.abs(c), XOr, Math.PI - Math.abs(c));
+  return { bodyYawRad: Gat(t + c - d), headPitchRad: QOr(Math.atan2(s, o), YOr), headYawRad: d };
+}
+const _lkM = new THREE.Object3D();
+export function kv(t, e) {                                                                          // lookAt euler (camera faces −Z)
+  _lkM.position.set(t[0], t[1], t[2]); _lkM.lookAt(e[0], e[1], e[2]); _lkM.rotateY(Math.PI);
+  return [_lkM.rotation.x, _lkM.rotation.y, _lkM.rotation.z];
+}
+
+
+// ============================================================================
+// PART C — painter chain (verbatim ports: SDr pass order is the spec)
+// ============================================================================
+export function _Dr(t) { const n = (t * HZt - sit) / (iDr - sit); return Math.min(1, Math.max(0, n)); } // grid minor fade
+export function kDr(t, e) { return el(t) ? e.human : t === "camera" || t === "target" ? e.camera : t === "spotlight" ? e.light : e.object; } // color by kind
+export function TDr(t, e, n) {                                                                     // grid: 1m minors skip 5m, 5m majors
+  const r = S1(e, { x: 0, y: 0 }), s = S1(e, { x: e.widthPx, y: e.heightPx }),
+    a = (l, c) => {
+      t.beginPath();
+      for (let d = Math.ceil(r.x / l) * l; d <= s.x; d += l) {
+        if (c && d % oye === 0) continue;
+        const u = Math.round(iu(e, { x: d, z: 0 }).x) + .5; t.moveTo(u, 0), t.lineTo(u, e.heightPx);
+      }
+      for (let d = Math.ceil(r.z / l) * l; d <= s.z; d += l) {
+        if (c && d % oye === 0) continue;
+        const u = Math.round(iu(e, { x: 0, z: d }).y) + .5; t.moveTo(0, u), t.lineTo(e.widthPx, u);
+      }
+      t.stroke();
+    };
+  t.lineWidth = 1;
+  const o = _Dr(e.pxPerM);
+  o > 0 && (t.globalAlpha = o, t.strokeStyle = n.grid, a(HZt, !0), t.globalAlpha = 1),
+    t.strokeStyle = n.gridMajor, a(oye, !1);
+}
+export function q5(t, e, n, r, s) {                                                                // text label
+  t.font = `${s.sizePx}px ${s.fontFamily}`, t.fillStyle = s.color, t.textAlign = s.align, t.fillText(e, n, r);
+}
+export function $Zt(t, e, n) {                                                                     // polyline path (no stroke)
+  t.beginPath(), n.forEach((r, s) => { const a = iu(e, r); s === 0 ? t.moveTo(a.x, a.y) : t.lineTo(a.x, a.y); });
+}
+export function cBe(t, e, n, r) {                                                                  // rotated polygon path
+  const s = Math.cos(r), a = Math.sin(r);
+  t.beginPath();
+  for (const [o, l] of n) t.lineTo(e.x + o * s + l * a, e.y - o * a + l * s);
+  t.closePath();
+}
+export function dBe(t, e, n, r, s) { cBe(t, e, [[-n, -r], [n, -r], [n, r], [-n, r]], s); }         // rotated rect path
+export function EDr(t, e, n, r, s, a) {                                                            // simple_figure body painter
+  const o = n.footprint; if (o.shape !== "rect") return;
+  const l = Math.max(1, uDr / (o.halfWidthM * e.pxPerM)), c = o.halfWidthM * e.pxPerM * l, d = o.halfDepthM * e.pxPerM * l, u = aqt(a.human);
+  dBe(t, r, c, d, o.yawRad), t.fillStyle = a.human, t.fill(), s && (t.strokeStyle = a.accent, t.lineWidth = 1.6, t.stroke());
+  const h = Math.max(1.5, d * .2);
+  cBe(t, r, [[-c, -d], [c, -d], [c, -d + h], [-c, -d + h]], o.yawRad), t.fillStyle = u, t.fill();
+  const f = Math.min(Math.abs(o.halfWidthM) / (PP[0] / 2), Math.abs(o.halfDepthM) / (PP[2] / 2)), m = Nie * f * e.pxPerM * l;
+  t.beginPath(), t.arc(r.x, r.y, m, 0, Math.PI * 2), t.fillStyle = a.human, t.fill(), t.strokeStyle = a.background, t.lineWidth = 1, t.stroke();
+  const g = FU(o.yawRad + (n.headYawRad ?? 0)), b = Math.atan2(g.z, g.x);
+  t.beginPath(), t.arc(r.x, r.y, m * .72, b - Pie, b + Pie), t.strokeStyle = u, t.lineWidth = Math.max(1.5, m * .3), t.stroke();
+  const y = FU(o.yawRad);
+  t.strokeStyle = a.human, t.lineWidth = 1.6, t.lineCap = "round", t.beginPath(),
+    t.moveTo(r.x + y.x * (d + 3), r.y + y.z * (d + 3)), t.lineTo(r.x + y.x * (d + 10), r.y + y.z * (d + 10)),
+    t.stroke(), t.lineCap = "butt";
+}
+export function VZt(t, e, n, r) {                                                                  // stick figure (V legs!)
+  t.fillStyle = r, t.strokeStyle = r, t.lineWidth = n > 8 ? 2.2 : 1.6, t.lineCap = "round";
+  t.beginPath(), t.arc(e.x, e.y - n * .72, n * .3, 0, Math.PI * 2), t.fill();
+  t.beginPath(), t.moveTo(e.x, e.y - n * .4), t.lineTo(e.x, e.y + n * .3),
+    t.moveTo(e.x - n * .6, e.y - n * .12), t.lineTo(e.x + n * .6, e.y - n * .12),
+    t.moveTo(e.x - n * .45, e.y + n), t.lineTo(e.x, e.y + n * .3), t.lineTo(e.x + n * .45, e.y + n),
+    t.stroke();
+}
+export function jDr(t, e, n, r, s, a = !0) {                                                       // per-kind glyph dispatch
+  const o = n.footprint, l = iu(e, o);
+  if (n.kind === "camera") {
+    n.wedgeHalfRad !== void 0 && NDr(t, e, o, n.wedgeHalfRad, r, s);
+    t.fillStyle = s.panel, t.strokeStyle = r ? s.accent : s.camera, t.lineWidth = r ? 1.6 : 1.2;
+    for (const u of [oDr, lDr]) cBe(t, l, u, o.yawRad), t.fill(), t.stroke();
+    n.label && a && q5(t, n.label, l.x + 18, l.y + 26, { sizePx: l$, color: s.textDim, align: "left", fontFamily: s.fontFamily });
+    return;
+  }
+  if (n.kind === "spotlight") {
+    if (n.pool) {
+      const u = iu(e, n.pool);
+      t.strokeStyle = s.light, t.globalAlpha = r ? .9 : .5, t.lineWidth = 1, t.setLineDash([3, 3]),
+        t.beginPath(), t.moveTo(l.x, l.y), t.lineTo(u.x, u.y), t.stroke(), t.setLineDash([]), t.globalAlpha = 1;
+    }
+    t.fillStyle = s.light, t.strokeStyle = r ? s.accent : s.panel, t.lineWidth = r ? 1.6 : 1.2,
+      t.beginPath(), t.arc(l.x, l.y, ait, 0, Math.PI * 2), t.fill(), t.stroke();
+    n.label && r && a && q5(t, n.label, l.x + ait + 6, l.y + 4, { sizePx: Cje, color: s.textDim, align: "left", fontFamily: s.fontFamily });
+    return;
+  }
+  if (o.shape === "marker") {                                                                       // target
+    t.strokeStyle = r ? s.accent : s.camera, t.lineWidth = 1.4, t.beginPath(), t.arc(l.x, l.y, gDr, 0, Math.PI * 2),
+      t.moveTo(l.x - ZY, l.y), t.lineTo(l.x + ZY, l.y), t.moveTo(l.x, l.y - ZY), t.lineTo(l.x, l.y + ZY), t.stroke();
+    return;
+  }
+  if (n.kind === "humanoid") {
+    const u = MDr(e); VZt(t, l, u, s.human);
+    const h = FU(o.yawRad);
+    t.lineWidth = 1.6, t.beginPath(), t.moveTo(l.x + h.x * u * 1.35, l.y + h.z * u * 1.35),
+      t.lineTo(l.x + h.x * u * 2.1, l.y + h.z * u * 2.1), t.stroke(), t.lineCap = "butt";
+    n.label && a && (t.globalAlpha = r ? 1 : oit, q5(t, n.label, l.x + u + 6, l.y + 4, { sizePx: l$, color: s.text, align: "left", fontFamily: s.fontFamily }), t.globalAlpha = 1);
+    return;
+  }
+  if (n.kind === "simple_figure") {
+    EDr(t, e, n, l, r, s);
+    n.label && a && (t.globalAlpha = r ? 1 : oit, q5(t, n.label, Rie(o, e).maxX + 6, l.y + 4, { sizePx: l$, color: s.text, align: "left", fontFamily: s.fontFamily }), t.globalAlpha = 1);
+    return;
+  }
+  const c = o.halfWidthM * e.pxPerM, d = o.halfDepthM * e.pxPerM;                                   // props: ellipse uses -yaw!
+  o.shape === "rect" ? dBe(t, l, c, d, o.yawRad) : (t.beginPath(), t.ellipse(l.x, l.y, c, d, -o.yawRad, 0, Math.PI * 2));
+  t.fillStyle = s.prop, t.fill(), t.strokeStyle = r ? s.accent : s.propEdge, t.lineWidth = 1, t.stroke();
+  n.label && r && a && q5(t, n.label, l.x, Rie(o, e).maxY + 14, { sizePx: Cje, color: s.textDim, align: "center", fontFamily: s.fontFamily });
+}
+export function IDr(t, e, n, r, s) {                                                               // pool fill (rotated SQUARE for square shape)
+  const a = n.pool, o = iu(e, a), l = a.radiusM * e.pxPerM;
+  a.square ? dBe(t, o, l, l, n.footprint.yawRad) : (t.beginPath(), t.arc(o.x, o.y, l, 0, Math.PI * 2));
+  t.fillStyle = s.light, t.globalAlpha = r ? yDr : bDr, t.fill(), t.globalAlpha = 1;
+}
+export function MDr(t) { return Math.min(hDr, Math.max(dDr, t.pxPerM * cDr)); }                     // stick unit size
+export function NDr(t, e, n, r, s, a) {                                                            // camera fov wedge
+  const o = iu(e, n), [l, c] = pqt(n, r).map(d => iu(e, d));
+  t.beginPath(), t.moveTo(o.x, o.y), t.lineTo(l.x, l.y), t.lineTo(c.x, c.y), t.closePath(),
+    t.fillStyle = a.camera, t.globalAlpha = s ? .2 : .1, t.fill(),
+    t.strokeStyle = a.camera, t.globalAlpha = s ? 1 : .6, t.lineWidth = s ? 1.4 : 1, t.stroke(), t.globalAlpha = 1;
+}
+export function RDr(t, e, n, r, s) {                                                               // rotate-handle direction tick
+  const a = n + pDr, o = Math.atan2(-Math.cos(r), -Math.sin(r)), l = fDr / n, c = mDr / n;
+  t.strokeStyle = s.accent, t.fillStyle = s.accent, t.lineWidth = 1.6, t.lineCap = "round";
+  for (const d of [1, -1]) {
+    const u = o + d * l, h = o + d * (l + c);
+    t.beginPath(), t.arc(e.x, e.y, a, Math.min(u, h), Math.max(u, h)), t.stroke();
+    const f = { x: e.x + Math.cos(h) * a, y: e.y + Math.sin(h) * a }, m = h + d * Math.PI / 2;
+    t.beginPath(), t.moveTo(f.x + Math.cos(m) * 4, f.y + Math.sin(m) * 4),
+      t.lineTo(f.x + Math.cos(h) * 3.5, f.y + Math.sin(h) * 3.5),
+      t.lineTo(f.x - Math.cos(h) * 3.5, f.y - Math.sin(h) * 3.5), t.closePath(), t.fill();
+  }
+  t.lineCap = "butt";
+}
+export function PDr(t, e, n, r) {                                                                  // single-selection callout
+  const s = zDe(n.footprint, e, n.wedgeHalfRad);
+  t.strokeStyle = r.accent, t.lineWidth = 1, t.beginPath(), t.arc(s.center.x, s.center.y, s.ringRadiusPx, 0, Math.PI * 2), t.stroke();
+  t.fillStyle = r.panel, t.lineWidth = 1.4;
+  for (const a of [s.rotate, ...s.lens ?? []]) t.beginPath(), t.arc(a.x, a.y, cqt, 0, Math.PI * 2), t.fill(), t.stroke();
+  RDr(t, s.center, s.ringRadiusPx, n.footprint.yawRad, r);
+}
+export function FDr(t, e, n) {                                                                     // edge indicator painter (arrow!)
+  for (const r of e)
+    t.save(), t.translate(r.x, r.y),
+      t.fillStyle = n.panel, t.strokeStyle = n.camera, t.lineWidth = 1.4,
+      t.beginPath(), t.arc(0, 0, uN, 0, Math.PI * 2), t.fill(), t.stroke(),
+      t.rotate(r.angleRad), t.fillStyle = n.camera, t.beginPath(),
+      t.moveTo(uN + 6, 0), t.lineTo(uN, -5), t.lineTo(uN, 5), t.closePath(), t.fill(), t.rotate(-r.angleRad),
+      t.fillStyle = n.text, t.font = `${l$}px ${n.fontFamily}`, t.textAlign = "center", t.textBaseline = "middle",
+      t.fillText(r.tag, 0, .5), t.restore();
+}
+export function ADr(t, e, n, r, s) {                                                               // focus overlay
+  const a = n.find(d => d.id === r.fromId), o = n.find(d => d.id === r.subjectId);
+  if (!a || !o) return;
+  const l = iu(e, a.footprint), c = iu(e, o.footprint);
+  t.strokeStyle = s.accent, t.lineWidth = 1, t.setLineDash([2, 4]), t.beginPath(), t.moveTo(l.x, l.y), t.lineTo(c.x, c.y), t.stroke(), t.setLineDash([]);
+  t.lineWidth = 1.4, t.beginPath(), t.arc(c.x, c.y, wDr, 0, Math.PI * 2);
+  for (const [d, u] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) t.moveTo(c.x + d * iit, c.y + u * iit), t.lineTo(c.x + d * lye, c.y + u * lye);
+  t.stroke();
+  q5(t, r.label, c.x + lye + 2, c.y - 10, { sizePx: l$, color: s.accent, align: "left", fontFamily: s.fontFamily });
+}
+export function CDr(t, e, n, r) {                                                                  // selected path painter (keys as diamonds)
+  $Zt(t, e, n.points), t.strokeStyle = kDr(n.kind, r), t.lineWidth = 1.4, t.setLineDash([2, 4]), t.stroke(), t.setLineDash([]);
+  t.fillStyle = r.accent, t.strokeStyle = r.panel, t.lineWidth = 1;
+  for (const s of n.keys) {
+    const a = iu(e, s);
+    t.beginPath(), t.moveTo(a.x, a.y - KY * Math.SQRT2), t.lineTo(a.x + KY * Math.SQRT2, a.y),
+      t.lineTo(a.x, a.y + KY * Math.SQRT2), t.lineTo(a.x - KY * Math.SQRT2, a.y), t.closePath(), t.fill(), t.stroke();
+  }
+}
+export function SDr(t, e) {                                                                        // MAIN PAINTER (pass order = spec)
+  const { view: n, palette: r, selection: s } = e;
+  t.lineJoin = "round", t.fillStyle = r.background, t.fillRect(0, 0, n.widthPx, n.heightPx);
+  TDr(t, n, r);
+  const a = new Map, o = new Set(["humanoid", "simple_figure", "target", "spotlight", "camera"]),
+    l = e.items.filter(h => !o.has(h.kind)), c = e.items.filter(h => o.has(h.kind)),
+    d = () => {
+      for (const h of e.paths) s.has(h.id) && (t.globalAlpha = h.id === e.dimPathOf ? vDr : 1, CDr(t, n, h, r));
+      t.globalAlpha = 1;
+      e.stroke && e.stroke.length > 1 && ($Zt(t, n, e.stroke), t.strokeStyle = r.accent, t.lineWidth = xDr, t.lineCap = "round", t.stroke(), t.lineCap = "butt");
+    },
+    u = h => {
+      const f = h.parentId !== void 0 && s.has(h.parentId), m = s.has(h.id);
+      if (jDr(t, n, h, m || f, r, !f), !f) return;
+      const g = Rie(h.footprint, n), b = a.get(h.parentId);
+      a.set(h.parentId, b ? { minX: Math.min(b.minX, g.minX), minY: Math.min(b.minY, g.minY), maxX: Math.max(b.maxX, g.maxX), maxY: Math.max(b.maxY, g.maxY), label: b.label } : { ...g, label: h.groupLabel });
+    };
+  for (const h of e.items) h.pool && IDr(t, n, h, s.has(h.id), r);
+  l.forEach(u), d(), c.forEach(u);                                                                  // paths BETWEEN non-char and char passes
+  t.strokeStyle = r.accent, t.lineWidth = 1, t.setLineDash([4, 3]);
+  for (const h of a.values()) t.strokeRect(h.minX - pL, h.minY - pL, h.maxX - h.minX + 2 * pL, h.maxY - h.minY + 2 * pL);
+  t.setLineDash([]);
+  for (const h of a.values()) h.label && q5(t, h.label, (h.minX + h.maxX) / 2, h.maxY + pL + 14, { sizePx: Cje, color: r.textDim, align: "center", fontFamily: r.fontFamily });
+  if (e.focus && ADr(t, n, e.items, e.focus, r), s.size === 1 && !e.stroke) {                        // callout suppressed only during active stroke
+    const [h] = s, f = e.items.find(m => m.id === h);
+    f && PDr(t, n, f, r);
+  }
+  if (e.marquee) {
+    const h = e.marquee, f = Math.min(h.x0, h.x1), m = Math.min(h.y0, h.y1), g = Math.abs(h.x1 - h.x0), b = Math.abs(h.y1 - h.y0);
+    t.fillStyle = r.accentSoft, t.fillRect(f, m, g, b), t.strokeStyle = r.accent, t.lineWidth = 1, t.setLineDash([4, 3]), t.strokeRect(f, m, g, b), t.setLineDash([]);
+  }
+}
+export function $Ir(t, e) {                                                                         // edge indicators (offscreen cameras) — RAY-SCALED clamp
+  const n = e.widthPx / 2, r = e.heightPx / 2, s = [];
+  for (const a of t) {
+    if (a.kind !== "camera") continue;
+    const o = iu(e, a.footprint);
+    if (o.x >= 0 && o.x <= e.widthPx && o.y >= 0 && o.y <= e.heightPx) continue;
+    const l = o.x - n, c = o.y - r, d = Math.min((n - Rst) / Math.abs(l || 1e-6), (r - Rst) / Math.abs(c || 1e-6));
+    s.push({ id: a.id, tag: a.tag ?? "", x: n + l * d, y: r + c * d, angleRad: Math.atan2(c, l) });
+  }
+  return s;
+}
+export function ZIr(t, e, n) {                                                                      // camera label overlay pos
+  const { center: r, ringRadiusPx: s } = zDe(t.footprint, e, t.wedgeHalfRad), a = (o, l) => Math.min(Math.max(o, $2e), l);
+  return { x: a(r.x + s + WIr, e.widthPx - n.widthPx - $2e), y: a(r.y - s * GIr - qIr, e.heightPx - n.heightPx - $2e) };
+}
+
+// ============================================================================
+// PART D — interaction reducers (verbatim ports)
+// ============================================================================
+export function xLr(t, e, n) {                                                                      // point-in-footprint
+  const r = iu(e, t), s = Math.hypot(n.x - r.x, n.y - r.y);
+  if (t.shape === "marker") return s <= lqt;
+  if (s <= vLr) return !0;
+  const a = S1(e, n), o = a.x - t.x, l = a.z - t.z, c = Math.cos(t.yawRad), d = Math.sin(t.yawRad),
+    u = (o * c - l * d) / t.halfWidthM, h = (o * d + l * c) / t.halfDepthM;
+  return t.shape === "rect" ? Math.abs(u) <= 1 && Math.abs(h) <= 1 : u * u + h * h <= 1;
+}
+export function Qhe(t, e, n) {                                                                      // all hits topmost-first
+  const r = []; for (let s = t.length - 1; s >= 0; s--) { const a = t[s]; xLr(a.footprint, e, n) && r.push(a); } return r;
+}
+export function Xat(t, e, n) { const r = Qhe(t, e, n)[0]; return r ? r.parentId ?? r.id : null; }   // topmost hit + promotion (unconditional!)
+export function wLr(t, e, n, r) {                                                                   // mod-click cycle child
+  const s = Qhe(t, e, n); if (!s.length) return null;
+  const a = s.find(c => c.parentId === r); if (a) return a.id;
+  const o = s.findIndex(c => c.id === r), l = o >= 0 ? (o + 1) % s.length : Math.min(1, s.length - 1);
+  return s[l].id;
+}
+export function _Lr(t, e, n) {                                                                      // marquee select
+  const r = Math.min(n.x0, n.x1), s = Math.max(n.x0, n.x1), a = Math.min(n.y0, n.y1), o = Math.max(n.y0, n.y1), l = new Set;
+  for (const c of t) { const d = Rie(c.footprint, e); d.maxX >= r && d.minX <= s && d.maxY >= a && d.minY <= o && l.add(c.parentId ?? c.id); }
+  return [...l];
+}
+export function kLr(t, e, n) {                                                                      // camera handle hit (rotate | lens)
+  const r = zDe(t.footprint, e, t.wedgeHalfRad), s = a => Math.hypot(n.x - a.x, n.y - a.y) <= cqt + yLr;
+  return s(r.rotate) ? "rotate" : r.lens?.some(s) ? "lens" : null;
+}
+export function ELr() { return { view: { centerX: 0, centerZ: 0, pxPerM: Uhe, widthPx: 0, heightPx: 0 }, drag: null, fitted: !1 }; }
+export function jLr(t, e, n) {                                                                      // resize keeping world center
+  const { view: r } = t; if (r.widthPx === e && r.heightPx === n) return t;
+  const s = r.widthPx > 0 && r.heightPx > 0;
+  return { ...t, view: { ...r, centerX: s ? r.centerX + (e - r.widthPx) / (2 * r.pxPerM) : r.centerX, centerZ: s ? r.centerZ + (n - r.heightPx) / (2 * r.pxPerM) : r.centerZ, widthPx: e, heightPx: n } };
+}
+export function ILr(t, e) {                                                                         // zoom-to-fit (once)
+  if (t.fitted || t.view.widthPx === 0) return t;
+  const n = uqt(e.map(r => r.footprint));
+  return n ? { ...t, view: zIr(t.view, n, TLr), fitted: !0 } : t;
+}
+export function MLr(t, e, n) {                                                                      // zoom to id
+  const r = e.find(s => s.id === n)?.footprint;
+  return !r || t.view.widthPx === 0 ? t : { ...t, view: { ...t.view, centerX: r.x, centerZ: r.z, pxPerM: Uhe }, fitted: !0 };
+}
+export function FZt(t) { return Math.max(.1, 1 + t); }
+export function PZt(t) {                                                                            // wheel → intent
+  if (t.zoom) { const r = Math.abs(t.deltaY) > 20 ? pLr : fLr; return { kind: "zoom", delta: -t.deltaY * r }; }
+  const e = t.deltaMode === 0 ? mLr : gLr;
+  return { kind: "pan", dx: t.deltaX * e, dy: t.deltaY * e };
+}
+export function NLr(t, e) {                                                                         // wheel reducer (pan sign: UDe(-dx,-dy))
+  const n = PZt({ deltaX: e.dx, deltaY: e.dy, deltaMode: e.deltaMode, zoom: e.zoom }),
+    r = n.kind === "zoom" ? fqt(t.view, e.p, FZt(n.delta)) : UDe(t.view, -n.dx, -n.dy);
+  return { ...t, view: r };
+}
+export function PLr(t, e, n) { return { ...t, view: UDe(t.view, e, n) }; }
+export function RLr(t, e) {                                                                         // keyboard/button zoom at center
+  const n = { x: t.view.widthPx / 2, y: t.view.heightPx / 2 };
+  return { ...t, view: fqt(t.view, n, FZt(e * Aje)) };
+}
+export function FLr(t, e, n) {                                                                      // centerOn (no zoom change)
+  const r = e.find(s => s.id === n)?.footprint;
+  return !r || t.view.widthPx === 0 ? t : { ...t, view: { ...t.view, centerX: r.x, centerZ: r.z } };
+}
+export function OLr(t) { return { ...t, fitted: !1 }; }
+export function LLr(t) { return Math.round(t.view.pxPerM / Uhe * 100); }
+export function LZt(t) { return t.selection.length === 1 ? t.items.find(e => e.id === t.selection[0]) : void 0; }
+export function OZt(t, e, n) {                                                                      // tap-or-draw focus probe
+  const r = LZt(e); if (!e.drawing || !r || r.kind !== "camera" && !el(r.kind)) return null;
+  const s = Qhe(e.items, t.view, n)[0];
+  return s && s.id !== r.id && s.kind !== "camera" && s.kind !== "target" ? s.id : null;
+}
+export function DLr(t, e, n) {                                                                      // pointerdown reducer
+  if (e.locked) return { state: t, intents: [] };
+  const { view: r } = t;
+  if (e.readOnly) {
+    const d = Xat(e.items, r, n.p), u = d ? [d] : [], h = u.length === e.selection.length && u[0] === e.selection[0];
+    return { state: t, intents: h ? [] : [{ type: "select", ids: u }] };
+  }
+  const s = LZt(e);
+  if (e.drawing && s) {
+    const d = OZt(t, e, n.p);
+    return d ? { state: { ...t, drag: { kind: "tap-or-draw", downPx: n.p, focusId: d } }, intents: [] }
+      : { state: { ...t, drag: { kind: "stroke", lastPx: n.p } }, intents: [{ type: "stroke-start", at: S1(r, n.p) }] };
+  }
+  const a = s ? kLr(s, r, n.p) : null;
+  if (s && a) return { state: { ...t, drag: { kind: a, item: s, last: null } }, intents: [] };
+  const o = (d, u) => ({ kind: "move", ids: d, downPx: n.p, downWorld: S1(r, n.p), anchor: u, last: null });
+  if (n.mod) {
+    const d = wLr(e.items, r, n.p, e.selection.length === 1 ? e.selection[0] : null), u = e.items.find(h => h.id === d);
+    if (d && u) return { state: { ...t, drag: o([d], u.footprint) }, intents: [{ type: "select", ids: [d] }] };
+  }
+  const l = Xat(e.items, r, n.p);
+  if (l) {
+    const d = Qhe(e.items, r, n.p)[0]; let u = [...e.selection]; const h = [];
+    return n.shift ? (u = u.includes(l) ? u.filter(f => f !== l) : [...u, l], h.push({ type: "select", ids: u }))
+      : u.includes(l) || (u = [l], h.push({ type: "select", ids: u })),                                     // keep whole selection on member click
+      { state: { ...t, drag: u.length ? o(u, d.footprint) : null }, intents: h };
+  }
+  const c = n.shift ? [...e.selection] : [];
+  return { state: { ...t, drag: { kind: "marquee", rect: { x0: n.p.x, y0: n.p.y, x1: n.p.x, y1: n.p.y }, base: c } },
+    intents: !n.shift && e.selection.length ? [{ type: "select", ids: [] }] : [] };                          // deselect AT POINTERDOWN
+}
+export function DZt(t, e, n) {                                                                      // pointermove reducer
+  const r = t.drag; if (!r) return { state: t, intents: [] };
+  if (r.kind === "tap-or-draw") {
+    const { downPx: d } = r;
+    return Math.hypot(n.p.x - d.x, n.p.y - d.y) < Qat ? { state: t, intents: [] }
+      : { state: { ...t, drag: { kind: "stroke", lastPx: n.p } }, intents: [{ type: "stroke-start", at: S1(t.view, d) }, { type: "stroke-move", at: S1(t.view, n.p) }] };
+  }
+  if (r.kind === "stroke") {
+    const { lastPx: d } = r;
+    return Math.hypot(n.p.x - d.x, n.p.y - d.y) < SLr ? { state: t, intents: [] }
+      : { state: { ...t, drag: { kind: "stroke", lastPx: n.p } }, intents: [{ type: "stroke-move", at: S1(t.view, n.p) }] };
+  }
+  if (r.kind === "marquee") return { state: { ...t, drag: { ...r, rect: { ...r.rect, x1: n.p.x, y1: n.p.y } } }, intents: [] };
+  const s = S1(t.view, n.p);
+  if (r.kind === "move") {
+    if (!r.last && Math.hypot(n.p.x - r.downPx.x, n.p.y - r.downPx.y) < Qat) return { state: t, intents: [] };
+    const d = m => n.shift ? Math.round(m / Vie) * Vie : m,
+      u = d(r.anchor.x + s.x - r.downWorld.x) - r.anchor.x, h = d(r.anchor.z + s.z - r.downWorld.z) - r.anchor.z,
+      f = r.last ? [] : [{ type: "begin" }];
+    return (!r.last || r.last.dx !== u || r.last.dz !== h) && f.push({ type: "move", ids: r.ids, dx: u, dz: h }),
+      { state: { ...t, drag: { ...r, last: { dx: u, dz: h } } }, intents: f };
+  }
+  const a = r.item.footprint, o = Math.atan2(a.x - s.x, a.z - s.z),                                     // rotate: FACES pointer
+    l = r.kind === "rotate" ? n.shift ? Math.round(o / Yat) * Yat : o : UIr(Math.abs(tDe(a.yawRad, o)), e.aspect, n.shift);
+  if (l === r.last) return { state: t, intents: [] };
+  const c = r.last === null ? [{ type: "begin" }] : [];
+  return c.push(r.kind === "rotate" ? { type: "yaw", id: r.item.id, yawRad: l } : { type: "lens", id: r.item.id, focalLengthMm: l }),
+    { state: { ...t, drag: { ...r, last: l } }, intents: c };
+}
+export function BLr(t, e, n, r) {                                                                   // autopan during drag (deadzone .8, 720px/s)
+  const s = t.drag;
+  if (!s || s.kind !== "stroke" && s.kind !== "move") return { state: t, intents: [] };
+  if (s.kind === "move" && !s.last) return { state: t, intents: [] };
+  const { widthPx: a, heightPx: o } = t.view,
+    l = (f, m) => { const g = m * ALr / 2, b = f - m / 2, y = Math.abs(b) - g; return y <= 0 ? 0 : Math.sign(b) * Math.min(1, y / Math.max(m / 2 - g, 1)); },
+    c = CLr * Math.min(r, 100) / 1e3, d = l(n.x, a) * c, u = l(n.y, o) * c;
+  if (d === 0 && u === 0) return { state: t, intents: [] };
+  const h = { ...t, view: UDe(t.view, -d, -u) };
+  return s.kind === "stroke" ? { state: h, intents: [{ type: "stroke-move", at: S1(h.view, n) }] } : DZt(h, e, { p: n, shift: !1 });
+}
+export function HLr(t, e) {                                                                         // pointerup reducer
+  const n = t.drag, r = { ...t, drag: null };
+  if (!n) return { state: t, intents: [] };
+  if (n.kind === "stroke") return { state: r, intents: [{ type: "stroke-end" }] };
+  if (n.kind === "tap-or-draw") return { state: r, intents: [{ type: "focus", id: n.focusId }] };
+  if (n.kind === "marquee") {
+    const { x0: s, y0: a, x1: o, y1: l } = n.rect;
+    if (Math.abs(o - s) <= Jat && Math.abs(l - a) <= Jat) return { state: r, intents: [] };                // EITHER dim >4px commits
+    const c = _Lr(e.items, t.view, n.rect);
+    return { state: r, intents: [{ type: "select", ids: [...new Set([...n.base, ...c])] }] };
+  }
+  return { state: r, intents: n.last === null ? [] : [{ type: "commit" }] };
+}
+export function $Lr(t) {                                                                            // finalize (pointercancel)
+  const e = t.drag, n = !!e && e.kind !== "marquee" && e.kind !== "stroke" && e.kind !== "tap-or-draw" && e.last !== null;
+  return { state: { ...t, drag: null }, intents: n ? [{ type: "commit" }] : [] };
+}
+
+// ============================================================================
+// PART E — stroke simplify pipeline (verbatim: Ait/xHr/wHr/vHr)
+// ============================================================================
+export function Ait(t) { let e = 0; return t.map((n, r) => (r && (e += Math.hypot(n.x - t[r - 1].x, n.z - t[r - 1].z)), e)); }
+export function xHr(t) {                                                                            // dwell spans (≥.25s stationary)
+  const e = []; let n = 0;
+  for (let r = 1; r <= t.length; r++) {
+    const s = t[r];
+    s && s.x === t[n].x && s.z === t[n].z || (t[r - 1].t - t[n].t >= gHr && e.push([n, r - 1]), n = r);
+  }
+  return e;
+}
+export function wHr(t, e) {                                                                         // anchor-aware ¼-smoothing ×2 + time re-zero
+  const n = new Set([0, t.length - 1]);
+  for (const [o, l] of e) for (let c = o; c <= l; c++) n.add(c);
+  const r = t[0].t; let s = 0;
+  let a = t.map(o => (s = Math.max(s, o.t - r), { x: o.x, z: o.z, t: s }));
+  for (let o = 0; o < 2; o++)
+    a = a.map((l, c) => n.has(c) ? l : { x: (a[c - 1].x + l.x * 2 + a[c + 1].x) / 4, z: (a[c - 1].z + l.z * 2 + a[c + 1].z) / 4, t: l.t });
+  return a;
+}
+export function vHr(t) {                                                                            // simplify → {points, pace, durationS}|null
+  if (t.length < 3 || Ait(t).at(-1) < fHr) return null;
+  const e = xHr(t), n = wHr(t, e), r = Ait(n), s = n.length - 1, a = r[s], o = n[s].t;
+  if (!(a > 0) || !(o > 0)) return null;
+  const l = n.map(b => b.t), c = [0, ...e.flat(), s];
+  for (let b = 0; b < c.length - 1; b += 2) {                                                        // dwell time re-spread (mHr=.7)
+    const y = c[b], v = c[b + 1], x = r[v] - r[y], w = l[v] - l[y];
+    for (let k = y + 1; k < v; k++) { const S = l[y] + (r[k] - r[y]) / x * w, T = n[k].t; l[k] = Math.max(l[k - 1], T + (S - T) * mHr); }
+  }
+  const d = Math.max(K2r, Math.ceil(o / bHr) + 1), u = []; let h = 1;                                // pace array (arc-fraction samples)
+  for (let b = 0; b < d; b++) {
+    const y = b / (d - 1) * o;
+    for (; h < s && l[h] < y;) h++;
+    const v = l[h - 1], x = l[h], w = x > v ? Math.min(1, Math.max(0, (y - v) / (x - v))) : 1,
+      k = r[h - 1] + (r[h] - r[h - 1]) * w, S = Math.round(k / a * Tit) / Tit;
+    u.push(Math.max(u[b - 1] ?? 0, S));
+  }
+  u[0] = 0, u[d - 1] = 1;
+  const f = [[n[0].x, n[0].z]], m = (b, y) => Math.hypot(b.x - y[0], b.z - y[1]) >= yHr;            // anchors ≥.2m apart
+  for (let b = 1; b < s; b++) { const y = n[b]; m(y, f.at(-1)) && f.push([y.x, y.z]); }
+  const g = n[s];
+  return f.length > 1 && !m(g, f.at(-1)) && f.pop(), f.push([g.x, g.z]), { points: f, pace: u, durationS: o };
+}
+
+
+// ============================================================================
+// PART F — PlanStore (rDr port). Signals → plain cached fields recomputed on store change.
+// ============================================================================
+const KIND_LABELS = { cube: () => 'Cube', sphere: () => 'Sphere', cylinder: () => 'Cylinder', humanoid: () => 'Person', simple_figure: () => 'Figure', camera: () => 'Camera', target: () => 'Target', spotlight: () => 'Spotlight', prop: () => 'Prop', group: () => 'Group' };
+function DDe(t, e) { return t.name || `${KIND_LABELS[t.kind]?.() ?? 'Object'} ${e}`; }               // default label (i18n equiv)
+
+export function replaceMoveFromSamples(facade, e, n, r, s) {                                          // show-store method (verbatim logic)
+  const a = facade.objects, o = a[e], l = o?.kind === "camera";
+  if (!o || !(l || Q0(o.kind))) return !1;
+  const c = vHr(r); if (!c) return !1;
+  const d = facade.trackIdOf(e) ?? facade.addPerformanceTrack(e); if (!d) return !1;
+  const u = Zo(o, a).position[1], h = buildTangents(c.points.map(([v, x]) => [v, u, x])),
+    f = s?.steady ? l ? YZt : Htt : Math.max(Qae, arcLength(polylineOf(h)) / c.durationS),
+    m = facade.moveSegmentOf(d, n),
+    g = s?.focusId && s.focusId !== e && a[s.focusId] ? s.focusId : null,
+    b = { id: facade.an(), startS: Math.max(0, n), anchors: h, speedUnitsPerS: f, ...s?.steady ? {} : { pace: c.pace } },
+    y = l ? { ...b, kind: "cam-path", aim: g ? "subject" : "locked", subjectId: g, ...m && "focalLengthMm" in m && m.focalLengthMm !== void 0 ? { focalLengthMm: m.focalLengthMm } : {} }
+      : { ...b, kind: "path", ...o.kind === "humanoid" ? { gait: JCe } : {}, ...el(o.kind) ? g ? { aim: "subject", subjectId: g } : {} : { aim: "locked" } };
+  return facade.updateTrackItems(d, v => [y, ...v.filter(x => x.id !== m?.id)]), !0;
+}
+
+export class PlanStore {
+  constructor(app) {
+    this.a = app;
+    this.drawingFor = null;
+    this.matchDrawSpeed = true;
+    this.rehearseTip = false; this.tipTimer = null;
+    this.stroke = null; this.pendingWalkerFocus = null;
+    this.zoomPercent = 100; this.zoomCommand = null; this._zoomSeq = 0;
+    this.centerRequest = null; this._centerSeq = 0;
+    this.drag = null;
+    this._cache = null;           // {labels, entries, paths, drawnMoveIds, bounds} per store epoch
+    this._epoch = 0;
+    const bump = () => { this._epoch++; this._cache = null; };
+    app.objects.subscribe?.(bump); app.show.subscribe?.(bump);
+    // locked → cancel stroke (live disposer): drawing while playing refuses
+    app.page.subscribe?.(() => { if (this.locked() && this.stroke) { this.stroke = null; this.strokeClock = null; this.a._drawPreview = null; } if (this.locked()) this.drawingFor = null; });
+  }
+  // ---- derived (recomputed lazily per epoch) ----
+  _c() {
+    if (this._cache) return this._cache;
+    const objs = this.a.objects.all();
+    const kindCount = {}; const labels = {};
+    for (const [id, o] of Object.entries(objs)) { kindCount[o.kind] = (kindCount[o.kind] ?? 0) + 1; labels[id] = DDe(o, kindCount[o.kind]); }
+    const entries = Object.entries(objs).filter(([, n]) => n.kind !== "group")
+      .map(([n, r]) => ({ id: n, obj: r, label: labels[n] })).sort((n, r) => tit[n.obj.kind] - tit[r.obj.kind]);
+    const paths = [];
+    for (const r of this.a.show.show.tracks) {
+      const s = objs[r.characterId]; if (!s) continue;
+      for (const a of r.items) {
+        if (a.kind === "transform" && a.keys?.length > 1) {
+          const o = l => hL(Zo({ ...l, parentId: s.parentId }, objs).position);
+          paths.push({ id: r.characterId, kind: s.kind, points: rit(a.keys, l => o(Bzt(a.keys, l))), keys: a.keys.map(o) });
+        } else if ((a.kind === "path" || a.kind === "cam-path") && a.anchors?.length > 1) {
+          const o = polylineOf(a.anchors).map(hL);
+          paths.push({ id: r.characterId, kind: s.kind, points: o, keys: [o[o.length - 1]] });
+        } else if (a.kind === "cam-transform" && a.keys?.length > 1) {
+          const o = l => hL(camTransformKeysAt(a.keys, l).position);
+          paths.push({ id: r.characterId, kind: s.kind, points: rit(a.keys, o), keys: a.keys.map(o => hL(o.position)) });
+        }
+      }
+    }
+    const drawnMoveIds = this.a.show.show.tracks.filter(e => e.items.some(n => (n.kind === "path" || n.kind === "cam-path") && n.anchors?.length > 1)).map(e => e.characterId);
+    const bounds = uqt(entries.filter(({ obj: n }) => !fie(n.kind)).map(({ obj: n }) => Dst(n, Zo(n, objs), this._propDims())));
+    this._cache = { labels, entries, paths, drawnMoveIds, bounds };
+    return this._cache;
+  }
+  _propDims() { return this.a.propCatalogDims ?? (k => undefined); }
+  labels() { return this._c().labels; }
+  entries() { return this._c().entries; }
+  cameraPills() { return this._c().entries.filter(({ obj: e }) => e.kind === "camera").map(({ id: e, label: n }) => ({ id: e, label: n })); }
+  drawnMoveIds() { return this._c().drawnMoveIds; }
+  paths() { return this._c().paths; }
+  setBounds() { return this._c().bounds; }
+  aspect() { return Am(this.a.page.recordAspect).aspect; }
+  locked() { return !!this.a.page.playing; }                                                          // live: isPerformancePlaying || isRecording
+  drawTarget() {
+    const e = this.a.objects.selectedIds, n = e.length === 1 ? e[0]?.kind ?? this.a.objects.get(e[0])?.kind : void 0;
+    const kind = e.length === 1 ? (this.a.objects.get(e[0])?.kind) : void 0;
+    return kind === "camera" || (Q0(kind) && kind !== "group" && kind !== "target") ? e[0] : null;
+  }
+  targetPerson() { const e = this.drawTarget(), n = e ? this.a.objects.get(e)?.kind : void 0; return el(n) ? n : null; }
+  drawing() { return !!this.drawingFor; }
+  stroking() { return !!this.strokeClock; }
+  toggleMatchDrawSpeed() { this.matchDrawSpeed = !this.matchDrawSpeed; this.a.markAutosave?.(); }
+  // ---- zoom / center commands (seq'd like the live signals) ----
+  zoomBy(kind) { this.zoomCommand = { kind, seq: ++this._zoomSeq }; }
+  zoomIn() { this.zoomBy("in"); } zoomOut() { this.zoomBy("out"); } zoomToFit() { this.zoomBy("fit"); }
+  reportZoom(e) { this.zoomPercent = e; this._onZoomPercent?.(e); }
+  centerOn(e) { this.centerRequest = { id: e, seq: ++this._centerSeq }; }
+  goToCamera(e) { this.a.objects.select([e]); this.centerOn(e); }
+  // ---- items() (rDr.items verbatim) ----
+  items() {
+    const e = this.a.objects.all(), n = this.aspect(), r = this.labels(), propDims = this._propDims();
+    return this._c().entries.map(({ id: s, obj: a, label: o }) => {
+      const l = this.drag?.riding.get(s) ?? this.a.shownPose(s) ?? Zo(a, e),
+        c = { id: s, kind: a.kind, parentId: a.parentId, footprint: Dst(a, l, propDims), label: o };
+      if (a.parentId && (c.groupLabel = r[a.parentId]), a.kind === "simple_figure" && (c.headYawRad = i9(l.headRotation ?? a.headRotation ?? [0, 0, 0])), a.kind === "spotlight") {
+        const d = TDe(l); d && (c.pool = { ...d, square: BR(a).shape === "square" });
+      }
+      if (a.kind === "camera") {
+        const d = l.fovDeg ?? Z_(a.focalLengthMm ?? Hv, n);
+        c.wedgeHalfRad = hqt(d, n);
+        const u = l.position[1].toFixed(1);
+        c.label = `${o} · ${u}m`;                                                                     // i18n aRvSeS equiv
+        c.tag = o.split(" ").pop();
+      }
+      return c;
+    });
+  }
+  // ---- intents (rDr.apply verbatim) ----
+  apply(e) {
+    for (const n of e) switch (n.type) {
+      case "select": n.ids.length ? this.a.objects.select(n.ids) : this.a.objects.select([]); break;
+      case "begin": this.drag = { start: new Map, aimDistance: new Map, carried: new Map, riding: new Map, warned: !1 }; this.a.show.beginEditGesture(); break;
+      case "move": this.move(n.ids, n.dx, n.dz); break;
+      case "yaw": this.turn(n.id, n.yawRad); break;
+      case "lens": this.a.objects.update(n.id, { focalLengthMm: n.focalLengthMm }); this.a.markAutosave?.(); break;
+      case "commit": this.drag = null; this.a.show.endEditGesture(); break;
+      case "stroke-start": this.startStroke(n.at); break;
+      case "stroke-move": if (this.stroke) {
+        const { grab: r, pressAt: s } = this.stroke, a = Math.hypot(n.at.x - s.x, n.at.z - s.z), o = Math.max(0, 1 - a / tDr);
+        this.stroke.at = { x: n.at.x + r.x * o, z: n.at.z + r.z * o };                                // grab-offset easing
+      } break;
+      case "stroke-end": this.endStroke(); break;
+      case "focus": this.toggleFocus(n.id); break;
+    }
+  }
+  deleteMove() {                                                                                      // update-state delete pill
+    const e = this.drawTarget(), n = e ? this.a.show.show.tracks.find(a => a.characterId === e) : void 0,
+      r = (n?.items ?? []).filter(a => (a.kind === "path" || a.kind === "cam-path") && a.anchors?.length > 1).sort((a, o) => a.startS - o.startS)[0];
+    if (!e || !n || !r) return;
+    const s = r.kind === "cam-path" && r.aim === "subject" ? r.subjectId : null;
+    this.drawingFor = null;
+    this.a.show.beginEditGesture();
+    this.a.show.removeItem(n.id, r.id);
+    s && this.setCameraFocus(e, s);
+    this.a.show.endEditGesture();
+  }
+  toggleDrawing() { this.pendingWalkerFocus = null; this.drawingFor = this.drawing() ? null : this.drawTarget(); this.a.markAutosave?.(); }
+  stopDrawing() { this.endStroke(), this.pendingWalkerFocus = null, this.drawingFor = null, this.hideRehearseTip(); }
+  stepBack() {                                                                                         // Esc chain (stroke → drawing → selection)
+    return this.stroke ? !0 : this.drawing() ? (this.drawingFor = null, !0) : this.a.objects.selectedIds.length ? (this.a.objects.select([]), !0) : !1;
+  }
+  drawFrame(e) {                                                                                       // per-frame: tick stroke + focus/dim info
+    const n = this.stroke; n && this.tickStroke(n, e);
+    const r = this.drawTarget(), s = r ? this.focusOf(r) : null;
+    return { stroke: n ? n.samples : null, dimPathOf: this.drawing() ? r : null, focus: r && s ? { fromId: r, subjectId: s } : null };
+  }
+  restOfShowDurationS(excludeId) {                                                                     // rx over other tracks
+    let d = 0;
+    for (const t of this.a.show.show.tracks) {
+      if (t.characterId === excludeId) continue;
+      for (const it of t.items) d = Math.max(d, it.startS + itemDuration(it));
+    }
+    return d;
+  }
+  startStroke(e) {
+    const n = this.drawTarget(), r = n ? this.a.objects.get(n) : void 0, s = n ? this.shownOrStored(n) : null;
+    if (!n || !r || !s || !this.drawing()) return;
+    const a = hL(s.position);
+    this.hideRehearseTip();
+    this.stroke = { id: n, kind: r.kind, at: a, grab: { x: a.x - e.x, z: a.z - e.z }, pressAt: e, startMs: null, samples: [{ ...a, t: 0 }], heightM: s.position[1], rotation: s.rotation, startRotation: s.rotation, facedFrom: a, focusId: this.focusOf(n) };
+    this.strokeClock = { nowS: 0, ofS: this.restOfShowDurationS(n) };
+    this.a.page.seek(0);                                                                               // rewind show to 0
+  }
+  tickStroke(e, n) {                                                                                   // time-based sampling (.05s OR any move) + per-tick seek
+    e.startMs ??= n;
+    const r = (n - e.startMs) / 1e3, s = e.samples[e.samples.length - 1];
+    (r - s.t >= VLr || e.at.x !== s.x || e.at.z !== s.z) && e.samples.push({ ...e.at, t: Math.max(r, s.t) });
+    this.a.page.seek(r);                                                                               // show plays while you draw
+    this.a._drawPreview = this.previewPose(e, r);                                                      // 3D ghost (z port in main.js)
+    const a = this.strokeClock, o = Math.floor(r * 10) / 10;
+    a && a.nowS !== o && (this.strokeClock = { ...a, nowS: o }, this._onStrokeClock?.(this.strokeClock));
+  }
+  previewPose(e, n) {
+    const r = [e.at.x, e.heightM, e.at.z];
+    if (e.kind === "camera" && e.focusId) {
+      const s = this.a.resolvers().aim(e.focusId, n);
+      if (s) {
+        const a = kv(r, s), o = Math.min(1, n / eDr);
+        o >= 1 ? e.rotation = a : (uL.setFromEuler(xb.set(...e.startRotation, "XYZ")), qY.setFromEuler(xb.set(...a, "XYZ")), uL.slerp(qY, o * o * (3 - 2 * o)), xb.setFromQuaternion(uL, "XYZ"), e.rotation = [xb.x, xb.y, xb.z]);
+      }
+    } else if (el(e.kind)) {
+      const s = e.at.x - e.facedFrom.x, a = e.at.z - e.facedFrom.z;
+      Math.hypot(s, a) >= zLr && (e.rotation = [0, Math.atan2(-s, -a), 0], e.facedFrom = e.at);       // face-turn at .05m
+      const o = e.focusId ? this.shownOrStored(e.focusId) : null;
+      if (e.focusId && o) {
+        const l = this.aimHeightOf(e.focusId), c = xM(i9(e.rotation), [e.at.x, e.heightM + CZt, e.at.z], [o.position[0], o.position[1] + l, o.position[2]]);
+        return { id: e.id, position: r, rotation: [0, c.bodyYawRad, 0], look: c };
+      }
+    }
+    return { id: e.id, position: r, rotation: e.rotation };
+  }
+  aimHeightOf(id) {                                                                                    // NP (VDe + uje + MIr=.5)
+    const objs = this.a.objects.all(), o = objs[id]; if (!o) return 0;
+    let minY = Infinity, maxY = -Infinity;
+    if (o.kind === 'group') {
+      for (const c of Object.values(objs)) {
+        if (c.parentId !== id || fie(c.kind)) continue;
+        const p = Zo(c, objs).position[1]; minY = Math.min(minY, p); maxY = Math.max(maxY, p + this._heightOf(c, objs));
+      }
+      if (minY === Infinity) { minY = o.position?.[1] ?? 0; maxY = minY; }
+    } else { const p = Zo(o, objs).position[1]; minY = p; maxY = p + this._heightOf(o, objs); }
+    const org = Zo(o, objs).position[1];
+    return minY - org + .5 * Math.max(0, maxY - minY);
+  }
+  _heightOf(o, objs) {                                                                                 // uje
+    if (el(o.kind)) return 1.75 * (o.scale?.[1] ?? 1);
+    const e = o.kind === "prop" && o.propKey ? this._propDims()(o.propKey) : void 0;
+    return e ? (e.dims?.[1] || 1) * (o.scale?.[1] ?? 1) : o.kind === "target" || o.kind === "spotlight" ? 0 : (o.scale?.[1] ?? 1);
+  }
+  endStroke() {
+    const e = this.stroke; if (!e) return;
+    this.stroke = null, this.strokeClock = null, this.a._drawPreview = null, this.a.page.stop();
+    const n = this.drawnMoveIds().includes(e.id);
+    this.a.show.beginEditGesture();
+    const r = this.matchDrawSpeed, s = this._replaceMove(e.id, 0, e.samples, { focusId: e.focusId, steady: !r });
+    this.a.show.endEditGesture(), this.drawingFor = null;
+    s && (this.showRehearseTip(), this.a.onMoveDrawn?.({ itemKind: e.kind === "camera" ? "camera" : e.kind === "humanoid" ? "human" : e.kind === "simple_figure" ? "figure" : "prop", focus: !!e.focusId, durationS: e.samples[e.samples.length - 1].t, updated: n, matchDrawSpeed: r }));
+    this.a.markAutosave?.();
+  }
+  _replaceMove(id, startS, samples, opts) {                                                            // replaceMoveFromSamples over my facade
+    const facade = {
+      objects: this.a.objects.all(),
+      trackIdOf: e => this.a.show.trackOf(e)?.id ?? null,
+      addPerformanceTrack: e => this.a.show.ensureTrack(e)?.id ?? null,
+      moveSegmentOf: (trackId, s) => this.a.show.show.tracks.find(t => t.id === trackId)?.items.find(i => (i.kind === 'path' || i.kind === 'cam-path') && i.anchors?.length > 1) ?? null,
+      updateTrackItems: (trackId, fn) => { const tr = this.a.show.show.tracks.find(t => t.id === trackId); if (tr) { tr.items = fn(tr.items); this.a.show.changed(); } },
+      an: () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2)),
+    };
+    return replaceMoveFromSamples(facade, id, startS, samples, opts);
+  }
+  showRehearseTip() { this.hideRehearseTip(), this.rehearseTip = !0, this._onTip?.(!0), this.tipTimer = setTimeout(this.hideRehearseTip, ULr); }
+  hideRehearseTip = () => { this.tipTimer && clearTimeout(this.tipTimer), this.tipTimer = null, this.rehearseTip && (this.rehearseTip = !1, this._onTip?.(!1)); };
+  // ---- focus (camera: active cam-item subject / walker: path-item subject) ----
+  activeCamItem(camId) {
+    const tr = this.a.show.trackOf(camId); if (!tr) return null;
+    return tr.items.find(i => (i.kind === 'cam-path' || i.kind === 'cam-move' || i.kind === 'cam-still') && i.aim === 'subject' && i.subjectId) ?? null;
+  }
+  activePathItem(walkerId) {
+    const tr = this.a.show.trackOf(walkerId); if (!tr) return null;
+    return tr.items.find(i => i.kind === 'path' && i.aim === 'subject' && i.subjectId) ?? null;
+  }
+  focusOf(e) {
+    const n = this.a.objects.get(e)?.kind;
+    if (n === "camera") return this.activeCamItem(e)?.subjectId ?? this.a.objects.get(e)?.targetId ?? null;
+    if (!el(n)) return null;
+    const r = this.pendingWalkerFocus;
+    return this.activePathItem(e)?.subjectId ?? (r?.id === e && this.drawing() ? r.subjectId : null);
+  }
+  toggleFocus(e) {
+    const n = this.drawTarget();
+    if (n && el(this.a.objects.get(n)?.kind)) {                                                        // walker: patch path item subject
+      const o = this.focusOf(n) === e;
+      this.a.show.beginEditGesture();
+      const tr = this.a.show.trackOf(n), it = tr?.items.find(i => i.kind === 'path' && i.anchors?.length > 1);
+      let ok = false;
+      if (it) { this.a.show.patchItem(tr.id, it.id, o ? { aim: 'travel', subjectId: null } : { aim: 'subject', subjectId: e }); ok = true; }
+      this.a.show.endEditGesture();
+      this.pendingWalkerFocus = ok || o ? null : { id: n, subjectId: e };
+      return;
+    }
+    if (!n || this.a.objects.get(n)?.kind !== "camera") return;
+    this.a.show.beginEditGesture();
+    const s = this.focusOf(n) === e, tr = this.a.show.trackOf(n), it = tr?.items.find(i => (i.kind === 'cam-path') && i.anchors?.length > 1);
+    if (it) this.a.show.patchItem(tr.id, it.id, s ? { aim: 'locked', subjectId: null } : { aim: 'subject', subjectId: e });
+    this.a.show.endEditGesture();
+  }
+  setCameraFocus(camId, subjectId) {
+    const tr = this.a.show.trackOf(camId), it = tr?.items.find(i => i.kind === 'cam-path' && i.anchors?.length > 1);
+    if (it) this.a.show.patchItem(tr.id, it.id, { aim: 'subject', subjectId });
+    else this.a.objects.update(camId, { targetId: subjectId });
+  }
+  // ---- move / turn / commit (rDr machinery; camera pipeline via manipulator SZt) ----
+  startPose(e) { const n = this.drag?.start, r = n?.get(e); if (r) return r; const s = this.shownOrStored(e); return s && n && n.set(e, s), s; }
+  shownOrStored(e) { const n = this.a.objects.all(), r = n[e]; return r ? this.a.shownPose(e) ?? Zo(r, n) : null; }
+  toLocal(e, n) {
+    const r = this.a.objects.get(e), s = { position: n.position, rotation: n.rotation, scale: n.scale ?? r?.scale ?? [1, 1, 1] },
+      a = r?.parentId ? this.shownOrStored(r.parentId) : null;
+    return a ? pie(a, s) : s;
+  }
+  move(e, n, r) {
+    const s = c => { const d = this.startPose(c); return d ? { ...d, position: [d.position[0] + n, d.position[1], d.position[2] + r] } : null; },
+      a = this.a.objects.all(), o = e.filter(c => this.carryPaths(c, n, r));
+    for (const c of o) {                                                                               // camera-on-path: ride + target follows
+      const d = s(c), u = a[c]; if (!d || !u) continue;
+      this.drag?.riding.set(c, d);
+      this.a.objects.update(c, { position: this.toLocal(c, d).position });
+      const h = u.kind === "camera" ? u.targetId : void 0, f = h ? this.startPose(h) : null;
+      h && f && this.a.objects.update(h, { position: this.toLocal(h, { ...f, position: [f.position[0] + n, f.position[1], f.position[2] + r] }).position });
+    }
+    const l = e.filter(c => !o.includes(c));
+    if (l.length === 1) { const c = s(l[0]); c && this.commitOne(l[0], c, "translate"); return; }
+    for (const c of l) {                                                                               // plain/group children: local compose + GA fold
+      const d = s(c), u = a[c]; if (!d || !u) continue;
+      const h = this.toLocal(c, d);
+      this.a.objects.update(c, { ...h, rotation: GA(h.rotation, u.rotation ?? [0, 0, 0]) });
+    }
+  }
+  carryPaths(e, n, r) {
+    if (this.a.objects.get(e)?.kind === "camera") {
+      const a = this.a.show.trackOf(e)?.items ?? [], o = this.a.page.playheadS;
+      if (!this.driveMode(a, o, "translate")) return !1;                                               // _je: only path-position cameras carry
+    }
+    const s = this.drag?.carried.get(e) ?? [0, 0];
+    return this.shiftPaths(e, n - s[0], r - s[1]) ? (this.drag?.carried.set(e, [n, r]), !0) : !1;
+  }
+  driveMode(items, t, mode) {                                                                          // _je port
+    let n = null;
+    for (const it of items) { if (t < it.startS) break; if (['cam-path', 'cam-manual', 'cam-still', 'cam-move', 'cam-follow'].includes(it.kind)) n = it; if (t < it.startS + itemDuration(it)) break; }
+    if (!n || t > n.startS + itemDuration(n)) return null;
+    if (n.kind === 'cam-manual') return 'manual';
+    if (mode !== 'rotate') return 'path-position';
+    if ((n.aim ?? 'travel') !== 'locked') return 'path-look';
+    return null;
+  }
+  shiftPaths(e, dx, dz) {                                                                              // shift the object's path anchors + transform keys
+    if (dx === 0 && dz === 0) return !1;
+    const tr = this.a.show.trackOf(e); if (!tr) return !1;
+    let touched = !1;
+    for (const it of tr.items) {
+      if ((it.kind === 'path' || it.kind === 'cam-path') && it.anchors?.length) {
+        it.anchors = it.anchors.map(a => ({ ...a, pos: [a.pos[0] + dx, a.pos[1], a.pos[2] + dz] })); touched = !0;
+      } else if ((it.kind === 'transform' || it.kind === 'cam-transform') && it.keys?.length) {
+        it.keys = it.keys.map(k => ({ ...k, position: k.position ? [k.position[0] + dx, k.position[1], k.position[2] + dz] : k.position })); touched = !0;
+      }
+    }
+    return touched && (this.a.show.changed(), !0);
+  }
+  turn(e, n) {                                                                                          // world-Y premultiply (rebase for cameras)
+    const r = this.a.objects.get(e), s = this.startPose(e);
+    if (!r || !s) return;
+    if (r.kind === "camera") { this.a.manipulator?.commitPlanCamera(e, { ...s, rotation: (() => {
+      uL.setFromEuler(xb.set(...s.rotation, "XYZ")), qY.setFromAxisAngle(nDr, n - i9(s.rotation)), xb.setFromQuaternion(uL.premultiply(qY), "XYZ");
+      return [xb.x, xb.y, xb.z];
+    })() }, "rotate", this); return; }
+    uL.setFromEuler(xb.set(...s.rotation, "XYZ")), qY.setFromAxisAngle(nDr, n - i9(s.rotation)), xb.setFromQuaternion(uL.premultiply(qY), "XYZ");
+    this.commitOne(e, { ...s, rotation: [xb.x, xb.y, xb.z] }, "rotate");
+  }
+  commitOne(e, n, r) {
+    const a = this.a.objects.get(e); if (!a) return;
+    if (a.kind !== "camera" && a.kind !== "target") {                                                    // kZt free commit (local + GA)
+      const f = this.toLocal(e, n);
+      this.a.manipulator?._commitPlanTransform?.(e, { ...f, rotation: GA(f.rotation, a.rotation ?? [0, 0, 0]) });
+      return;
+    }
+    this.a.manipulator?.commitPlanCamera(e, n, r, this);                                                  // SZt pipeline
+  }
+}
+
+
+// ============================================================================
+// PART G — PlanCanvas (rBr port): pointer machine + rAF frame sequence + edge/label overlays
+// ============================================================================
+export function BZt(t) {                                                                              // palette from computed style
+  const e = getComputedStyle(t);
+  return { ...Object.fromEntries(Object.entries(aDr).map(([r, s]) => [r, e.getPropertyValue(s).trim()])), fontFamily: e.fontFamily };
+}
+function dye(t, e) {                                                                                  // event → canvas px (css-scale aware)
+  const n = t.getBoundingClientRect();
+  return { x: (e.clientX - n.left) * (t.clientWidth / Math.max(1e-6, n.width)), y: (e.clientY - n.top) * (t.clientHeight / Math.max(1e-6, n.height)) };
+}
+const easeCubicOut = Te => 1 - (1 - Te) ** 3;
+
+export class PlanCanvas {
+  constructor(app, host, store) {
+    this.app = app; this.store = store; this.host = host;
     this.canvas = document.createElement('canvas');
-    this.canvas.className = 'plan-canvas';
     this.canvas.dataset.testid = 'stage-plan';
-    this.canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:none;z-index:2;';
+    this.canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:none;z-index:2;touch-action:none;';
     host.appendChild(this.canvas);
     this.ctx = this.canvas.getContext('2d');
-    this.view = { cx: 0, cz: 0, pxPerM: PPM_DEFAULT, w: 300, h: 200 };
-    this.fitted = false;
-    this.drag = null;
-    this.drawing = null;      // {charId}
-    this.stroke = null;       // [{x,z,t}]
-    this.marquee = null;
-    this._matchSpeed = true;
-    this.rotateHandlePx = null;
-    this._wire();
+    this.w = ELr();                    // local view/drag state (per-mount, NOT persisted — live)
+    this.palette = null;
+    this._panPx = null;                // middle/right pan anchor (N.current)
+    this._lastMovePx = null;           // autopan anchor (j.current)
+    this._lastFrameMs = null;          // I.current
+    this._interacted = false;          // A.current (refit only until first interaction)
+    this._centerEase = null;           // B.current {from,to,startMs}
+    this._lastZoomSeq = null; this._lastCenterSeq = null;
+    this._zoomPct = null; this._items = [];
+    this._edge = [];
+    this._tip = null;                  // tap-or-draw focus tooltip
+    this._bar = null; this._camChip = null;
     this._buildBar();
+    this._wire();
+    this._wireEscape();
     app.onViewportMode = () => this._syncShown();
     if (app.page?.subscribe) app.page.subscribe(() => this._syncShown());
+    if (app.objects?.subscribe) app.objects.subscribe(() => { if (this.shown()) this._syncBar(); });
+    if (app.show?.subscribe) app.show.subscribe(() => { if (this.shown()) this._syncBar(); });
+    this._onStrokeClock = this._onTip = null;
+    store._onZoomPercent = v => { this._zoomPct = v; this._syncZoomBar(); };
+    store._onStrokeClock = c => this._syncTimer(c);
+    store._onTip = on => this._syncBar();
     this.setVisible(app.page?.viewportMode === 'plan');
   }
 
@@ -53,627 +1040,223 @@ export class PlanView {
   _syncShown() {
     const on = this.shown();
     this.setVisible(on);
-    if (this.bar) this.bar.style.display = on ? 'flex' : 'none';
-    // overlays that assume the 3D view: nav-ball pad + floating toolbar must not float over the plan
+    if (this._bar) this._bar.style.display = on ? 'flex' : 'none';
     const pad = document.getElementById('navBallPad'), tb = document.getElementById('editToolbar');
     if (pad) pad.style.display = on ? 'none' : '';
     if (tb) tb.style.display = on ? 'none' : (this.app.objects?.selectedIds?.length ? 'flex' : 'none');
   }
-  setVisible(v) { this.canvas.style.display = v ? 'block' : 'none'; if (v) { this.fitted = false; this.resize(); } }
+  setVisible(v) { this.canvas.style.display = v ? 'block' : 'none'; if (v) { this.w = OLr(this.w); } }
 
-  // ---------------- projection ----------------
-  toPx(x, z) { return { x: this.view.w / 2 + (x - this.view.cx) * this.view.pxPerM, y: this.view.h / 2 + (z - this.view.cz) * this.view.pxPerM }; }
-  toWorldAt(clientX, clientY) {
-    const r = this.canvas.getBoundingClientRect();
-    return { x: this.view.cx + (clientX - r.left - this.view.w / 2) / this.view.pxPerM, z: this.view.cz + (clientY - r.top - this.view.h / 2) / this.view.pxPerM };
-  }
-
-  resize() {
-    const r = this.host.getBoundingClientRect();
-    if (r.width < 2 || r.height < 2) return;
-    if (this._lastW === r.width && this._lastH === r.height && this.canvas.width) return;
-    this._lastW = r.width; this._lastH = r.height;
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = Math.round(r.width * dpr);
-    this.canvas.height = Math.round(r.height * dpr);
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.view.w = r.width; this.view.h = r.height;
-    if (!this.fitted) this.fit();
-  }
-
-  fit() {
-    const items = this.items();
-    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, n = 0;
-    for (const it of items) {
-      const pad = it.fp.shape === 'marker' ? 1.5 : Math.max(it.fp.halfWidthM ?? 0.5, it.fp.halfDepthM ?? 0.5);
-      minX = Math.min(minX, it.fp.x - pad); maxX = Math.max(maxX, it.fp.x + pad);
-      minZ = Math.min(minZ, it.fp.z - pad); maxZ = Math.max(maxZ, it.fp.z + pad);
-      n++;
-    }
-    if (!n) { this.view.cx = 0; this.view.cz = 0; this.view.pxPerM = PPM_DEFAULT; this.fitted = true; return; }
-    const spanX = Math.max(2, maxX - minX), spanZ = Math.max(2, maxZ - minZ);
-    this.view.pxPerM = Math.min(PPM_MAX, Math.max(PPM_MIN, Math.min((this.view.w - 2 * FIT_MARGIN) / spanX, (this.view.h - 2 * FIT_MARGIN) / spanZ)));
-    this.view.cx = (minX + maxX) / 2; this.view.cz = (minZ + maxZ) / 2;
-    this.fitted = true;
-  }
-
-  // ---------------- items() ----------------
-  items() {
-    const app = this.app, objs = app.objects.all();
-    const out = [];
-    for (const [id, o] of Object.entries(objs)) {
-      if (o.kind === 'group') continue;
-      const mesh = app.meshById.get(id);
-      const pose = this.shownPose(id, o, mesh);
-      out.push({ id, kind: o.kind, parentId: o.parentId, name: o.name ?? o.kind, fp: this.footprint(o, pose), pose });
-    }
-    out.sort((a, b) => (Z_ORDER[a.kind] ?? 0) - (Z_ORDER[b.kind] ?? 0));
-    return out;
-  }
-
-  shownPose(id, o, mesh) {
-    let x = 0, y = 0, z = 0, yaw = 0, sx = 1, sy = 1, sz = 1;
-    if (mesh) {
-      mesh.updateWorldMatrix(true, false);
-      const p = mesh.matrixWorld.decompose(_v1, _q1, _v2);
-      x = _v1.x; y = _v1.y; z = _v1.z;
-      sx = _v2.x; sy = _v2.y; sz = _v2.z;
-      yaw = _e1.setFromQuaternion(_q1, 'YXZ').y;
-    } else {
-      const st = o.position ?? [0, 0, 0];
-      x = st[0]; y = st[1]; z = st[2];
-      sx = (o.scale ?? [1, 1, 1])[0]; sz = (o.scale ?? [1, 1, 1])[2];
-      yaw = (o.rotation ?? [0, 0, 0])[1];
-    }
-    const pose = { x, y, z, yaw, sx, sy, sz };
-    if (o.kind === 'camera') {
-      const [aw, ah] = C.ASPECTS[app.page?.recordAspect ?? '16:9'] ?? C.ASPECTS['16:9'];
-      const aspect = aw / ah;
-      const focal = o.focalLengthMm ?? 50;
-      pose.fovDeg = 2 * Math.atan(35 / Math.max(aspect, 1) / 2 / focal) * 180 / Math.PI;   // Z_ (Lzt 35)
-    }
-    return pose;
-  }
-
-  footprint(o, pose) {  // Dst
-    const k = o.kind;
-    if (k === 'camera' || k === 'target' || k === 'spotlight') return { shape: 'marker', x: pose.x, z: pose.z, yawRad: pose.yaw, halfWidthM: 0.6, halfDepthM: 0.6 };
-    if (k === 'humanoid') return { shape: 'ellipse', x: pose.x, z: pose.z, yawRad: pose.yaw, halfWidthM: 0.26 * pose.sx, halfDepthM: 0.26 * pose.sz };
-    if (k === 'simple_figure') { const sA = 1.75 / 1.299; return { shape: 'rect', x: pose.x, z: pose.z, yawRad: pose.yaw, halfWidthM: 0.406 * sA * pose.sx, halfDepthM: 0.289 * sA * pose.sz }; }
-    if (k === 'sphere' || k === 'cylinder') { const a = Math.max(pose.sx, 0.2); return { shape: 'ellipse', x: pose.x, z: pose.z, yawRad: pose.yaw, halfWidthM: a / 2, halfDepthM: a / 2 }; }
-    const dims = k === 'prop' ? (this.app.propCatalogDims?.(o.propKey) ?? [1, 1, 1]) : [1, 1, 1];
-    return { shape: 'rect', x: pose.x, z: pose.z, yawRad: pose.yaw, halfWidthM: Math.max(0.15, dims[0] * pose.sx / 2), halfDepthM: Math.max(0.15, dims[2] * pose.sz / 2) };
-  }
-
-  poolOf(item) {
-    if (item.kind !== 'spotlight') return null;
-    const app = this.app, o = app.objects.get(item.id);
-    const pose = item.pose;
-    const sc = o?.scale ?? [1, 1, 1];
-    const half = Math.min(55, Math.max(3, 16 * (Math.abs(sc[0]) + Math.abs(sc[1]) + Math.abs(sc[2])) / 3)) * Math.PI / 180;   // Rhe
-    const dirX = Math.sin(pose.yaw), dirZ = Math.cos(pose.yaw);     // spotlight aims −Z-of-rotation → forward = (sin yaw, cos yaw) in plan coords? use mesh world fwd:
-    const mesh = app.meshById.get(item.id);
-    let fx = dirX, fy = dirZ, fz = dirZ;
-    if (mesh) {
-      mesh.updateWorldMatrix(true, false);
-      const m = mesh.matrixWorld.elements;
-      fx = -m[8]; fy = -m[9]; fz = -m[10];   // forward = world −Z column (live TDe: (0,0,−1)·rot)
-    } else { fy = 0; }
-    if (pose.y <= 0 || fy > -0.05) return null;                     // y-component gate (live TDe)
-    const d = pose.y / -fy;
-    if (!Number.isFinite(d) || d <= 0) return null;
-    return { x: pose.x + fx * d, z: pose.z + fz * d, radiusM: Math.max(0.4, d * Math.tan(half)), square: o?.spotlight?.shape === 'square' };
-  }
-
-  paths() {
-    const app = this.app, out = [];
-    for (const tr of app.show.show.tracks) {
-      for (const it of tr.items) {
-        if ((it.kind === 'path' || it.kind === 'cam-path') && (it.anchors?.length ?? 0) > 1) {
-          const pts = polylineOf(it.anchors).map(p => ({ x: p[0], z: p[2] }));
-          out.push({ id: tr.characterId, kind: it.kind, points: pts, keys: [pts[pts.length - 1]] });
-        } else if ((it.kind === 'transform' || it.kind === 'cam-transform') && (it.keys?.length ?? 0) > 1) {
-          const keys = [...it.keys].sort((a, b) => a.tS - b.tS);
-          const last = keys[keys.length - 1].tS || 1;
-          const pts = [];
-          for (let i = 0; i <= 40; i++) {
-            const tt = i / 40 * last;
-            let k0 = keys[0], k1 = keys[keys.length - 1];
-            for (let j = 0; j < keys.length - 1; j++) if (tt >= keys[j].tS && tt <= keys[j + 1].tS) { k0 = keys[j]; k1 = keys[j + 1]; break; }
-            const f = k1.tS === k0.tS ? 0 : (tt - k0.tS) / (k1.tS - k0.tS);
-            pts.push({ x: (k0.position?.[0] ?? 0) + ((k1.position?.[0] ?? 0) - (k0.position?.[0] ?? 0)) * f, z: (k0.position?.[2] ?? 0) + ((k1.position?.[2] ?? 0) - (k0.position?.[2] ?? 0)) * f });
-          }
-          out.push({ id: tr.characterId, kind: it.kind, points: pts, keys: keys.map(k => ({ x: k.position?.[0] ?? 0, z: k.position?.[2] ?? 0 })) });
-        }
-      }
-    }
-    return out;
-  }
-
-  // ---------------- painter ----------------
-  pal() {
-    if (!this.palette) {
-      const cs = getComputedStyle(document.documentElement);
-      const v = (n, fb) => cs.getPropertyValue(n).trim() || fb;
-      this.palette = {
-        background: v('--plan-background', '#20242e'), grid: v('--plan-grid', '#3a4152'),
-        gridMajor: v('--plan-grid-major', '#4a5468'), human: v('--plan-human', '#7fb2e5'),
-        camera: v('--plan-camera', '#9ec7f0'), object: v('--plan-object', '#b8c4d8'),
-        light: v('--plan-light', '#f0d8a0'), prop: v('--plan-prop', '#c8d0dc'),
-        propEdge: v('--plan-prop-edge', '#8a94a8'), accent: v('--plan-accent', '#e8b25a'),
-        accentSoft: v('--plan-accent-soft', 'rgba(232,178,90,.18)'), panel: v('--plan-panel', '#232936'),
-        text: v('--plan-text', '#e8ecf4'), textDim: v('--plan-text-dim', '#98a2b8'),
-      };
-    }
-    return this.palette;
-  }
-
-  draw() {
-    const ctx = this.ctx, P = this.pal(), view = this.view;
-    ctx.lineJoin = 'round';
-    ctx.fillStyle = P.background;
-    ctx.fillRect(0, 0, view.w, view.h);
-    const grid = (step, color, alpha, skip5) => {
-      if (alpha <= 0.01) return;
-      ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = 1;
-      ctx.beginPath();
-      const wx0 = view.cx - view.w / 2 / view.pxPerM, wx1 = view.cx + view.w / 2 / view.pxPerM;
-      const wz0 = view.cz - view.h / 2 / view.pxPerM, wz1 = view.cz + view.h / 2 / view.pxPerM;
-      for (let x = Math.ceil(wx0 / step) * step; x <= wx1; x += step) {
-        if (skip5 && Math.round(x / 5) * 5 === Math.round(x * 1e6) / 1e6 * 5 / 5 && Math.abs(x / 5 - Math.round(x / 5)) < 1e-6) continue;
-        const p = this.toPx(x, 0);
-        ctx.moveTo(Math.round(p.x) + .5, 0); ctx.lineTo(Math.round(p.x) + .5, view.h);
-      }
-      for (let z = Math.ceil(wz0 / step) * step; z <= wz1; z += step) {
-        if (skip5 && Math.abs(z / 5 - Math.round(z / 5)) < 1e-6) continue;
-        const p = this.toPx(0, z);
-        ctx.moveTo(0, Math.round(p.y) + .5); ctx.lineTo(view.w, Math.round(p.y) + .5);
-      }
-      ctx.stroke(); ctx.globalAlpha = 1;
+  // ---- deps snapshot for reducers ($()) ----
+  _deps() {
+    return {
+      items: this._items, selection: this.app.objects.selectedIds, aspect: this.store.aspect(),
+      locked: this.store.locked(), drawing: this.store.drawing(), readOnly: false,
     };
-    grid(1, P.grid, Math.max(0, Math.min(1, (view.pxPerM - 8) / 16)), true);   // minor skips 5m multiples
-    grid(5, P.gridMajor, 1, false);
+  }
 
-    const items = this.items();
-    const sel = new Set(this.app.objects.selectedIds);
-    // pools
-    for (const it of items) {
-      const pool = this.poolOf(it);
-      if (!pool) continue;
-      ctx.globalAlpha = sel.has(it.id) ? POOL_A_SEL : POOL_A;
-      ctx.fillStyle = P.light;
-      const c = this.toPx(pool.x, pool.z), r = Math.max(2, pool.radiusM * view.pxPerM);
-      if (pool.square) { ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(-(it.fp.yawRad ?? 0)); const rr = r * 1.414; ctx.fillRect(-rr, -rr, rr * 2, rr * 2); ctx.restore(); }
-      else { ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.fill(); }
-      ctx.globalAlpha = 1;
+  // ---- the rBr frame sequence (verbatim order) ----
+  tick(nowMs) {
+    const Z = this.canvas, se = this.ctx;
+    const q = Z.clientWidth, Y = Z.clientHeight;
+    if (!se || q === 0 || Y === 0) return;
+    if (!this.palette) this.palette = BZt(Z);
+    const re = window.devicePixelRatio || 1, ae = Math.round(q * re), ie = Math.round(Y * re);
+    (Z.width !== ae || Z.height !== ie) && (Z.width = ae, Z.height = ie);
+    const Ee = this.store.drawFrame(nowMs);                                     // ticks the stroke + {stroke, dimPathOf, focus}
+    this._items = this.store.items();
+    this.w = ILr(jLr(this.w, q, Y), this._items);                               // resize keeps world center; fit once
+    const xe = this._lastFrameMs === null ? 0 : nowMs - this._lastFrameMs; this._lastFrameMs = nowMs;
+    if (this._lastMovePx) {                                                     // autopan while dragging near edge
+      const Se = BLr(this.w, this._deps(), this._lastMovePx, xe);
+      this.w = Se.state, Se.intents.length && this.store.apply(Se.intents);
     }
-    // selected paths + stroke
-    for (const p of this.paths()) {
-      if (!sel.has(p.id)) continue;
-      const owner = this.app.objects.get(p.id);
-      ctx.strokeStyle = p.kind === 'cam-path' ? P.camera : (owner?.kind === 'humanoid' || owner?.kind === 'simple_figure') ? P.human : P.object;
-      ctx.lineWidth = 1.4; ctx.setLineDash([2, 4]);
-      ctx.beginPath();
-      p.points.forEach((pt, i) => { const c = this.toPx(pt.x, pt.z); i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y); });
-      ctx.stroke(); ctx.setLineDash([]);
-      for (const k of p.keys) {
-        const c = this.toPx(k.x, k.z);
-        ctx.fillStyle = P.accent; ctx.strokeStyle = P.panel; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(c.x, c.y - 6.4); ctx.lineTo(c.x + 6.4, c.y); ctx.lineTo(c.x, c.y + 6.4); ctx.lineTo(c.x - 6.4, c.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const ue = this.store.centerRequest;                                        // centerOn with 320ms cubic-out ease
+    if (ue && ue.seq !== this._lastCenterSeq) {
+      const Se = FLr(this.w, this._items, ue.id);
+      if (Se !== this.w) {
+        this._lastCenterSeq = ue.seq, this._interacted = true;
+        const { centerX: me, centerZ: Te } = this.w.view;
+        this._centerEase = { from: { x: me, z: Te }, to: { x: Se.view.centerX, z: Se.view.centerZ }, startMs: nowMs };
       }
     }
-    if (this.stroke?.length > 1) {
-      ctx.strokeStyle = P.accent; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
-      ctx.beginPath();
-      this.stroke.forEach((pt, i) => { const c = this.toPx(pt.x, pt.z); i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y); });
-      ctx.stroke();
+    if (this._centerEase) {
+      const Se = this._centerEase, me = Math.min(1, (nowMs - Se.startMs) / nBr), Te = easeCubicOut(me);
+      this.w = { ...this.w, view: { ...this.w.view, centerX: Se.from.x + (Se.to.x - Se.from.x) * Te, centerZ: Se.from.z + (Se.to.z - Se.from.z) * Te } };
+      me >= 1 && (this._centerEase = null);
     }
-    // items: non-char then char
-    const chars = new Set(['humanoid', 'simple_figure', 'target', 'spotlight', 'camera']);
-    for (const it of items) if (!chars.has(it.kind)) this.drawItem(ctx, it, sel.has(it.id));
-    for (const it of items) if (chars.has(it.kind)) this.drawItem(ctx, it, sel.has(it.id));
-    // group boxes
-    const selGroups = new Set([...sel].map(i => this.app.objects.get(i)).filter(o => o?.kind === 'group').map(o => o.id));
-    const boxes = new Map();
-    for (const it of items) {
-      if (!it.parentId || !selGroups.has(it.parentId)) continue;
-      const b = boxes.get(it.parentId) ?? { minX: Infinity, minZ: Infinity, maxX: -Infinity, maxZ: -Infinity };
-      b.minX = Math.min(b.minX, it.fp.x - (it.fp.halfWidthM ?? 1)); b.maxX = Math.max(b.maxX, it.fp.x + (it.fp.halfWidthM ?? 1));
-      b.minZ = Math.min(b.minZ, it.fp.z - (it.fp.halfDepthM ?? 1)); b.maxZ = Math.max(b.maxZ, it.fp.z + (it.fp.halfDepthM ?? 1));
-      boxes.set(it.parentId, b);
+    const je = this.store.zoomCommand;                                          // zoom −/fit/+ buttons
+    if (je && je.seq !== this._lastZoomSeq) {
+      this._lastZoomSeq = je.seq, this._interacted = true;
+      this.w = je.kind === "fit" ? OLr(this.w) : RLr(this.w, je.kind === "in" ? 1 : -1);
     }
-    ctx.setLineDash([4, 3]); ctx.strokeStyle = P.accent; ctx.lineWidth = 1;
-    ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
-    for (const [gid, b] of boxes) {
-      const a = this.toPx(b.minX, b.minZ), c2 = this.toPx(b.maxX, b.maxZ);
-      ctx.strokeRect(a.x - 8, a.y - 8, (c2.x - a.x) + 16, (c2.y - a.y) + 16);
-      ctx.fillStyle = P.textDim;
-      ctx.fillText(this.app.objects.get(gid)?.name ?? 'Group', (a.x + c2.x) / 2, c2.y + 8 + 14);
-    }
-    ctx.setLineDash([]);
-    // callout ring + rotate handle (single selection)
-    this.rotateHandlePx = null;
-    if (sel.size === 1 && !this.drawing) {
-      const it = items.find(i => i.id === [...sel][0]);
-      if (it) {
-        const c = this.toPx(it.fp.x, it.fp.z);
-        const r = it.fp.shape === 'marker' ? 34 : Math.max(it.fp.halfWidthM ?? .5, it.fp.halfDepthM ?? .5) * 1.2 * view.pxPerM + 10;
-        ctx.strokeStyle = P.accent; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
-        const rh = this.toPx(it.fp.x - Math.sin(it.fp.yawRad ?? 0) * r / view.pxPerM, it.fp.z - Math.cos(it.fp.yawRad ?? 0) * r / view.pxPerM);
-        ctx.beginPath(); ctx.arc(rh.x, rh.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = P.panel; ctx.fill(); ctx.strokeStyle = P.accent; ctx.lineWidth = 1.4; ctx.stroke();
-        this.rotateHandlePx = rh;
-      }
-    }
-    // marquee
-    if (this.marquee && this.marquee.w > 2) {
-      const m = this.marquee;
-      ctx.fillStyle = P.accentSoft; ctx.fillRect(m.x, m.y, m.w, m.h);
-      ctx.setLineDash([4, 3]); ctx.strokeStyle = P.accent; ctx.lineWidth = 1;
-      ctx.strokeRect(m.x, m.y, m.w, m.h); ctx.setLineDash([]);
-    }
-    // edge indicators
-    for (const it of items) {
-      if (it.kind !== 'camera') continue;
-      const c = this.toPx(it.fp.x, it.fp.z);
-      if (c.x > 22 && c.x < this.view.w - 22 && c.y > 22 && c.y < this.view.h - 22) continue;
-      const x = Math.max(22, Math.min(this.view.w - 22, c.x));
-      const y = Math.max(22, Math.min(this.view.h - 22, c.y));
-      ctx.beginPath(); ctx.arc(x, y, 13, 0, Math.PI * 2);
-      ctx.fillStyle = P.panel; ctx.fill();
-      ctx.strokeStyle = P.camera; ctx.lineWidth = 1.4; ctx.stroke();
-      ctx.fillStyle = P.camera; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText((it.name.split(' ').pop() || '?'), x, y + 4);
+    const ve = LLr(this.w);
+    ve !== this._zoomPct && this.store.reportZoom(ve);
+    const { view: oe, drag: ye } = this.w;
+    se.setTransform(re, 0, 0, re, 0, 0);
+    const focus = Ee.focus && { ...Ee.focus, label: 'Focus' };
+    SDr(se, { view: oe, items: this._items, selection: new Set(this.app.objects.selectedIds), paths: this.store.paths(), palette: this.palette, marquee: ye?.kind === "marquee" ? ye.rect : null, dimPathOf: Ee.dimPathOf, stroke: Ee.stroke, focus });
+    this._edge = $Ir(this._items, oe);
+    FDr(se, this._edge, this.palette);
+    this._syncCamChip(oe, Ee);                                                  // camera label overlay (ZIr)
+    this._syncBar();
+  }
+
+  _syncCamChip(oe, Ee) {
+    const sel = this.app.objects.selectedIds, Ae = sel.length === 1 ? this._items.find(Se => Se.id === sel[0]) : void 0;
+    if (!this._camChip || !Ae || Ae.kind !== 'camera' || Ee?.stroke) { if (this._camChip) this._camChip.hidden = true; return; }
+    const Se = iu(oe, Ae.footprint), vis = Se.x >= 0 && Se.x <= oe.widthPx && Se.y >= 0 && Se.y <= oe.heightPx;
+    this._camChip.hidden = !vis;
+    if (vis) {
+      this._camChip.textContent = Ae.label;
+      const Te = ZIr(Ae, oe, { widthPx: this._camChip.offsetWidth, heightPx: this._camChip.offsetHeight });
+      this._camChip.style.transform = `translate(${Te.x}px, ${Te.y}px)`;
     }
   }
 
-  drawItem(ctx, it, selected) {
-    const P = this.pal(), view = this.view, app = this.app;
-    const c = this.toPx(it.fp.x, it.fp.z);
-    const yaw = it.fp.yawRad ?? 0;
-    if (it.kind === 'camera') {
-      const [aw, ah] = C.ASPECTS[app.page?.recordAspect ?? '16:9'] ?? C.ASPECTS['16:9'];
-      const aspect = aw / ah;
-      const half = Math.atan(Math.tan((it.pose.fovDeg ?? 50) * Math.PI / 360) * aspect);
-      const f1 = this.toPx(it.fp.x - Math.sin(yaw - half) * LENS_AHEAD_M, it.fp.z - Math.cos(yaw - half) * LENS_AHEAD_M);
-      const f2 = this.toPx(it.fp.x - Math.sin(yaw + half) * LENS_AHEAD_M, it.fp.z - Math.cos(yaw + half) * LENS_AHEAD_M);
-      ctx.globalAlpha = selected ? 0.2 : 0.1; ctx.fillStyle = P.camera;
-      ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(f1.x, f1.y); ctx.lineTo(f2.x, f2.y); ctx.closePath(); ctx.fill();
-      ctx.globalAlpha = selected ? 1 : 0.6; ctx.strokeStyle = P.camera; ctx.lineWidth = selected ? 1.4 : 1; ctx.stroke();
-      ctx.globalAlpha = 1;
-      const rot = (x, y) => { const cs = Math.cos(yaw), sn = Math.sin(yaw); return { x: c.x + x * cs + y * sn, y: c.y - x * sn + y * cs }; };
-      const poly = (pts, stroke, lw) => {
-        ctx.beginPath(); pts.forEach((p, i) => { const q = rot(p[0], p[1]); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); });
-        ctx.closePath(); ctx.fillStyle = P.panel; ctx.fill(); if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
-      };
-      poly([[-9, -1], [9, -1], [9, 11], [-9, 11]], selected ? P.accent : P.camera, selected ? 1.6 : 1.2);
-      poly([[-4, -1], [-6.5, -8], [6.5, -8], [4, -1]], selected ? P.accent : P.camera, 1.2);
-      ctx.fillStyle = P.textDim; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(it.name + ' · ' + fmt1(it.pose.y) + 'm', c.x + 18, c.y + 26);
-    } else if (it.kind === 'spotlight') {
-      const pool = this.poolOf(it);
-      if (pool) {
-        const pc = this.toPx(pool.x, pool.z);
-        ctx.setLineDash([3, 3]); ctx.strokeStyle = P.light; ctx.globalAlpha = selected ? 0.9 : 0.5; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(pc.x, pc.y); ctx.stroke();
-        ctx.setLineDash([]); ctx.globalAlpha = 1;
-      }
-      ctx.beginPath(); ctx.arc(c.x, c.y, 6, 0, Math.PI * 2);
-      ctx.fillStyle = P.light; ctx.fill();
-      ctx.strokeStyle = selected ? P.accent : P.panel; ctx.lineWidth = selected ? 1.6 : 1.2; ctx.stroke();
-      if (selected) { ctx.fillStyle = P.textDim; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(it.name, c.x + 12, c.y + 4); }
-    } else if (it.kind === 'target') {
-      ctx.strokeStyle = selected ? P.accent : P.camera; ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.arc(c.x, c.y, 8, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(c.x - 12, c.y); ctx.lineTo(c.x + 12, c.y); ctx.moveTo(c.x, c.y - 12); ctx.lineTo(c.x, c.y + 12); ctx.stroke();
-    } else if (it.kind === 'humanoid') {
-      const n = Math.max(6, Math.min(12, view.pxPerM * 0.32));
-      ctx.strokeStyle = P.human; ctx.lineWidth = n > 8 ? 2.2 : 1.6; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(c.x, c.y - 0.72 * n, 0.3 * n, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(c.x, c.y - 0.4 * n); ctx.lineTo(c.x, c.y + 0.3 * n);                       // torso
-      ctx.moveTo(c.x - 0.6 * n, c.y - 0.12 * n); ctx.lineTo(c.x, c.y - 0.12 * n);           // arms
-      ctx.moveTo(c.x + 0.6 * n, c.y - 0.12 * n); ctx.lineTo(c.x, c.y - 0.12 * n);
-      ctx.moveTo(c.x - 0.45 * n, c.y + 0.3 * n); ctx.lineTo(c.x - 0.45 * n, c.y + n);       // legs
-      ctx.moveTo(c.x + 0.45 * n, c.y + 0.3 * n); ctx.lineTo(c.x + 0.45 * n, c.y + n);
-      ctx.stroke();
-      const fx = -Math.sin(yaw), fz = -Math.cos(yaw);   // forward = (−sin,−cos) (live FU)
-      ctx.beginPath();
-      ctx.moveTo(c.x + fx * 1.35 * n, c.y + fz * 1.35 * n);
-      ctx.lineTo(c.x + fx * 2.1 * n, c.y + fz * 2.1 * n);
-      ctx.stroke();
-      ctx.globalAlpha = selected ? 1 : 0.35; ctx.fillStyle = P.text; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(it.name, c.x + n + 6, c.y + 4); ctx.globalAlpha = 1;
-    } else if (it.kind === 'simple_figure') {
-      const W = Math.max(3, (it.fp.halfWidthM ?? .3) * view.pxPerM);
-      const D = Math.max(2, (it.fp.halfDepthM ?? .2) * view.pxPerM);
-      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(yaw);
-      ctx.fillStyle = P.human; ctx.fillRect(-W, -D, W * 2, D * 2);
-      ctx.strokeStyle = selected ? P.accent : P.propEdge; ctx.lineWidth = 1; ctx.strokeRect(-W, -D, W * 2, D * 2);
-      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(-W, -D, W * 2, Math.max(1.5, D * 0.4));
-      const headR = Math.max(2, 0.168 * (it.pose.sx ?? 1) * view.pxPerM);
-      ctx.beginPath(); ctx.arc(0, 0, headR, 0, Math.PI * 2); ctx.fillStyle = P.human; ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = Math.max(1.5, headR * 0.3);
-      ctx.beginPath(); ctx.arc(0, 0, headR * 0.72, -Math.PI / 2 - 1.257, -Math.PI / 2 + 1.257); ctx.stroke();
-      ctx.restore();
-    } else {
-      const W = Math.max(3, (it.fp.halfWidthM ?? .5) * view.pxPerM), D = Math.max(3, (it.fp.halfDepthM ?? .5) * view.pxPerM);
-      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(yaw);
-      ctx.fillStyle = P.prop; ctx.strokeStyle = selected ? P.accent : P.propEdge; ctx.lineWidth = 1;
-      if (it.fp.shape === 'ellipse') { ctx.beginPath(); ctx.ellipse(0, 0, W, D, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
-      else { ctx.fillRect(-W, -D, W * 2, D * 2); ctx.strokeRect(-W, -D, W * 2, D * 2); }
-      ctx.restore();
-      if (selected) { ctx.fillStyle = P.textDim; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(it.name, c.x, c.y + D + 14); }
-    }
-  }
-
-  // ---------------- interactions ----------------
+  // ---- pointer machine (DLr/DZt/HLr via rBr wiring) ----
   _wire() {
-    const cv = this.canvas;
-    cv.addEventListener('contextmenu', e => e.preventDefault());
-    cv.addEventListener('pointerdown', e => this._down(e));
-    cv.addEventListener('pointermove', e => this._move(e));
-    const up = e => this._up(e);
-    cv.addEventListener('pointerup', up);
-    cv.addEventListener('pointercancel', up);
-    cv.addEventListener('wheel', e => {
-      e.preventDefault();
-      if (e.ctrlKey || e.metaKey) {
-        this.zoomAt(e.clientX, e.clientY, Math.max(0.1, 1 - e.deltaY * (Math.abs(e.deltaY) > 20 ? 0.005 : 0.02)));
-      } else {
-        const k = e.deltaMode === 0 ? 2 : 1;
-        this.view.cx += e.deltaX * k / this.view.pxPerM;
-        this.view.cz += e.deltaY * k / this.view.pxPerM;
+    const Z = this.canvas;
+    Z.addEventListener('contextmenu', e => e.preventDefault());
+    Z.addEventListener('pointerdown', e => {
+      if (!this.shown()) return;
+      this._centerEase = null, this._interacted = true;
+      if (e.button === 1 || e.button === 2) { e.preventDefault(); try { Z.setPointerCapture(e.pointerId); } catch (_) {} this._panPx = this._ev(e); return; }
+      if (e.button !== 0) return;
+      const p = this._ev(e);
+      const X = this._edge.find(te => Math.hypot(p.x - te.x, p.y - te.y) <= uN + 3);   // edge-bubble click → goToCamera
+      if (X) { this.store.goToCamera(X.id); return; }
+      try { Z.setPointerCapture(e.pointerId); } catch (_) {}
+      this._hoverTip(null);
+      this._lastMovePx = this._ev(e);
+      const U = DLr(this.w, this._deps(), this._evFull(e));
+      this.w = U.state, U.intents.length && this.store.apply(U.intents);
+    });
+    Z.addEventListener('pointermove', e => {
+      if (!this.shown()) return;
+      if (!this.w.drag && !this._panPx) {                                             // edge-bubble hover cursor
+        const p = this._ev(e);
+        if (this._edge.some(te => Math.hypot(p.x - te.x, p.y - te.y) <= uN + 3)) { Z.style.cursor = 'pointer'; return; }
+        if (Z.style.cursor === 'pointer') Z.style.cursor = this.store.drawing() ? 'crosshair' : '';
       }
+      if (this._panPx) { const p = this._ev(e); this.w = PLr(this.w, p.x - this._panPx.x, p.y - this._panPx.y); this._panPx = p; return; }
+      this.w.drag || this._hoverTip(this._ev(e));
+      this._lastMovePx && (this._lastMovePx = this._ev(e));
+      const U = DZt(this.w, this._deps(), this._evFull(e));
+      this.w = U.state, U.intents.length && this.store.apply(U.intents);
+    });
+    Z.addEventListener('pointerleave', () => this._hoverTip(null));
+    Z.addEventListener('pointerup', e => {
+      if (this._panPx) { this._panPx = null; return; }
+      if (e.button === 0) this._finish();
+    });
+    Z.addEventListener('pointercancel', () => { this._panPx = null; this._finish(); });
+    Z.addEventListener('wheel', e => {                                                // NLr (RZt router not needed: no scrollables)
+      if (!this.shown()) return;
+      e.preventDefault(); e.stopPropagation();
+      this._centerEase = null, this._interacted = true;
+      this.w = NLr(this.w, { p: this._ev(e), dx: e.deltaX, dy: e.deltaY, deltaMode: e.deltaMode, zoom: e.ctrlKey || e.metaKey });
     }, { passive: false });
-    window.addEventListener('keydown', e => {
-      if (!this.shown() || e.target.tagName === 'INPUT') return;
-      if (e.key === 'Escape' && this.drawing) { this.exitDrawing(); e.preventDefault(); }
+  }
+  _finish() { this._lastMovePx = null; const U = HLr(this.w, this._deps()); this.w = U.state, U.intents.length && this.store.apply(U.intents); }
+  _ev(e) { return dye(this.canvas, e); }
+  _evFull(e) { return { p: dye(this.canvas, e), shift: e.shiftKey, mod: e.metaKey || e.ctrlKey }; }
+
+  _hoverTip(p) {                                                                       // tap-or-draw focus tooltip (OZt)
+    if (!this._tip) return;
+    const te = p && !!this.store.drawing() && OZt(this.w, this._deps(), p);
+    this.canvas.style.cursor = this.store.drawing() ? 'crosshair' : '';
+    this._tip.hidden = !te;
+    te && (this._tip.style.transform = `translate(${p.x + 18}px, ${p.y - 44}px)`);
+  }
+
+  _wireEscape() {                                                                      // sBr: Escape → stepBack chain
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape' || e.defaultPrevented || !this.shown()) return;
+      this.store.stepBack() && e.preventDefault();
     });
   }
 
-  zoomAt(clientX, clientY, f) {
-    const before = this.toWorldAt(clientX, clientY);
-    this.view.pxPerM = Math.min(PPM_MAX, Math.max(PPM_MIN, this.view.pxPerM * f));
-    const r = this.canvas.getBoundingClientRect();
-    const afterPx = this.toPx(before.x, before.z);
-    this.view.cx += (clientX - r.left - afterPx.x) / this.view.pxPerM;
-    this.view.cz += (clientY - r.top - afterPx.y) / this.view.pxPerM;
-  }
-
-  hitAt(px, py) {
-    const items = this.items();
-    const sel = this.app.objects.selectedIds;
-    if (sel.length === 1 && this.rotateHandlePx && Math.hypot(px - this.rotateHandlePx.x, py - this.rotateHandlePx.y) <= 8) {
-      return { type: 'rotate', item: items.find(i => i.id === sel[0]) };
-    }
-    for (let i = items.length - 1; i >= 0; i--) {
-      const it = items[i];
-      const c = this.toPx(it.fp.x, it.fp.z);
-      if (it.fp.shape === 'marker') { if (Math.hypot(px - c.x, py - c.y) <= MARKER_HIT_PX) return { type: 'item', item: it }; continue; }
-      const W = Math.max((it.fp.halfWidthM ?? .5) * this.view.pxPerM, FOOT_SLOP_PX);
-      const D = Math.max((it.fp.halfDepthM ?? .5) * this.view.pxPerM, FOOT_SLOP_PX);
-      const dx = px - c.x, dy = py - c.y;
-      const cs = Math.cos(it.fp.yawRad ?? 0), sn = Math.sin(it.fp.yawRad ?? 0);
-      const rx = dx * cs + dy * sn, ry = -dx * sn + dy * cs;
-      const inside = it.fp.shape === 'ellipse'
-        ? (rx / W) ** 2 + (ry / D) ** 2 <= 1.2
-        : Math.abs(rx) <= W && Math.abs(ry) <= D;
-      if (inside) return { type: 'item', item: it };
-    }
-    return null;
-  }
-
-  _down(e) {
-    if (!this.shown()) return;
-    const r = this.canvas.getBoundingClientRect();
-    const px = e.clientX - r.left, py = e.clientY - r.top;
-    try { this.canvas.setPointerCapture(e.pointerId); } catch (_) {}
-    if (e.button === 1 || e.button === 2) { this.drag = { kind: 'pan', lastX: e.clientX, lastY: e.clientY }; return; }
-    if (e.button !== 0) return;
-    if (this.drawing) { this.drag = { kind: 'draw' }; return; }
-    const hit = this.hitAt(px, py);
-    if (hit?.type === 'rotate') { this.app.show.beginEditGesture(); this.drag = { kind: 'rotate', item: hit.item, snap: e.shiftKey }; return; }
-    if (hit?.type === 'item') {
-      let id = hit.item.id;
-      const o = this.app.objects.get(id);
-      const parent = o?.parentId ? this.app.objects.get(o.parentId) : null;
-      if (parent?.kind === 'group' && !['camera', 'target', 'spotlight'].includes(o.kind)) id = o.parentId;   // plan promotion parentId ?? id
-      if (e.shiftKey) this.app.objects.toggleSelect(id);
-      else this.app.objects.select([id]);
-      const base = new Map();
-      for (const i2 of this.app.objects.selectedIds) {
-        const oo = this.app.objects.get(i2);
-        base.set(i2, { x: oo?.position?.[0] ?? 0, z: oo?.position?.[2] ?? 0, y: oo?.position?.[1] ?? 0 });
-      }
-      this.drag = { kind: 'move', ids: [...this.app.objects.selectedIds], base, snap: e.shiftKey, downPx: { x: px, y: py }, downW: this.toWorldAt(e.clientX, e.clientY), moved: false };
-      this.app.show.beginEditGesture();
-      return;
-    }
-    this.drag = { kind: 'marquee', x: px, y: py, shift: e.shiftKey, base: e.shiftKey ? [...this.app.objects.selectedIds] : [] };
-    this.marquee = { x: px, y: py, w: 0, h: 0 };
-  }
-
-  _move(e) {
-    if (!this.drag || !this.shown()) return;
-    const r = this.canvas.getBoundingClientRect();
-    const px = e.clientX - r.left, py = e.clientY - r.top;
-    const app = this.app;
-    if (this.drag.kind === 'pan') {
-      this.view.cx -= (e.clientX - this.drag.lastX) / this.view.pxPerM;
-      this.view.cz -= (e.clientY - this.drag.lastY) / this.view.pxPerM;
-      this.drag.lastX = e.clientX; this.drag.lastY = e.clientY;
-    } else if (this.drag.kind === 'marquee') {
-      this.marquee = { x: Math.min(this.drag.x, px), y: Math.min(this.drag.y, py), w: Math.abs(px - this.drag.x), h: Math.abs(py - this.drag.y) };
-    } else if (this.drag.kind === 'draw') {
-      const w = this.toWorldAt(e.clientX, e.clientY);
-      const last = this.stroke[this.stroke.length - 1];
-      if (!last || Math.hypot(w.x - last.x, w.z - last.z) > 0.04) {
-        this.stroke.push({ x: w.x, z: w.z, t: (performance.now() - this._t0) / 1000 });
-      }
-    } else if (this.drag.kind === 'rotate') {
-      const it = this.drag.item;
-      if (!it) return;
-      const c = this.toPx(it.fp.x, it.fp.z);
-      let yaw = Math.atan2(px - c.x, -(py - c.y));    // screen-up = world −Z
-      if (this.drag.snap) yaw = Math.round(yaw / SNAP_DEG * Math.PI / 180) * SNAP_DEG * Math.PI / 180;
-      const o = app.objects.get(it.id);
-      if (o) { app.objects.update(it.id, { rotation: [(o.rotation?.[0]) ?? 0, yaw, (o.rotation?.[2]) ?? 0] }); app.objects.changed(); }
-    } else if (this.drag.kind === 'move') {
-      const d = this.drag;
-      if (!d.moved) {
-        if (Math.hypot(px - d.downPx.x, py - d.downPx.y) < MOVE_THRESH_PX) return;
-        d.moved = true;
-      }
-      const w = this.toWorldAt(e.clientX, e.clientY);
-      let dx = w.x - d.downW.x, dz = w.z - d.downW.z;
-      if (d.snap) { dx = Math.round(dx / SNAP_M) * SNAP_M; dz = Math.round(dz / SNAP_M) * SNAP_M; }
-      for (const id of d.ids) {
-        const b = d.base.get(id);
-        const o = app.objects.get(id);
-        if (!b || !o) continue;
-        app.objects.update(id, { position: [b.x + dx, b.y, b.z + dz] });
-      }
-      app.objects.changed();
-    }
-  }
-
-  _up() {
-    const app = this.app;
-    if (!this.drag) return;
-    const d = this.drag;
-    this.drag = null;
-    if (d.kind === 'move' || d.kind === 'rotate') { app.show.endEditGesture(); return; }
-    if (d.kind === 'marquee') {
-      const m = this.marquee;
-      this.marquee = null;
-      if (m && m.w >= MARQUEE_MIN_PX && m.h >= MARQUEE_MIN_PX) {
-        const items = this.items();
-        const picked = [];
-        for (const it of items) {
-          const c = this.toPx(it.fp.x, it.fp.z);
-          const pad = it.fp.shape === 'marker' ? 12 : 0;
-          if (c.x + pad >= m.x && c.x - pad <= m.x + m.w && c.y + pad >= m.y && c.y - pad <= m.y + m.h) {
-            const o = app.objects.get(it.id);
-            const parent = o?.parentId ? app.objects.get(o.parentId) : null;
-            picked.push(parent?.kind === 'group' && !['camera', 'target', 'spotlight'].includes(o.kind) ? o.parentId : it.id);
-          }
-        }
-        app.objects.select([...new Set([...d.base, ...picked])]);
-      }
-      return;
-    }
-    if (d.kind === 'draw') { this.finishStroke(); return; }
-  }
-
-  // ---------------- draw-direction ----------------
-  drawingFor() {
-    const sel = this.app.objects.selectedId;
-    if (!sel) return null;
-    const o = this.app.objects.get(sel);
-    if (!o) return null;
-    if (o.kind === 'camera') return sel;
-    if (['humanoid', 'simple_figure', 'cube', 'sphere', 'cylinder', 'prop', 'spotlight'].includes(o.kind)) return sel;
-    return null;
-  }
-  hasPathFor(id) {
-    const tr = this.app.show.trackOf(id);
-    return !!tr?.items.some(it => (it.kind === 'path' || it.kind === 'cam-path') && (it.anchors?.length ?? 0) > 1);
-  }
-  startDrawing() {
-    const id = this.drawingFor();
-    if (!id) return false;
-    this.drawing = { charId: id };
-    this.stroke = [];
-    this._t0 = performance.now();
-    this.app.page.seek(0);                       // drawing rewinds the show
-    if (this.app.page.playing) this.app.page.setPlaying?.(false);
-    return true;
-  }
-  exitDrawing() { this.drawing = null; this.stroke = null; }
-
-  finishStroke() {
-    if (!this.drawing) return;
-    const id = this.drawing.charId;
-    const samples = this.stroke ?? [];
-    if (samples.length < 3) { this.exitDrawing(); return; }
-    const arc = samples.reduce((s, p, i) => i ? s + Math.hypot(p.x - samples[i - 1].x, p.z - samples[i - 1].z) : 0, 0);
-    if (arc < 0.3) { this.exitDrawing(); return; }          // fHr
-    this.exitDrawing();
-    // ¼-smoothing ×2
-    let pts = samples.map(s => ({ x: s.x, z: s.z }));
-    for (let pass = 0; pass < 2; pass++) {
-      for (let i = 1; i < pts.length - 1; i++) {
-        pts[i] = { x: (pts[i - 1].x + 2 * pts[i].x + pts[i + 1].x) / 4, z: (pts[i - 1].z + 2 * pts[i].z + pts[i + 1].z) / 4 };
-      }
-    }
-    const anchors = [pts[0]];
-    for (const p of pts) if (Math.hypot(p.x - anchors[anchors.length - 1].x, p.z - anchors[anchors.length - 1].z) >= 0.2) anchors.push(p);
-    if (anchors.length < 2) return;
-    const o = this.app.objects.get(id);
-    const dur = Math.max(0.5, samples[samples.length - 1].t ?? 1);
-    const steady = !this._matchSpeed;   // live: steady:!matchDrawSpeed — checked = match YOUR speed (arc/dur)
-    const speed = steady ? (o.kind === 'camera' ? 2 : 1.4) : Math.max(0.01, arc / dur);
-    const threeD = anchors.map(a => [a.x, o.position?.[1] ?? 0, a.z]);
-    const built = buildTangents(threeD);
-    this.app.show.beginEditGesture();
-    try {
-      // live replaceMoveFromSamples: REPLACE the existing move segment, not stack another
-      const tr = this.app.show.trackOf(id);
-      const existing = tr?.items.find(it => (it.kind === 'path' || it.kind === 'cam-path') && (it.anchors?.length ?? 0) > 1);
-      if (existing && tr) {
-        const patch = { anchors: built, speedUnitsPerS: speed };
-        if (o.kind !== 'camera' && existing.kind === 'path') patch.aim = existing.aim ?? 'travel';
-        this.app.show.patchItem(tr.id, existing.id, patch);
-      } else if (o.kind === 'camera') this.app.show.addItem(id, { kind: 'cam-path', anchors: built, speedUnitsPerS: speed, aim: 'travel' });
-      else if (o.kind === 'humanoid' || o.kind === 'simple_figure') this.app.show.addItem(id, { kind: 'path', anchors: built, speedUnitsPerS: speed, gait: 'walk', aim: 'travel' });
-      else this.app.show.addItem(id, { kind: 'path', anchors: built, speedUnitsPerS: speed, aim: 'locked' });
-    } finally { this.app.show.endEditGesture(); }
-  }
-
-  // ---------------- plan bar (draw pill + match speed + fit + zoom%) ----------------
+  // ---- plan bar (sBr layout: camera pills + RRr pill group + LRr timer + iFr zoom bar) ----
   _buildBar() {
     const bar = document.createElement('div');
-    bar.className = 'plan-bar';
-    bar.style.cssText = 'position:absolute;left:10px;top:10px;z-index:6;display:none;gap:6px;align-items:center;'
-      + 'background:rgba(30,34,46,.78);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08);'
-      + 'border-radius:8px;padding:4px 6px;';
+    bar.className = 'plan-bar2';
+    bar.style.display = 'none';
     bar.innerHTML = `
-      <button id="pbDraw" title="Draw a path with your pointer — the show rewinds and plays while you draw">✎ Draw path</button>
-      <label style="display:flex;gap:4px;align-items:center;font-size:11px;color:#98a2b8;cursor:pointer" title="Match the walk speed to your drawing speed (off = constant speed)">
-        <input type="checkbox" id="pbMatch" checked> match speed</label>
-      <span style="width:1px;height:16px;background:rgba(255,255,255,.12)"></span>
-      <button id="pbFit" title="Zoom to fit (⌘/Ctrl + wheel zooms)">Fit</button>
-      <span id="pbZoom" style="font-size:11px;color:#98a2b8;min-width:38px;text-align:right">100%</span>`;
+      <div class="pb-pills" id="pbCamPills" role="group" aria-label="Cameras"></div>
+      <div class="pb-group" id="pbDrawGroup">
+        <div class="pb-pills" id="pbPills">
+          <button type="button" class="pb-pill" id="pbDrawBtn" aria-pressed="false"><span class="pb-ico">✎</span><span id="pbDrawLbl">Draw direction</span></button>
+          <label class="pb-pill pb-speed" id="pbSpeedWrap" style="display:none"><input type="checkbox" id="pbMatchSpeed" checked> match speed</label>
+          <button type="button" class="pb-pill" id="pbDelete" style="display:none"><span class="pb-ico">🗑</span> Delete</button>
+          <div class="pb-person" id="pbPerson" role="group" aria-label="Person type" style="display:none">
+            <button type="button" data-pk="simple_figure" aria-pressed="false">Figure</button>
+            <button type="button" data-pk="humanoid" aria-pressed="false">Human</button>
+          </div>
+        </div>
+        <div class="pb-cam-chip" id="pbCamChip" hidden></div>
+      </div>
+      <div class="pb-timer" id="pbTimer" role="timer" style="display:none"><i class="pb-dot"></i><span id="pbNow">0.0s</span><span class="pb-of" id="pbOf"></span></div>
+      <div class="pb-zoom" role="group" aria-label="Zoom">
+        <button type="button" id="pbZoomOut" aria-label="Zoom out">−</button>
+        <button type="button" id="pbZoomFit" aria-label="Zoom to fit"><span id="pbZoomPct">100</span>%</button>
+        <button type="button" id="pbZoomIn" aria-label="Zoom in">+</button>
+      </div>`;
     this.host.appendChild(bar);
-    this.bar = bar;
-    const drawBtn = bar.querySelector('#pbDraw'), fitBtn = bar.querySelector('#pbFit');
-    const zoomEl = bar.querySelector('#pbZoom');
-    this._zoomEl = zoomEl;
-    drawBtn.onclick = () => {
-      if (this.drawing) { this.exitDrawing(); this._syncBar(); return; }
-      if (this.startDrawing()) this._syncBar();
-      else { this.app.toast('Select a Human, Camera or object first (groups can\u2019t draw)'); }
-    };
-    bar.querySelector('#pbMatch').onchange = e => { this._matchSpeed = e.target.checked; };
-    fitBtn.onclick = () => { this.fitted = false; this.resize(); this._syncBar(); };
-    this._syncBar = () => {
-      const has = this.drawingFor() && !this.drawing;
-      drawBtn.classList.toggle('on', !!this.drawing);
-      drawBtn.textContent = this.drawing ? '✓ Finish' : (this.hasPathFor(this.app.objects.selectedId ?? '') ? '✎ Redraw' : '✎ Draw path');
-      zoomEl.textContent = Math.round(this.view.pxPerM / PPM_DEFAULT * 100) + '%';
-    };
+    this._bar = bar;
+    this._camChip = bar.querySelector('#pbCamChip');
+    // focus tip (uit.focusTip): its own element on the canvas host, like the live
+    this._tip = document.createElement('div');
+    this._tip.className = 'pb-focus-tip';
+    this._tip.hidden = true;
+    this._tip.textContent = 'Focus on this?';
+    this.host.appendChild(this._tip);
+    bar.querySelector('#pbDrawBtn').onclick = () => { this.store.toggleDrawing(); this._syncBar(); };
+    bar.querySelector('#pbMatchSpeed').onchange = e => { this.store.matchDrawSpeed = e.target.checked; };
+    bar.querySelector('#pbDelete').onclick = () => { this.store.deleteMove(); this._syncBar(); };
+    bar.querySelectorAll('#pbPerson button').forEach(b => b.onclick = () => {
+      const id = this.store.drawTarget(); if (!id) return;
+      this.app.pickPersonKind?.(id, b.dataset.pk);
+      this._syncBar();
+    });
+    bar.querySelector('#pbZoomOut').onclick = () => this.store.zoomOut();
+    bar.querySelector('#pbZoomIn').onclick = () => this.store.zoomIn();
+    bar.querySelector('#pbZoomFit').onclick = () => this.store.zoomToFit();
+    this._syncBar();
   }
-  _syncBar() {}   // replaced by _buildBar
-
-  tick() {
-    if (!this.shown()) return;
-    this.resize();
-    this.draw();
-    if (this._zoomEl && this._lastZoom !== this.view.pxPerM) {
-      this._lastZoom = this.view.pxPerM;
-      this._zoomEl.textContent = Math.round(this.view.pxPerM / PPM_DEFAULT * 100) + '%';
+  _syncBar() {
+    if (!this._bar) return;
+    const st = this.store, b = this._bar;
+    const drawn = st.drawnMoveIds().includes(st.drawTarget());
+    const state = st.drawing() ? 'drawing' : drawn ? 'update' : 'draw';
+    const btn = b.querySelector('#pbDrawBtn');
+    btn.setAttribute('aria-pressed', state === 'drawing' ? 'true' : 'false');
+    btn.classList.toggle('on', state === 'drawing');
+    b.querySelector('#pbDrawLbl').textContent = state === 'drawing' ? 'Finish' : state === 'update' ? 'Update path' : 'Draw direction';
+    b.querySelector('#pbSpeedWrap').style.display = state === 'drawing' ? '' : 'none';      // match-speed only while drawing
+    b.querySelector('#pbMatchSpeed').checked = st.matchDrawSpeed;
+    b.querySelector('#pbDelete').style.display = state === 'update' ? '' : 'none';
+    const person = st.targetPerson();
+    const pg = b.querySelector('#pbPerson');
+    pg.style.display = person && state !== 'drawing' ? '' : 'none';
+    pg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', person === x.dataset.pk ? 'true' : 'false'));
+    // camera pills
+    const pills = b.querySelector('#pbCamPills'), cams = st.cameraPills(), sel = this.app.objects.selectedIds;
+    if (this._camKeys !== cams.map(c => c.id).join(',')) {
+      this._camKeys = cams.map(c => c.id).join(',');
+      pills.innerHTML = cams.map(c => `<button type="button" data-cam="${c.id}" title="${c.label}"><i></i>${c.label}</button>`).join('');
+      pills.querySelectorAll('button').forEach(x => x.onclick = () => this.store.goToCamera(x.dataset.cam));
     }
+    pills.querySelectorAll('button').forEach(x => x.classList.toggle('on', sel.length === 1 && sel[0] === x.dataset.cam));
+    this._syncZoomBar();
+  }
+  _syncZoomBar() { if (this._bar) this._bar.querySelector('#pbZoomPct').textContent = String(this._zoomPct ?? 100); }
+  _syncTimer(c) {
+    if (!this._bar) return;
+    const t = this._bar.querySelector('#pbTimer');
+    if (!c) { t.style.display = 'none'; return; }
+    t.style.display = '';
+    this._bar.querySelector('#pbNow').textContent = `${c.nowS.toFixed(1)}s`;
+    this._bar.querySelector('#pbOf').textContent = c.ofS > 0 ? ` · of ${c.ofS.toFixed(1)}s` : '';
   }
 }

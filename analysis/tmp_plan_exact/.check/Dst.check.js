@@ -1,0 +1,3 @@
+(() => {
+function Dst(t,e){const n=e.position[0],r=e.position[2],s=i9(e.rotation),[a,,o]=e.scale;switch(t.kind){case"group":return null;case"camera":case"target":case"spotlight":return{shape:"marker",x:n,z:r,yawRad:s};case"humanoid":return{shape:"ellipse",x:n,z:r,halfWidthM:Fst*a,halfDepthM:Fst*o,yawRad:s};case"simple_figure":return{shape:"rect",x:n,z:r,halfWidthM:PP[0]*a/2,halfDepthM:PP[2]*o/2,yawRad:s};case"sphere":case"cylinder":return{shape:"ellipse",x:n,z:r,halfWidthM:a/2,halfDepthM:o/2,yawRad:s};default:{const l=t.propKey?zh[t.propKey]?.dims:void 0,[c,,d]=l??[1,1,1];return{shape:"rect",x:n,z:r,halfWidthM:c*a/2,halfDepthM:d*o/2,yawRad:s}}}}
+});

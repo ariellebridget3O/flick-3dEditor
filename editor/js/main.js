@@ -20,7 +20,7 @@ import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
 import { tickGizmoHover } from './gizmo.js';
 import { createGroundGrid, syncSnap, applyRenderMode } from './viewport-modes.js';
-import { PlanView } from './plan.js';
+import { PlanStore, PlanCanvas } from './plan.js';
 import { buildUI } from './ui.js';
 import {
   patchSoftTerminator, createFinishComposer, finishCapable,
@@ -101,9 +101,11 @@ export class App {
     };
     this.setSnapOn = v => { this.snapOn = v; localStorage.setItem('stage-snap', v ? '1' : '0'); this.groundGrid.visible = v; };
     if (this.renderMode !== 'shaded') this.setRenderMode(this.renderMode);
-    // round 6 (C): top-down plan canvas
+    // round 7 (R7-1): top-down plan canvas — exact port (rDr store + rBr canvas)
     this.propCatalogDims = key => this.objectManager?.propCatalog?.[key]?.dims;
-    this.planView = new PlanView(this, document.getElementById('viewport'));
+    this.plan = new PlanStore(this);
+    this.planView = new PlanCanvas(this, document.getElementById('viewport'), this.plan);
+    this._drawPreview = null; this._drawPreviewId = null;
     this.light = normalizeLight(null);
     // round 6 (D): light mutators — every write is one undo gesture at the UI layer.
     // geo edits (re)enter geographic mode; a knob/drag/preset edit enters custom mode.
@@ -236,6 +238,57 @@ export class App {
     } else {
       this.orbit.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.ROTATE };
       this.orbit.screenSpacePanning = false;
+    }
+  }
+
+  // ================= plan facade (round 7 R7-1) =================
+  shownPose(id) {  // live shownPose_impl: mesh world TRS (Bie) + fovDeg (cameras) + headRotation (figures)
+    const mesh = this.meshById.get(id);
+    if (!mesh) return null;
+    mesh.updateWorldMatrix(true, false);
+    const pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scl = new THREE.Vector3();
+    mesh.matrixWorld.decompose(pos, quat, scl);
+    const e = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
+    const out = { position: [pos.x, pos.y, pos.z], rotation: [e.x, e.y, e.z], scale: [scl.x, scl.y, scl.z] };
+    const kind = this.objects.get(id)?.kind;
+    if (kind === 'camera') {
+      // evaluated fov at the playhead (live O.cameraFovDeg): run dZt over the camera's items
+      const obj = this.objects.get(id);
+      const track = this.show.trackOf(id);
+      const aspect = this.page.aspectOf?.() ?? (() => { const k = this.page.recordAspect ?? '16:9'; return { '16:9': 16/9, '9:16': 9/16, '1:1': 1, '4:3': 4/3, '1.85:1': 1.85, '2.39:1': 2.39 }[k] ?? 16/9; })();
+      let fovDeg = fovFromFocal(obj.focalLengthMm ?? 50, aspect);
+      if (track) {
+        const o = { position: new THREE.Vector3(), quaternion: new THREE.Quaternion(), fovDeg: 0 };
+        evalCameraObject({ base: { position: obj.position ?? [0, 1.6, 0], rotation: obj.rotation ?? [0, 0, 0], focalLengthMm: obj.focalLengthMm ?? 50 }, out: o, items: track.items, timeS: this.page.playheadS, aspect, resolvers: this.resolvers() });
+        if (o.fovDeg > 0) fovDeg = o.fovDeg;
+      }
+      out.fovDeg = fovDeg;
+    }
+    if (kind === 'simple_figure') out.headRotation = getHeadRotation(mesh);
+    return out;
+  }
+  pickPersonKind(id, kind) {   // live pickPersonKind — mesh rebuilds via syncOne kind check
+    if (this.objects.get(id)?.kind === kind) return;
+    this.objects.update(id, { kind });
+    this.objects.changed();
+  }
+  tickDrawPreview() {  // z port: pose the mesh to the stroke preview ghost; restore on end
+    const d = this._drawPreview;
+    if (d) {
+      const m = this.meshById.get(d.id);
+      if (m) {
+        this._drawPreviewId = d.id;
+        m.position.set(...d.position);
+        m.rotation.set(...d.rotation);
+        if (d.look && m.userData.figure) m.userData.figure.head.rotation.set(0, d.look.headYawRad, d.look.headPitchRad);
+      }
+    } else if (this._drawPreviewId) {
+      const id = this._drawPreviewId; this._drawPreviewId = null;
+      const obj = this.objects.get(id); const m = this.meshById.get(id);
+      if (obj && m) {  // restore stored pose
+        m.position.set(...(obj.position ?? [0, 0, 0]));
+        m.rotation.set(...(obj.rotation ?? [0, 0, 0]));
+      }
     }
   }
 
@@ -754,7 +807,8 @@ export class App {
     // rigs/playback/livePose ticks above keep running so shownPose mirrors the show on the plan.
     if (this.page.viewportMode === 'plan' && this.page.mode === 'edit' && !this.page.playing) {
       this.scene.updateMatrixWorld();
-      this.planView?.tick();
+      this.tickDrawPreview();
+      this.planView?.tick(performance.now());
       return;
     }
     this.renderFrame();

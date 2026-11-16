@@ -1,0 +1,8 @@
+// ============================================================================
+// fn: se_playback   (bundle minified: function se(){const ce=t.isPreviewPlaying.peek())
+// char range: 5760688..5761404   (byte range: 5768957..5769673)
+// purpose: playback ticking gate (isPreviewPlaying || isPerformancePlaying …)
+// params: -> bool
+// closure/global deps (auto-derived, approximate): be, t, J, xe, hQ, fe, we, Ee, se, J2r, e, nat
+// ============================================================================
+function se(){const ce=t.isPreviewPlaying.peek()||t.isPerformancePlaying.peek()||t.performanceSeekS.peek()!==null?J2r({selectedSegment:t.selectedSegment.peek(),selectedId:t.selectedId.peek(),tracks:t.show.peek().tracks}):null,be=ce?e.meshById.get(ce):null;if(!be){t.livePose.peek()!==null&&t.livePose.set(null);return}const fe=[be.position.x,be.position.y,be.position.z],we=[be.rotation.x,be.rotation.y,be.rotation.z],Ee=[be.scale.x,be.scale.y,be.scale.z],xe=be.userData.kind==="simple_figure"?nat(be):void 0,J=t.livePose.peek();J&&J.id===ce&&hQ(J.position,fe)&&hQ(J.rotation,we)&&hQ(J.scale,Ee)&&(!xe||J.headRotation&&hQ(J.headRotation,xe))||t.livePose.set({id:ce,position:fe,rotation:we,scale:Ee,headRotation:xe})}

@@ -205,7 +205,7 @@ export class Manipulator {
   }
 
   // SZt — the full camera/target commit pipeline (refusal → keyed → follow-offset → rebase → gates)
-  _commitSZt(id, obj, attached, world, local, mode) {
+  _commitSZt(id, obj, attached, world, local, mode, planStore = null) {
     const app = this.app;
     const t = app.page.playheadS;
     const track = app.show.trackOf(id);
@@ -258,7 +258,9 @@ export class Manipulator {
     // 5. no-move refused translate → reaim (aim the cam-move item at its subject again)
     if (rebase.outcome === 'refused' && rebase.reason === 'no-move' && mode === 'translate') this._reaimCamera(id);
     // 6. paired target: rotated together during drag (XWt) — commit its new position
-    if (targetObj && this._dragStartObj) {
+    if (planStore?.drag?.planTargetPos && targetObj) {
+      app.objects.update(targetObj.id, { position: planStore.drag.planTargetPos(targetObj.id) });
+    } else if (targetObj && this._dragStartObj) {
       const tgtMesh = app.meshById.get(obj.targetId);
       if (tgtMesh) {
         const tid = tgtMesh.userData.objectId;
@@ -268,7 +270,31 @@ export class Manipulator {
         else app.objects.update(tid, { position: tp });
       }
     }
-    return { outcome: 'committed' };
+    return { outcome: "committed" };
+  }
+
+  // ---- round 7 (R7-1): plan-store commit adapters (rDr.commitOne → SZt/kZt pipelines) ----
+  // Cameras+targets take the full SZt pipeline with the plan's pre-computed world pose.
+  // planTarget {id, position} replaces the gizmo's mesh-read paired-target position (rDr XWt).
+  commitPlanCamera(id, worldPose, mode, planStore) {
+    const app = this.app;
+    const obj = app.objects.get(id);
+    if (!obj) return null;
+    const world = {
+      position: new THREE.Vector3(...worldPose.position),
+      rotation: [...worldPose.rotation],
+    };
+    const local = planStore.toLocal(id, worldPose);
+    const outcome = this._commitSZt(id, obj, null, world, local, mode, planStore);
+    if (outcome?.outcome === 'refused') app.toast?.(this._refusalText(outcome.reason));
+    else if (outcome?.outcome === 'unbased') app.toast?.('Camera move could not be re-based (' + outcome.reason + ')');
+    return outcome;
+  }
+  _commitPlanTransform(id, localPose) {  // kZt free commit from plan drags
+    const app = this.app;
+    const obj = app.objects.get(id);
+    if (!obj) return null;
+    return this._commitKZt(id, obj, localPose);
   }
 
   _refusalText(reason) { // TZt

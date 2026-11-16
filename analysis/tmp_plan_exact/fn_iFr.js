@@ -1,0 +1,8 @@
+// ============================================================================
+// fn: iFr   (bundle minified: function iFr()
+// char range: 5426393..5427024   (byte range: 5434661..5435292)
+// purpose: zoom bar: percent readout + zoom out / zoom-to-fit / zoom in buttons
+// params: {percent,className,onZoomOutClick,onZoomToFitClick,onZoomInClick} -> jsx
+// closure/global deps (auto-derived, approximate): i, className, id, children, KB, type, onClick, t, e, n, r, s, K, name, size, iFr, percent, onZoomOutClick, onZoomToFitClick, onZoomInClick, Ze, role, Hr, content
+// ============================================================================
+function iFr({percent:t,className:e,onZoomOutClick:n,onZoomToFitClick:r,onZoomInClick:s}){return i.jsxs("div",{className:Ze(KB.zoom,e),role:"group","aria-label":_._({id:"ACjxWW"}),children:[i.jsx("button",{type:"button",className:KB.button,"aria-label":_._({id:"FjkaiT"}),onClick:n,children:i.jsx(K,{name:"zoom-out",size:"sm"})}),i.jsx(Hr,{content:_._({id:"pLI1Is"}),children:i.jsxs("button",{type:"button",className:KB.value,"aria-label":_._({id:"pLI1Is"}),onClick:r,children:[t,"%"]})}),i.jsx("button",{type:"button",className:KB.button,"aria-label":_._({id:"AWOSPo"}),onClick:s,children:i.jsx(K,{name:"zoom-in",size:"sm"})})]})}

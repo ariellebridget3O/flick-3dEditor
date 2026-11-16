@@ -428,7 +428,41 @@ button.small { padding: 2px 8px; font-size: 12px; }
 .tr-remove:hover { color: #ff8a70; }
 .lane-body.dup-target { background: rgba(255, 209, 102, .09); box-shadow: inset 0 0 0 1px rgba(255, 209, 102, .35); }
 
-/* round 6 (C): plan bar */
-.plan-bar button { border: 1px solid rgba(255,255,255,.1); background: transparent; color: var(--text-dim); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; }
-.plan-bar button:hover { color: var(--text); background: rgba(255,255,255,.07); }
-.plan-bar button.on { color: var(--text); background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); }
+/* round 7 (R7-1): plan palette (--plan-* read by BZt at runtime, live aDr map) */
+:root {
+  --plan-background: #1a1e28; --plan-grid: rgba(255,255,255,.05); --plan-grid-major: rgba(255,255,255,.12);
+  --plan-human: #ffd69e; --plan-camera: #7fb2ff; --plan-object: #c9cfdb; --plan-light: #ffe9a8;
+  --plan-prop: #e2e0dc; --plan-prop-edge: #b8b6b2; --plan-accent: #f9634e; --plan-accent-soft: rgba(249,99,78,.14);
+  --plan-panel: #171a22; --plan-text: #e8eaf0; --plan-text-dim: #9aa1b2;
+}
+/* plan bar 2 (round 7 exact port: camera pills + draw pill group + stroke timer + zoom bar) */
+.plan-bar2 {
+  position: absolute; left: 10px; top: 10px; right: 10px; z-index: 6; display: none;
+  align-items: center; gap: 10px; pointer-events: none;
+}
+.plan-bar2 > * { pointer-events: auto; }
+.pb-pills { display: flex; gap: 4px; align-items: center; }
+.pb-pill, .pb-pills button {
+  display: inline-flex; align-items: center; gap: 5px; border: 1px solid rgba(255,255,255,.1);
+  background: rgba(30,34,46,.78); backdrop-filter: blur(10px); color: var(--text-dim);
+  border-radius: 7px; padding: 4px 10px; font-size: 11px; cursor: pointer; white-space: nowrap;
+}
+.pb-pill:hover, .pb-pills button:hover { color: var(--text); background: rgba(255,255,255,.07); }
+.pb-pill.on, .pb-pills button.on { color: var(--text); background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); }
+.pb-pill[aria-pressed="true"] { color: var(--text); background: rgba(249,99,78,.16); border-color: var(--accent); }
+.pb-ico { font-size: 11px; line-height: 1; }
+.pb-speed { font-size: 11px; color: var(--text-dim); cursor: pointer; }
+.pb-person { display: flex; gap: 2px; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; overflow: hidden; }
+.pb-person button { border: none; border-radius: 0; background: transparent; }
+.pb-person button[aria-pressed="true"] { background: rgba(255,255,255,.14); color: var(--text); }
+.pb-timer { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text); font-variant-numeric: tabular-nums; }
+.pb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pb-pulse 1s infinite; }
+@keyframes pb-pulse { 50% { opacity: .35; } }
+.pb-of { color: var(--text-dim); }
+.pb-zoom { margin-left: auto; display: flex; gap: 2px; align-items: center; background: rgba(30,34,46,.78); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.1); border-radius: 7px; padding: 2px; }
+.pb-zoom button { border: none; background: transparent; color: var(--text-dim); border-radius: 5px; padding: 3px 8px; font-size: 12px; cursor: pointer; }
+.pb-zoom button:hover { color: var(--text); background: rgba(255,255,255,.08); }
+.pb-zoom .pb-zoomval { font-variant-numeric: tabular-nums; }
+.pb-tip { position: absolute; background: var(--hud); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 9px; font-size: 11px; white-space: nowrap; pointer-events: none; }
+.pb-focus-tip { position: absolute; z-index: 8; background: var(--hud); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 9px; font-size: 11px; white-space: nowrap; pointer-events: none; }
+.plan-bar2 .pb-cam-chip { position: absolute; background: var(--hud); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 11px; color: var(--text-dim); white-space: nowrap; }

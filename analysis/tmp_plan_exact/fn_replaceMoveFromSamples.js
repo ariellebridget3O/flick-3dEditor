@@ -1,0 +1,8 @@
+// ============================================================================
+// fn: replaceMoveFromSamples   (bundle minified: replaceMoveFromSamples=(e,n,r,s)=>)
+// char range: 5542981..5543842   (byte range: 5551249..5552110)
+// purpose: show-store method: vHr simplify -> mT tangents -> speed = steady? (camera YZt=2 : Htt=1.4) : max(Qae=.01, MR(nx)/durationS); REPLACE existing move segment (kind path/cam-path, aim subject-if-focus else locked/camera), focalLengthMm preserved
+// params: (id, startS, samples, {focusId,steady}) -> bool
+// closure/global deps (auto-derived, approximate): e, g, l, n, h, aim, r, f, y, subjectId, replaceMoveFromSamples, Q0, vHr, Zo, mT, YZt, Htt, Qae, MR, nx, an, startS, anchors, speedUnitsPerS, gait, JCe
+// ============================================================================
+replaceMoveFromSamples=(e,n,r,s)=>{const a=this.objects.peek(),o=a[e],l=o?.kind==="camera";if(!o||!(l||Q0(o.kind)))return!1;const c=vHr(r);if(!c)return!1;const d=this.trackIdOf(e)??this.addPerformanceTrack(e);if(!d)return!1;const u=Zo(o,a).position[1],h=mT(c.points.map(([v,x])=>[v,u,x])),f=s?.steady?l?YZt:Htt:Math.max(Qae,MR(nx(h))/c.durationS),m=this.moveSegmentOf(d,n),g=s?.focusId&&s.focusId!==e&&a[s.focusId]?s.focusId:null,b={id:an(),startS:Math.max(0,n),anchors:h,speedUnitsPerS:f,...s?.steady?{}:{pace:c.pace}},y=l?{...b,kind:"cam-path",aim:g?"subject":"locked",subjectId:g,...m&&"focalLengthMm"in m&&m.focalLengthMm!==void 0?{focalLengthMm:m.focalLengthMm}:{}}:{...b,kind:"path",...o.kind==="humanoid"?{gait:JCe}:{},...el(o.kind)?g?{aim:"subject",subjectId:g}:{}:{aim:"locked"}};return this.updateTrackItems(d,v=>[y,...v.filter(x=>x.id!==m?.id)]),!0};

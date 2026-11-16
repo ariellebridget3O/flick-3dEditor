@@ -1,0 +1,3 @@
+(() => {
+function PIr(t,e={}){const{category:n,limit:r=20}=e,s=t.trim().toLowerCase(),a=s.split(/\s+/).filter(Boolean),o=[];for(const[l,c]of Object.entries(zh)){if(n&&c.category!==n)continue;const d=typeof c.label=="string"?c.label:_._(c.label),u=new Set([...l.toLowerCase().split(/[_\s]+/),...d.toLowerCase().split(/\s+/),...c.tags.map(g=>g.toLowerCase())]),h=[...u].join(" "),f=a.reduce((g,b)=>u.has(b)?g+2:h.includes(b)?g+1:g,0);if(a.length>0&&f===0)continue;const m=s&&(l.toLowerCase().replace(/_/g," ")===s||d.toLowerCase()===s);o.push({hit:{key:l,label:d,dims:c.dims},score:f+(m?3:0)})}return o.sort((l,c)=>c.score-l.score),o.slice(0,r).map(l=>l.hit)}
+});
