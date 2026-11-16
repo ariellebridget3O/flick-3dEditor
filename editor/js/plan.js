@@ -21,7 +21,7 @@ import * as THREE from 'three';
 import { C } from './const.js';
 import { polylineOf, buildTangents, arcLength } from './curves.js';   // nx / mT / MR (round-2 exact)
 import { camTransformKeysAt } from './tracks.js';                      // cZt (round-2 exact)
-import { itemDuration } from './schema.js';
+import { itemDuration, packItems } from './schema.js';
 
 // ============================================================================
 // PART A — consts (verbatim from bundle; names in comments)
@@ -714,8 +714,8 @@ export class PlanStore {
   aspect() { return Am(this.a.page.recordAspect).aspect; }
   locked() { return !!this.a.page.playing; }                                                          // live: isPerformancePlaying || isRecording
   drawTarget() {
-    const e = this.a.objects.selectedIds, n = e.length === 1 ? e[0]?.kind ?? this.a.objects.get(e[0])?.kind : void 0;
-    const kind = e.length === 1 ? (this.a.objects.get(e[0])?.kind) : void 0;
+    const e = this.a.objects.selectedIds;
+    const kind = e.length === 1 ? this.a.objects.get(e[0])?.kind : void 0;
     return kind === "camera" || (Q0(kind) && kind !== "group" && kind !== "target") ? e[0] : null;
   }
   targetPerson() { const e = this.drawTarget(), n = e ? this.a.objects.get(e)?.kind : void 0; return el(n) ? n : null; }
@@ -860,12 +860,18 @@ export class PlanStore {
     this.a.markAutosave?.();
   }
   _replaceMove(id, startS, samples, opts) {                                                            // replaceMoveFromSamples over my facade
+    const show = this.a.show;
     const facade = {
       objects: this.a.objects.all(),
-      trackIdOf: e => this.a.show.trackOf(e)?.id ?? null,
-      addPerformanceTrack: e => this.a.show.ensureTrack(e)?.id ?? null,
-      moveSegmentOf: (trackId, s) => this.a.show.show.tracks.find(t => t.id === trackId)?.items.find(i => (i.kind === 'path' || i.kind === 'cam-path') && i.anchors?.length > 1) ?? null,
-      updateTrackItems: (trackId, fn) => { const tr = this.a.show.show.tracks.find(t => t.id === trackId); if (tr) { tr.items = fn(tr.items); this.a.show.changed(); } },
+      trackIdOf: e => show.trackOf(e)?.id ?? null,
+      addPerformanceTrack: e => show.ensureTrack(e)?.id ?? null,
+      // live moveSegmentOf: covering-time selection with first-item fallback (incl. anchors≤1 + play items)
+      moveSegmentOf: (trackId, s) => {
+        const tr = show.show.tracks.find(t => t.id === trackId); if (!tr) return null;
+        const cands = (tr.items ?? []).filter(o => o.kind === 'path' || o.kind === 'cam-path' || o.kind === 'play');
+        return cands.find(o => s >= o.startS && s < o.startS + itemDuration(o)) ?? cands[0] ?? null;
+      },
+      updateTrackItems: (trackId, fn) => this._updateTrackItems(trackId, fn),                          // packed (lje)
       an: () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2)),
     };
     return replaceMoveFromSamples(facade, id, startS, samples, opts);
@@ -913,6 +919,8 @@ export class PlanStore {
   }
   // ---- move / turn / commit (rDr machinery; camera pipeline via manipulator SZt) ----
   startPose(e) { const n = this.drag?.start, r = n?.get(e); if (r) return r; const s = this.shownOrStored(e); return s && n && n.set(e, s), s; }
+  _targetReferenced(e) { return this.a.objects.all()[e]?.kind === 'target' && Object.values(this.a.objects.all()).some(c => c.kind === 'camera' && c.targetId === e); } // Xu
+  warnOnce(msg) { if (this.drag?.warned) return; if (this.drag) this.drag.warned = true; this.a.toast?.(msg); }
   shownOrStored(e) { const n = this.a.objects.all(), r = n[e]; return r ? this.a.shownPose(e) ?? Zo(r, n) : null; }
   toLocal(e, n) {
     const r = this.a.objects.get(e), s = { position: n.position, rotation: n.rotation, scale: n.scale ?? r?.scale ?? [1, 1, 1] },
@@ -940,7 +948,7 @@ export class PlanStore {
   carryPaths(e, n, r) {
     if (this.a.objects.get(e)?.kind === "camera") {
       const a = this.a.show.trackOf(e)?.items ?? [], o = this.a.page.playheadS;
-      if (!this.driveMode(a, o, "translate")) return !1;                                               // _je: only path-position cameras carry
+      if (this.driveMode(a, o, "translate") !== "path-position") return !1;                            // _je: ONLY path-position cameras carry
     }
     const s = this.drag?.carried.get(e) ?? [0, 0];
     return this.shiftPaths(e, n - s[0], r - s[1]) ? (this.drag?.carried.set(e, [n, r]), !0) : !1;
@@ -954,22 +962,23 @@ export class PlanStore {
     if ((n.aim ?? 'travel') !== 'locked') return 'path-look';
     return null;
   }
-  shiftPaths(e, dx, dz) {                                                                              // shift the object's path anchors + transform keys
-    if (dx === 0 && dz === 0) return !1;
+  shiftPaths(e, dx, dz) {                                                                              // live shiftPaths: path/cam-path anchors ONLY (Eit), zero-delta → true, packed
+    if (dx === 0 && dz === 0) return !0;
     const tr = this.a.show.trackOf(e); if (!tr) return !1;
-    let touched = !1;
-    for (const it of tr.items) {
-      if ((it.kind === 'path' || it.kind === 'cam-path') && it.anchors?.length) {
-        it.anchors = it.anchors.map(a => ({ ...a, pos: [a.pos[0] + dx, a.pos[1], a.pos[2] + dz] })); touched = !0;
-      } else if ((it.kind === 'transform' || it.kind === 'cam-transform') && it.keys?.length) {
-        it.keys = it.keys.map(k => ({ ...k, position: k.position ? [k.position[0] + dx, k.position[1], k.position[2] + dz] : k.position })); touched = !0;
-      }
-    }
-    return touched && (this.a.show.changed(), !0);
+    const Eit = t => (t.kind === "path" || t.kind === "cam-path") && t.anchors?.length > 0;
+    if (!tr.items.some(Eit)) return !1;
+    this._updateTrackItems(tr.id, o => o.map(l => Eit(l)
+      ? { ...l, anchors: l.anchors.map(a => ({ ...a, pos: [a.pos[0] + dx, a.pos[1], a.pos[2] + dz] })) }
+      : l));
+    return !0;
+  }
+  _updateTrackItems(trackId, fn) {                                                                     // live updateTrackItems: mutate + lje pack
+    const tr = this.a.show.show.tracks.find(t => t.id === trackId);
+    if (tr) { tr.items = packItems(fn(tr.items)); this.a.show.changed(); }
   }
   turn(e, n) {                                                                                          // world-Y premultiply (rebase for cameras)
     const r = this.a.objects.get(e), s = this.startPose(e);
-    if (!r || !s) return;
+    if (!r || !s || (r.kind === "target" && this._targetReferenced(e))) return;                         // Xu: paired targets don't turn
     if (r.kind === "camera") { this.a.manipulator?.commitPlanCamera(e, { ...s, rotation: (() => {
       uL.setFromEuler(xb.set(...s.rotation, "XYZ")), qY.setFromAxisAngle(nDr, n - i9(s.rotation)), xb.setFromQuaternion(uL.premultiply(qY), "XYZ");
       return [xb.x, xb.y, xb.z];
@@ -977,6 +986,7 @@ export class PlanStore {
     uL.setFromEuler(xb.set(...s.rotation, "XYZ")), qY.setFromAxisAngle(nDr, n - i9(s.rotation)), xb.setFromQuaternion(uL.premultiply(qY), "XYZ");
     this.commitOne(e, { ...s, rotation: [xb.x, xb.y, xb.z] }, "rotate");
   }
+  dispose() { this.stopDrawing(); }
   commitOne(e, n, r) {
     const a = this.a.objects.get(e); if (!a) return;
     if (a.kind !== "camera" && a.kind !== "target") {                                                    // kZt free commit (local + GA)
@@ -1027,8 +1037,8 @@ export class PlanCanvas {
     this._wireEscape();
     app.onViewportMode = () => this._syncShown();
     if (app.page?.subscribe) app.page.subscribe(() => this._syncShown());
-    if (app.objects?.subscribe) app.objects.subscribe(() => { if (this.shown()) this._syncBar(); });
-    if (app.show?.subscribe) app.show.subscribe(() => { if (this.shown()) this._syncBar(); });
+    if (app.objects?.subscribe) app.objects.subscribe(() => { if (this.shown()) this._syncBar(true); });
+    if (app.show?.subscribe) app.show.subscribe(() => { if (this.shown()) this._syncBar(true); });
     this._onStrokeClock = this._onTip = null;
     store._onZoomPercent = v => { this._zoomPct = v; this._syncZoomBar(); };
     store._onStrokeClock = c => this._syncTimer(c);
@@ -1087,7 +1097,7 @@ export class PlanCanvas {
     }
     const je = this.store.zoomCommand;                                          // zoom −/fit/+ buttons
     if (je && je.seq !== this._lastZoomSeq) {
-      this._lastZoomSeq = je.seq, this._interacted = true;
+      this._lastZoomSeq = je.seq, this._interacted = true, this._centerEase = null;
       this.w = je.kind === "fit" ? OLr(this.w) : RLr(this.w, je.kind === "in" ? 1 : -1);
     }
     const ve = LLr(this.w);
@@ -1099,7 +1109,6 @@ export class PlanCanvas {
     this._edge = $Ir(this._items, oe);
     FDr(se, this._edge, this.palette);
     this._syncCamChip(oe, Ee);                                                  // camera label overlay (ZIr)
-    this._syncBar();
   }
 
   _syncCamChip(oe, Ee) {
@@ -1109,7 +1118,8 @@ export class PlanCanvas {
     this._camChip.hidden = !vis;
     if (vis) {
       this._camChip.textContent = Ae.label;
-      const Te = ZIr(Ae, oe, { widthPx: this._camChip.offsetWidth, heightPx: this._camChip.offsetHeight });
+      if (!this._chipW || this._chipLbl !== Ae.label) { this._chipLbl = Ae.label; this._chipW = this._camChip.offsetWidth; this._chipH = this._camChip.offsetHeight; }
+      const Te = ZIr(Ae, oe, { widthPx: this._chipW, heightPx: this._chipH });
       this._camChip.style.transform = `translate(${Te.x}px, ${Te.y}px)`;
     }
   }
@@ -1240,12 +1250,19 @@ export class PlanCanvas {
     const pg = b.querySelector('#pbPerson');
     pg.style.display = person && state !== 'drawing' ? '' : 'none';
     pg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', person === x.dataset.pk ? 'true' : 'false'));
-    // camera pills
+    // camera pills — hash ids+labels (P2: rename updates, no innerHTML when unchanged) + textContent (P2: no HTML injection)
     const pills = b.querySelector('#pbCamPills'), cams = st.cameraPills(), sel = this.app.objects.selectedIds;
-    if (this._camKeys !== cams.map(c => c.id).join(',')) {
-      this._camKeys = cams.map(c => c.id).join(',');
-      pills.innerHTML = cams.map(c => `<button type="button" data-cam="${c.id}" title="${c.label}"><i></i>${c.label}</button>`).join('');
-      pills.querySelectorAll('button').forEach(x => x.onclick = () => this.store.goToCamera(x.dataset.cam));
+    const hash = cams.map(c => c.id + '|' + c.label).join(',');
+    if (this._camKeys !== hash) {
+      this._camKeys = hash;
+      pills.textContent = '';
+      for (const c of cams) {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.dataset.cam = c.id; btn.title = c.label;
+        const dot = document.createElement('i'); btn.appendChild(dot); btn.appendChild(document.createTextNode(c.label));
+        btn.onclick = () => this.store.goToCamera(c.id);
+        pills.appendChild(btn);
+      }
     }
     pills.querySelectorAll('button').forEach(x => x.classList.toggle('on', sel.length === 1 && sel[0] === x.dataset.cam));
     this._syncZoomBar();

@@ -321,13 +321,12 @@ const PALETTE = { background: '#1a1e28', grid: 'rgba(255,255,255,.05)', gridMajo
     const obj = { kind, position: [0, 1, 0], rotation: [0, 0, 0], scale: [1, 1, 1], ...(kind === 'prop' ? { propKey: 'x' } : {}), ...(kind === 'camera' ? { focalLengthMm: 35 } : {}) };
     const old = existing ? { id: 'old-move', kind: kind === 'camera' ? 'cam-path' : 'path', startS: 0, anchors: [{ pos: [0, 1, 0] }, { pos: [1, 1, 1] }], speedUnitsPerS: 1, focalLengthMm: 50 } : null;
     // ref: bind the verbatim method
-    const { facade: fr, tracks: tr } = mkFacade(old); fr.objects = { subj: obj }; if (old) { const t = fr.addPerformanceTrack('subj'); fr.updateTrackItems(t, items => [old, ...items]); }
-    const rFn = R.replaceMoveFromSamples ?? null;
-    let r = null;
-    if (rFn) r = rFn.call({ objects: { peek: () => fr.objects }, trackIdOf: fr.trackIdOf, addPerformanceTrack: fr.addPerformanceTrack, moveSegmentOf: fr.moveSegmentOf, updateTrackItems: fr.updateTrackItems, an: fr.an }, 'subj', 0, samples, { focusId: focus, steady });
-    else r = R.replaceMoveFromSamples ? null : null;
+    const { facade: fr, tracks: tr } = mkFacade(old); fr.objects = { subj: obj, fig1: { kind: 'simple_figure', position: [1, 0, 2], rotation: [0, 0, 0], scale: [1, 1, 1] } }; if (old) { const t = fr.addPerformanceTrack('subj'); fr.updateTrackItems(t, items => [old, ...items]); }
+    const rFn = R.replaceMoveFromSamples;
+    if (typeof rFn !== 'function') { FAIL++; FAILS.push('T8 FATAL: reference replaceMoveFromSamples not exported — oracle cannot run'); continue; }
+    const r = rFn.call({ objects: { peek: () => fr.objects }, trackIdOf: fr.trackIdOf, addPerformanceTrack: fr.addPerformanceTrack, moveSegmentOf: fr.moveSegmentOf, updateTrackItems: fr.updateTrackItems, an: fr.an }, 'subj', 0, samples, { focusId: focus, steady });
     // port
-    const { facade: fp, tracks: tp } = mkFacade(old); fp.objects = { subj: obj }; if (old) { const t = fp.addPerformanceTrack('subj'); fp.updateTrackItems(t, items => [old, ...items]); }
+    const { facade: fp, tracks: tp } = mkFacade(old); fp.objects = { subj: obj, fig1: { kind: 'simple_figure', position: [1, 0, 2], rotation: [0, 0, 0], scale: [1, 1, 1] } }; if (old) { const t = fp.addPerformanceTrack('subj'); fp.updateTrackItems(t, items => [old, ...items]); }
     const p = P.replaceMoveFromSamples(fp, 'subj', 0, samples, { focusId: focus, steady });
     const strip = x => JSON.parse(JSON.stringify(x, (k, v) => k === 'id' ? undefined : v));
     eq(strip(r ? [p, tp] : [p, tp]) !== null && r !== null ? [strip(p), strip(tp)] : [p, strip(tp)], r !== null ? [strip(r), strip(tr)] : [p ?? false, strip(tp)], `T8 replace ${kind} steady=${steady} focus=${focus} existing=${existing}`);

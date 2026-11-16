@@ -267,10 +267,11 @@ export class App {
     if (kind === 'simple_figure') out.headRotation = getHeadRotation(mesh);
     return out;
   }
-  pickPersonKind(id, kind) {   // live pickPersonKind — mesh rebuilds via syncOne kind check
+  pickPersonKind(id, kind) {   // live pickPersonKind — gesture-bracketed (undoable), mesh rebuilds via syncOne
     if (this.objects.get(id)?.kind === kind) return;
-    this.objects.update(id, { kind });
-    this.objects.changed();
+    this.show.beginEditGesture();
+    try { this.objects.update(id, { kind }); }                    // update() already fires changed()
+    finally { this.show.endEditGesture(); }
   }
   tickDrawPreview() {  // z port: pose the mesh to the stroke preview ghost; restore on end
     const d = this._drawPreview;
@@ -278,16 +279,22 @@ export class App {
       const m = this.meshById.get(d.id);
       if (m) {
         this._drawPreviewId = d.id;
-        m.position.set(...d.position);
+        // world pose → mesh-local (parent-aware, live Hie)
+        if (m.parent && m.parent !== this.scene) {
+          const v = new THREE.Vector3(...d.position);
+          m.parent.worldToLocal(v);
+          m.position.copy(v);
+        } else m.position.set(...d.position);
         m.rotation.set(...d.rotation);
         if (d.look && m.userData.figure) m.userData.figure.head.rotation.set(0, d.look.headYawRad, d.look.headPitchRad);
       }
     } else if (this._drawPreviewId) {
       const id = this._drawPreviewId; this._drawPreviewId = null;
       const obj = this.objects.get(id); const m = this.meshById.get(id);
-      if (obj && m) {  // restore stored pose
+      if (obj && m) {  // restore stored pose (+ head)
         m.position.set(...(obj.position ?? [0, 0, 0]));
         m.rotation.set(...(obj.rotation ?? [0, 0, 0]));
+        if (m.userData.figure?.head) m.userData.figure.head.rotation.set(...(obj.headRotation ?? [0, 0, 0]));
       }
     }
   }

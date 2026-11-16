@@ -8,7 +8,7 @@ D = '/home/z/my-project/flick-3dEditor/analysis/tmp_plan_exact'
 FNS = """Am Z_ tDe ybe GA Bzt xU E2r mT nx MR Q0 yd Zo el fie Rhe TDe rGt X8r i9 FU Dst dqt Rie uqt hqt UIr pqt iu S1 UDe fqt zIr zDe mqt ZIr aMr aqt hL rit
 lZt _Dr kDr TDr q5 $Zt cBe dBe EDr VZt jDr IDr MDr NDr PDr RDr FDr ADr CDr SDr $Ir
 PZt xLr Qhe Xat wLr _Lr kLr ELr jLr ILr MLr NLr PLr RLr FLr OLr LLr FZt OZt LZt DLr DZt HLr BLr $Lr
-Ait xHr wHr vHr""".split()
+Ait xHr wHr vHr replaceMoveFromSamples""".split()
 
 CONSTS = """consts_aspects consts_figbody consts_labelpos consts_edgeind consts_state consts_drag consts_stroke consts_wheel consts_hit consts_K2r consts_speeds consts_gait consts_curve consts_spotlight consts_palette consts_YZt consts_oit consts_planview consts_painter consts_CZt""".split()
 
@@ -30,6 +30,7 @@ const zh = {};                             // prop catalog (dims lookup — Dst 
 export const setZh = c => { Object.assign(zh, c); };
 const tye = new qn(), wat = new qn(), Vj = new va();           // cZt scratch
 const Z8r = new Ge(), K8r = new va();                         // TDe scratch (bundle @4906713)
+let _an = 0; const an = () => 'ref-id-' + (++_an);             // bundle id generator (free identifier in replaceMoveFromSamples)
 const CP = t => new $r().compose(new Ge(...(t.position ?? [0, 0, 0])), new qn().setFromEuler(new va(...(t.rotation ?? [0, 0, 0]))), new Ge(...(t.scale ?? [1, 1, 1])));
 const wDe = m => { const p = new Ge(), q = new qn(), s = new Ge(); m.decompose(p, q, s); const e = new va().setFromQuaternion(q, 'XYZ'); return { position: [p.x, p.y, p.z], rotation: [e.x, e.y, e.z], scale: [s.x, s.y, s.z] }; };
 function VWt(t, e) { return wDe(CP(t).multiply(CP(e))); }     // bundle @4901413
@@ -42,7 +43,14 @@ for name in CONSTS + FNS:
     if not os.path.exists(f):
         skipped.append(name); continue
     body = [l for l in open(f).read().split('\n') if not l.startswith('//') and l.strip()]
-    parts.append('\n// ==== %s ====\n%s' % (name, '\n'.join(body)))
+    text = '\n'.join(body)
+    if text.startswith(name + '='):
+        head = name + '=(e,n,r,s)=>'
+        if text.startswith(head):
+            text = 'const ' + name + ' = function(e,n,r,s)' + text[len(head):]   # arrow→function so .call(facade) binds `this`
+        else:
+            text = 'const ' + text
+    parts.append('\n// ==== %s ====\n%s' % (name, text))
 
 exports = ',\n  '.join(FNS + ['VWt', 'pie', 'XCe', 'Mtt', 'Lzt'])
 parts.append(f"""

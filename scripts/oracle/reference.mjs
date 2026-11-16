@@ -16,6 +16,7 @@ const zh = {};                             // prop catalog (dims lookup — Dst 
 export const setZh = c => { Object.assign(zh, c); };
 const tye = new qn(), wat = new qn(), Vj = new va();           // cZt scratch
 const Z8r = new Ge(), K8r = new va();                         // TDe scratch (bundle @4906713)
+let _an = 0; const an = () => 'ref-id-' + (++_an);             // bundle id generator (free identifier in replaceMoveFromSamples)
 const CP = t => new $r().compose(new Ge(...(t.position ?? [0, 0, 0])), new qn().setFromEuler(new va(...(t.rotation ?? [0, 0, 0]))), new Ge(...(t.scale ?? [1, 1, 1])));
 const wDe = m => { const p = new Ge(), q = new qn(), s = new Ge(); m.decompose(p, q, s); const e = new va().setFromQuaternion(q, 'XYZ'); return { position: [p.x, p.y, p.z], rotation: [e.x, e.y, e.z], scale: [s.x, s.y, s.z] }; };
 function VWt(t, e) { return wDe(CP(t).multiply(CP(e))); }     // bundle @4901413
@@ -243,6 +244,8 @@ function xHr(t){const e=[];let n=0;for(let r=1;r<=t.length;r++){const s=t[r];s&&
 function wHr(t,e){const n=new Set([0,t.length-1]);for(const[o,l]of e)for(let c=o;c<=l;c++)n.add(c);const r=t[0].t;let s=0,a=t.map(o=>(s=Math.max(s,o.t-r),{x:o.x,z:o.z,t:s}));for(let o=0;o<2;o++)a=a.map((l,c)=>n.has(c)?l:{x:(a[c-1].x+l.x*2+a[c+1].x)/4,z:(a[c-1].z+l.z*2+a[c+1].z)/4,t:l.t});return a}
 // ==== vHr ====
 function vHr(t){if(t.length<3||Ait(t).at(-1)<fHr)return null;const e=xHr(t),n=wHr(t,e),r=Ait(n),s=n.length-1,a=r[s],o=n[s].t;if(!(a>0)||!(o>0))return null;const l=n.map(b=>b.t),c=[0,...e.flat(),s];for(let b=0;b<c.length-1;b+=2){const y=c[b],v=c[b+1],x=r[v]-r[y],w=l[v]-l[y];for(let k=y+1;k<v;k++){const S=l[y]+(r[k]-r[y])/x*w,T=n[k].t;l[k]=Math.max(l[k-1],T+(S-T)*mHr)}}const d=Math.max(K2r,Math.ceil(o/bHr)+1),u=[];let h=1;for(let b=0;b<d;b++){const y=b/(d-1)*o;for(;h<s&&l[h]<y;)h++;const v=l[h-1],x=l[h],w=x>v?Math.min(1,Math.max(0,(y-v)/(x-v))):1,k=r[h-1]+(r[h]-r[h-1])*w,S=Math.round(k/a*Tit)/Tit;u.push(Math.max(u[b-1]??0,S))}u[0]=0,u[d-1]=1;const f=[[n[0].x,n[0].z]],m=(b,y)=>Math.hypot(b.x-y[0],b.z-y[1])>=yHr;for(let b=1;b<s;b++){const y=n[b];m(y,f.at(-1))&&f.push([y.x,y.z])}const g=n[s];return f.length>1&&!m(g,f.at(-1))&&f.pop(),f.push([g.x,g.z]),{points:f,pace:u,durationS:o}}
+// ==== replaceMoveFromSamples ====
+const replaceMoveFromSamples = function(e,n,r,s){const a=this.objects.peek(),o=a[e],l=o?.kind==="camera";if(!o||!(l||Q0(o.kind)))return!1;const c=vHr(r);if(!c)return!1;const d=this.trackIdOf(e)??this.addPerformanceTrack(e);if(!d)return!1;const u=Zo(o,a).position[1],h=mT(c.points.map(([v,x])=>[v,u,x])),f=s?.steady?l?YZt:Htt:Math.max(Qae,MR(nx(h))/c.durationS),m=this.moveSegmentOf(d,n),g=s?.focusId&&s.focusId!==e&&a[s.focusId]?s.focusId:null,b={id:an(),startS:Math.max(0,n),anchors:h,speedUnitsPerS:f,...s?.steady?{}:{pace:c.pace}},y=l?{...b,kind:"cam-path",aim:g?"subject":"locked",subjectId:g,...m&&"focalLengthMm"in m&&m.focalLengthMm!==void 0?{focalLengthMm:m.focalLengthMm}:{}}:{...b,kind:"path",...o.kind==="humanoid"?{gait:JCe}:{},...el(o.kind)?g?{aim:"subject",subjectId:g}:{}:{aim:"locked"}};return this.updateTrackItems(d,v=>[y,...v.filter(x=>x.id!==m?.id)]),!0};
 export {
   Am,
   Z_,
@@ -335,6 +338,7 @@ export {
   xHr,
   wHr,
   vHr,
+  replaceMoveFromSamples,
   VWt,
   pie,
   XCe,

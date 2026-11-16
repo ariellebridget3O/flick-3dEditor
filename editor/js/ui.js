@@ -220,17 +220,23 @@ function buildScenesPopover(app) {
 
   el.addEventListener('click', e => e.stopPropagation());
   el.querySelector('#spNew').onclick = async () => {
-    app.objects.setObjects({});
-    app.show.setShow({ name: 'Show', tracks: [] });
+    // gesture-bracketed so the previous scene is recoverable via ⌘Z (setShow clears undo otherwise)
+    app.show.beginEditGesture();
+    try {
+      app.objects.setObjects({});
+      app.show.show = { name: 'Show', tracks: [] };
+      app.show.changed();
+    } finally { app.show.endEditGesture(); }
     app.light = normalizeLight(null);
     app.page.recordAspect = '16:9';
+    app.page.playheadS = 0; app.page.playing = false; app.page.changed();
     app._syncObjects(); app.shadowFit.force(); app.fogNearFar.fitNow();
     app._restEval = false; app._restSeekPending = false;
     app._seenSeekEpoch = app.page.seekEpoch ?? 0;
     app.playbackClips = new Map();
     $('sceneName').value = 'Scene';
     el.classList.remove('open');
-    app.toast('New empty scene');
+    app.toast('New empty scene (⌘Z to undo)');
   };
   el.querySelector('#spFile').onclick = () => {
     el.classList.remove('open');
