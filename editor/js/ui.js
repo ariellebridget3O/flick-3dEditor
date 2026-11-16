@@ -1255,6 +1255,27 @@ function buildViewportOverlays(app) {
   const lassoBox = document.getElementById('lassoBox');
   const pad = document.getElementById('navBallPad');
   lassoBtn.onclick = () => app.page.toggleLasso();
+  // round 6 B6: snap toggle + B5 shade switch
+  const snapBtn = document.getElementById('btnSnap');
+  if (snapBtn) {
+    snapBtn.classList.toggle('on', !!app.snapOn);
+    snapBtn.setAttribute('aria-pressed', String(!!app.snapOn));
+    snapBtn.onclick = () => {
+      app.setSnapOn(!app.snapOn);
+      snapBtn.classList.toggle('on', !!app.snapOn);
+      snapBtn.setAttribute('aria-pressed', String(!!app.snapOn));
+    };
+  }
+  const shade = document.getElementById('shadeSwitch');
+  if (shade) {
+    const sync = () => [...shade.children].forEach(b => b.classList.toggle('on', b.dataset.sm === app.renderMode));
+    sync();
+    shade.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      app.setRenderMode(b.dataset.sm);
+      sync();
+    });
+  }
   app.page.subscribe(() => {
     const inEdit = app.page.mode === 'edit' && app.page.stageView !== 'cameras' && !app.page.playing;
     pad.style.display = inEdit ? '' : 'none';           // live mounts the pad only in edit view

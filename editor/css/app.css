@@ -75,6 +75,14 @@ button.small { padding: 2px 8px; font-size: 12px; }
 .hier-toggle { border: none; background: none; color: var(--text-dim); padding: 0 4px 0 0; font-size: 9px; cursor: pointer; }
 .hier-toggle:hover { color: var(--text); }
 .hier-row.hidden-child { display: none; }
+/* round 6 B5+B6: shade switch + snap button */
+.shade-switch { position: absolute; z-index: 5; left: 10px; bottom: 44px; display: flex; background: color-mix(in srgb, var(--hud) 72%, transparent); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 2px; gap: 1px; backdrop-filter: blur(10px); }
+.shade-switch button { border: none; background: transparent; color: var(--text-dim); padding: 3px 10px; border-radius: 6px; font-size: 11px; }
+.shade-switch button.on { background: rgba(255,255,255,.1); color: var(--text); }
+#btnSnap { color: var(--text-dim); }
+#btnSnap.on { color: var(--text); background: rgba(255,255,255,.1); }
+#btnSnap svg { width: 15px; height: 15px; display: block; }
+
 /* edit toolbar */
 .edit-toolbar {
   position: absolute; z-index: 5; display: flex; gap: 1px;

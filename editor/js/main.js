@@ -19,6 +19,7 @@ import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation } 
 import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
 import { tickGizmoHover } from './gizmo.js';
+import { createGroundGrid, syncSnap, applyRenderMode } from './viewport-modes.js';
 import { buildUI } from './ui.js';
 import {
   patchSoftTerminator, createFinishComposer, finishCapable,
@@ -88,6 +89,17 @@ export class App {
 
     // ---- environment (Dqr/wOr) ----
     this.env = createEnvironment(this.scene, { renderer: this.renderer, getMeshById: () => this.objectManager.meshById });
+    // round 6 B5/B6: ground grid + shade mode + snap state
+    this.groundGrid = createGroundGrid(this.scene);
+    this.renderMode = localStorage.getItem('stage-shademode') || 'shaded';
+    this.snapOn = localStorage.getItem('stage-snap') === '1';
+    this.groundGrid.visible = this.snapOn;
+    this.setRenderMode = mode => {
+      this.renderMode = mode; localStorage.setItem('stage-shademode', mode);
+      applyRenderMode(this.scene, this.env.floor, mode);
+    };
+    this.setSnapOn = v => { this.snapOn = v; localStorage.setItem('stage-snap', v ? '1' : '0'); this.groundGrid.visible = v; };
+    if (this.renderMode !== 'shaded') this.setRenderMode(this.renderMode);
     this.light = normalizeLight(null);
 
     // ---- orbit controls ----
@@ -706,6 +718,9 @@ export class App {
     // 11. selection bounds (toolbar anchor) LAST — pad removed, bounds only
     this.selection.tick(this.objects.selectedIds, this.meshByIdProxy, this.camera);
     tickGizmoHover(this.manipulator?.transform);   // round 6: amber hover on the custom gizmo meshes
+    // round 6 B6: snap (Shift = momentary inverse) + B5 walker (new meshes inherit flat/wire)
+    syncSnap(this.manipulator?.transform, this.snapOn, !!this._keys?.has?.('shift'));
+    if (this.renderMode !== 'shaded') applyRenderMode(this.scene, this.env.floor, this.renderMode);
     this.hover.tick(this.hoverPoint, this.hoverNormal, this.camera, this.container.clientHeight, dt * 1000,
       !this.page.playing && !this.manipulator?.dragging);
 
