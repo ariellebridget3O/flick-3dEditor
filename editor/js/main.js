@@ -718,6 +718,12 @@ export class App {
         this._lensSave = null;
       }
       // still inside cameras view but no pose (deselection): freeze the last lens frame (review P3-11)
+      // lens content hiding (pixel-oracle R9): the adopted camera's own mesh must NOT be
+      // rendered — the lens camera sits inside it (we were shooting the inside of the lens
+      // model). Same for the 3D name labels (live cameras view shows none). Re-adopt safe.
+      this._lensHideRestore?.();
+      this._lensHideRestore = null;
+      this._lensObjId = null;
       return;
     }
     if (!this._lensActive) {
@@ -727,6 +733,25 @@ export class App {
         quaternion: this.camera.quaternion.clone(),
         target: this.orbit ? this.orbit.target.clone() : null,
       };
+    }
+    if (this._lensObjId !== id) {
+      // hide (or re-hide for a newly adopted camera): mesh subtree (incl. its frustum child)
+      // + every name-label sprite. Restored on deactivate / re-adopt.
+      this._lensHideRestore?.();
+      const hidden = [];
+      if (mesh.visible) { mesh.visible = false; hidden.push([mesh, true]); }
+      for (const sprite of this.objectManager.labels.values()) {
+        if (sprite.visible) { sprite.visible = false; hidden.push([sprite, true]); }
+      }
+      this._lensHideRestore = () => { for (const [o, v] of hidden) { o.visible = v; } };
+      this._lensObjId = id;
+      // pixel-oracle R9: the feed renders at the camera's EVALUATED lens fov (live measured
+      // 31.32° = Z_(35mm, 16/9)) — not the editor fov (was 50: figure 1.66× too small in frame)
+      const fov = pose.fovDeg ?? C.EDITOR_FOV;
+      if (this.camera.fov !== fov) {
+        this.camera.fov = fov;
+        this.camera.updateProjectionMatrix();
+      }
     }
     this.camera.position.copy(pose.position);
     this.camera.quaternion.copy(pose.quaternion);
@@ -738,6 +763,10 @@ export class App {
     const layout = this.layout();
     const resolvers = this.resolvers();
     const activeByCam = new Map();   // cameraId → { targetPos } (framesMarkerNow ≈ xq)
+    // pixel-oracle R9: the eval aspect is the RECORD aspect (live feed renders at the record
+    // aspect — verified: lens fov measured 31.32° = Z_(35, 16/9) with recordAspect 16:9)
+    const [rwa, rha] = C.ASPECTS[this.page.recordAspect] ?? C.ASPECTS['16:9'];
+    const recordAspect = rwa / rha;
     for (const track of layout.tracks) {
       const obj = this.objects.get(track.characterId);
       if (!obj || obj.kind !== 'camera') continue;
@@ -751,7 +780,7 @@ export class App {
       const any = evalCameraObject({
         base: { position: obj.position ?? [0, 0, 0], rotation: obj.rotation ?? [0, 0, 0], focalLengthMm: obj.focalLengthMm ?? C.FOCAL_DEFAULT },
         out, items: track.items.map(u => u.item), timeS: this.page.playheadS,
-        aspect: 16 / 9, resolvers, cameraId: track.characterId,
+        aspect: recordAspect, resolvers, cameraId: track.characterId,
       });
       // drive marker: while item active, show aim pose (position + quaternion) on the wrapper
       mesh.userData.evalPose = any ? out : null;
