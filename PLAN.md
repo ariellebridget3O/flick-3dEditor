@@ -71,6 +71,22 @@ User verdict: "the editing ux flow is largely broken along esp. anything animati
 - Plan canvas: `stage-plan` canvas @5502648; painter SDr @~5500400; items() §22 (Dst footprints, wedge, pool); §32 painter order; viewportMode 3d↔plan @5786130; EDITOR_UX.md §7 is the distilled spec
 - DOM_REFERENCE.md = rendered-DOM ground truth for switches, menus, inspector chrome
 
+## Round 7 (2026-11-16) — COMPLETE (exact-port round + upstream scene format)
+User directives: (1) 2D plan canvas = exact port from the original JS, oracle-validated across all flows; (2) support loading the custom scene format from the upstream parent repo flick-3dstage (latest 8 scene assets + reference viewer); (3) skybox research — durable roadmap entry, lowest priority.
+
+### Done this round
+- [x] R7-1 plan canvas EXACT PORT (commits 8916982 + a651073): 162-fn verbatim extraction (analysis/tmp_plan_exact/ + MAP.md 120-row DIFF TABLE); plan.js rewritten function-level (all 14 divergences + ~20 missing features fixed — see FIDELITY round-7); oracle harness scripts/oracle/ 485/485 NON-vacuous (reference = verbatim bundle fns; T8 initially vacuous — caught by review, now real); oracle caught Z_ portrait clamp + $Ir ray-clamp pre-ship
+- [x] R7-2 upstream scene format (88110ef): all 9 data/exports scenes + e2e_scene_full load lossless (r7_scene_check.mjs); Scenes… popover library + New-empty (undoable) + drag-drop; E2E on Living Room/Bamboo Garden/Scene 1/Timber
+- [x] R7-3 skybox research → analysis/R7_SKYBOX_RESEARCH.md (371 lines; license-verified sources + P1-P3 integration design)
+- [x] Review round: SHIP WITH FIXES → all 15 findings (1 vacuous-test P1, 5 seam P1s, 5 P2s, 4 P3s) fixed + E2E re-verified (a651073)
+
+### Skybox / realistic sky roadmap (R7-3 — durable, user-mandated LOWEST priority; full detail in analysis/R7_SKYBOX_RESEARCH.md)
+Goal: layered programmatic clouds + PBR materials reacting to the lighting setup (geo sun az/el, weather, fog) — UE5-class realism, three.js r182 WebGL.
+- [ ] P1 Dynamic atmosphere + night: port sebh/UnrealEngineSkyAtmosphere (MIT — Hillaire's own EGSR-2020 reference, the actual UE5 Sky Atmosphere technique) or @takram/three-atmosphere GLSL as a dome (env.js sky already uses the clip.xyww far-plane trick — the seam is ready); couple uniforms: sunDirection ← sunDirection(light), turbidity/rayleigh/mie ← WEATHER table, altitude → Rayleigh scale, night → stars/moon; PMREM-from-sky IBL (ocean-example pattern, throttled); keep the classic flick DAYLIGHT_STOPS look as skyStyle:'classic' (byte-identical default)
+- [ ] P2 Programmatic cloud layers (3 altitudes: cirrus/cumulus/overcast) driven per weather state (coverage/density/altitude params; runtime fbm/Worley bake per layer — CK42BB/procedural-clouds-threejs MIT cookbook has volumetric/billboard/mesh paths); react to sun position/color (normal-map-style lighting on billboards, cloud shadows optional)
+- [ ] P3 Volumetric raymarch (UE5 Volumetric Cloud class — reference only via the EULA-covered mirror shaders readable at repalash/Open-Shaders; LICENSE-SAFE implementation via @takram/three-clouds techniques: Beer shadow maps, temporal upscaling): half-res depth-aware pass reusing the finish composer's depth texture; auto-gated by the existing ≤11ms measure harness; NOT from the UE5 repo directly (404s anonymous; EULA not shippable)
+- Traps documented in the research doc: three-volumetric-clouds (no license), xiaxiangfeng/sky-cloud-3d (non-commercial), Shadertoy CC BY-NC-SA default, SkyMesh is WebGPU/TSL-only (use Sky addon for WebGLRenderer)
+
 ## Round 5 backlog (ranked — from ROUND5_GAP_MATRIX.md Top-20)
 - [ ] P1 Actions palette (M5r: Move/Animate/Camera tabs, 46 clip tiles w/ live previews, search, drag-to-add — the live's core add-UX)
 - [ ] P1 Cam-path height-curve editor (bundle @5466360: curve w/ draggable points + scrub; eval already ported, UI missing)
