@@ -5,7 +5,7 @@ import { OrbitControls } from './vendor/controls/OrbitControls.js';
 import { TransformControls } from './vendor/controls/TransformControls.js';
 import { GLTFLoader } from './vendor/loaders/GLTFLoader.js';
 import { C, CLIPS } from './const.js';
-import { createEnvironment, createFogNearFar, createShadowFit, normalizeLight, sunDirection } from './env.js';
+import { createEnvironment, createFogNearFar, createShadowFit, normalizeLight, sunDirection, geoToSceneLight } from './env.js';
 import { ObjectManager } from './objects.js';
 import { SelectionTracker, HoverDisc } from './selection.js';
 import { ObjectStore, ShowStore, PageStore } from './store.js';
@@ -101,6 +101,24 @@ export class App {
     this.setSnapOn = v => { this.snapOn = v; localStorage.setItem('stage-snap', v ? '1' : '0'); this.groundGrid.visible = v; };
     if (this.renderMode !== 'shaded') this.setRenderMode(this.renderMode);
     this.light = normalizeLight(null);
+    // round 6 (D): light mutators — every write is one undo gesture at the UI layer.
+    // geo edits (re)enter geographic mode; a knob/drag/preset edit enters custom mode.
+    this.setLightGeo = (patch, opts = {}) => {
+      const geo = { ...this.light.geo, ...patch };
+      const next = geoToSceneLight(geo, this.light);
+      delete next._rawElevation;
+      this.light = { ...this.light, ...next, geo, mode: 'geographic', _rawElevation: next.elevationDeg };
+      if (opts.silent !== true) { this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); }
+      return this.light;
+    };
+    this.setLightCustom = (azimuthDeg, elevationDeg) => {
+      this.light = { ...this.light, mode: 'custom', azimuthDeg: ((azimuthDeg % 360) + 360) % 360, elevationDeg: Math.min(90, Math.max(-30, elevationDeg)) };
+      this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.();
+    };
+    this.setWeather = weather => { if (!C.WEATHER[weather]) return; this.light = { ...this.light, weather }; this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); };
+    this.setIndoor = indoor => { this.light = { ...this.light, indoor: !!indoor }; this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); };
+    this.setAmbient = v => { this.light = { ...this.light, ambientLevel: Math.min(1, Math.max(0, v)) }; this.env.applyDaylight(this.light); this.markAutosave?.(); };
+    this.recomputeGeoLight = () => this.setLightGeo({});
 
     // ---- orbit controls ----
     this.orbit = new OrbitControls(this.camera, this.renderer.domElement);
@@ -113,7 +131,7 @@ export class App {
     this.orbit.addEventListener('start', () => { this.orbited = true; });
 
     // ---- fog/near-far + shadow fit ----
-    this.fogNearFar = createFogNearFar({ getMeshes: () => this.objectManager.meshById.values(), camera: this.camera, scene: this.scene, renderer: this.renderer });
+    this.fogNearFar = createFogNearFar({ getMeshes: () => this.objectManager.meshById.values(), camera: this.camera, scene: this.scene, renderer: this.renderer, getLight: () => this.light });
     this.shadowFit = createShadowFit({
       sun: this.env.sun, applyDaylight: this.env.applyDaylight,
       getLight: () => this.light,
@@ -236,7 +254,7 @@ export class App {
   }
   currentSceneJSON() {
     return saveScene({
-      v: 10,
+      v: C.SCHEMA_V,
       objects: this.objects.all(),
       show: this.show.show,
       recordAspect: this.page.recordAspect,

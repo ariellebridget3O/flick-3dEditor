@@ -177,13 +177,29 @@ function normItems(t) { // b6r
   return { ...t, show: { ...t.show, tracks } };
 }
 
-function normLight(t) { // g6r/N8r/SDe
+function normLight(t) { // g6r/N8r/SDe — round 6: geo/weather/indoor/ambient/mode passthrough (audit P0-3)
   const l = t.light;
   if (!l || typeof l !== 'object' || !Number.isFinite(l.azimuthDeg) || !Number.isFinite(l.elevationDeg)) {
     const out = { ...t }; delete out.light; return out;
   }
   const n = { azimuthDeg: ((l.azimuthDeg % 360) + 360) % 360, elevationDeg: Math.min(C.ELEV_MAX, Math.max(C.ELEV_MIN, l.elevationDeg)) };
   if (l.nightLights === false) n.nightLights = false;
+  // round 6 D — extended fields (clamped; unknown → dropped)
+  if (l.mode === 'geographic' || l.mode === 'custom') n.mode = l.mode;
+  else n.mode = 'custom';                       // audit P0-3: migrated scenes keep their az/el
+  if (l.weather && C.WEATHER[l.weather]) n.weather = l.weather;
+  if (typeof l.indoor === 'boolean') n.indoor = l.indoor;
+  if (Number.isFinite(l.ambientLevel)) n.ambientLevel = Math.min(1, Math.max(0, l.ambientLevel));
+  const g = l.geo;
+  if (g && typeof g === 'object') {
+    const geo = {};
+    if (Number.isFinite(g.timeOfDay)) geo.timeOfDay = Math.min(24, Math.max(0, g.timeOfDay));
+    if (Number.isFinite(g.dayOfYear)) geo.dayOfYear = Math.min(365, Math.max(1, g.dayOfYear));
+    if (Number.isFinite(g.latitudeDeg)) geo.latitudeDeg = Math.min(90, Math.max(-90, g.latitudeDeg));
+    if (Number.isFinite(g.altitudeM)) geo.altitudeM = Math.min(4000, Math.max(0, g.altitudeM));
+    if (Number.isFinite(g.northOffsetDeg)) geo.northOffsetDeg = ((g.northOffsetDeg % 360) + 360) % 360 > 180 ? ((g.northOffsetDeg % 360) + 360) % 360 - 360 : ((g.northOffsetDeg % 360) + 360) % 360;
+    if (Object.keys(geo).length) n.geo = geo;
+  }
   return { ...t, light: n };
 }
 
@@ -213,7 +229,7 @@ export function loadScene(input, propCatalog = {}) {
   if (t && t.scene && t.scene.v !== undefined) t = t.scene;
   if (!t || typeof t !== 'object') return null;
   try {
-    if (t.v === 10) return normalizeScene(deepCopy(t), propCatalog);
+    if (t.v === 11) return normalizeScene(deepCopy(t), propCatalog);
     let n = deepCopy(t);
     if (n.v === 1) { if (!n.performances) return null; n = v1to2(n); }
     if (n.v === 2) n = { ...n, v: 3, show: v2to3(n.show) };
@@ -224,7 +240,8 @@ export function loadScene(input, propCatalog = {}) {
     if (n.v === 7) n = v7to8(n);
     if (n.v === 8) n = { ...n, v: 9 };
     if (n.v === 9) n = { ...n, v: 10 };
-    return n.v === 10 ? normalizeScene(n, propCatalog) : null;
+    if (n.v === 10) n = v10to11(n);
+    return n.v === 11 ? normalizeScene(n, propCatalog) : null;
   } catch (e) {
     console.error('Stage: scene migration failed, refusing the row', e);
     return null;
@@ -232,6 +249,21 @@ export function loadScene(input, propCatalog = {}) {
 }
 
 function deepCopy(t) { return JSON.parse(JSON.stringify(t)); }
+
+// round 6 (D): v10→v11 — light gains mode/geo/weather/indoor/ambient. Existing az/el are
+// PRESERVED via mode:'custom' (audit P0-3: geographic would re-light every existing scene).
+function v10to11(n) {
+  n = { ...n, v: 11 };
+  if (n.light && typeof n.light === 'object') {
+    n.light = { ...n.light, mode: n.light.mode === 'geographic' ? 'geographic' : 'custom' };
+    if (!n.light.weather || !C.WEATHER[n.light.weather]) n.light = { ...n.light, weather: 'clear' };
+    if (typeof n.light.indoor !== 'boolean') n.light = { ...n.light, indoor: false };
+    if (!Number.isFinite(n.light.ambientLevel)) n.light = { ...n.light, ambientLevel: 0.35 };
+    if (!n.light.geo) n.light = { ...n.light, geo: { ...C.LIGHT_GEO_DEFAULTS } };
+    else n.light = { ...n.light, geo: { ...C.LIGHT_GEO_DEFAULTS, ...n.light.geo } };
+  }
+  return n;
+}
 
 // ---- save: strip undefined + pack items (lje sequential bumping) ----
 export function saveScene(scene) {

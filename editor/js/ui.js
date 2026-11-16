@@ -3,7 +3,7 @@
 // Layout per analysis/DOM_REFERENCE.md; vanilla DOM per DESIGN D1.
 // Called AFTER boot with the live app instance.
 import { C, CLIPS, CAM_MOVES, CAM_MOVE_PRESETS } from './const.js';
-import { normalizeLight } from './env.js';
+import { normalizeLight, solarPositionDeg, geoToSceneLight } from './env.js';
 import { itemDuration } from './schema.js';
 import { showLayout, ITEM_LABELS, fovFromFocal } from './tracks.js';
 import { MAGNET_PX, maxEnd, placeAvoiding, repackSequential, planMove, moveItemToIndex, clampKeyTime, canDuplicateOnto, appendPlace } from './place.js';
@@ -146,69 +146,200 @@ export function buildUI(app) {
   updateFrameGuide(app);
 }
 
-// ================= light popover (sun puck TQr/AQr port) =================
+// ================= light panel (round 6 D: geo sun + weather + indoor; TQr/AQr puck retained) =================
+const PHASE_OF = el => el >= 32 ? 'Full day' : el >= 12 ? 'Morning' : el >= 0 ? 'Afternoon' : el >= -8 ? 'Golden hour' : el >= -20 ? 'Twilight' : 'Night';  // kQr thresholds
+const fmtHHMM = h => { const hh = Math.floor(h), mm = Math.round((h - hh) * 60); return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0'); };
+const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const SEASON_PRESETS = [
+  { label: 'Mar 21', dayOfYear: 80 }, { label: 'Jun 21', dayOfYear: 172 },
+  { label: 'Sep 21', dayOfYear: 264 }, { label: 'Dec 21', dayOfYear: 355 },
+];
+
 function buildLightPopover(app) {
   let el = document.getElementById('lightPop');
-  if (el) return { toggle: () => el.classList.toggle('open') };
+  if (el) return { toggle: () => { el.classList.toggle('open'); render(); } };
   el = document.createElement('div');
-  el.id = 'lightPop'; el.className = 'light-pop hud-window';
+  el.id = 'lightPop'; el.className = 'light-pop hud-window light-panel';
   el.innerHTML = `
-    <div class="puck-wrap"><div class="puck" id="sunPuck"><div class="knob" id="sunKnob"></div></div></div>
-    <div class="presets">
-      ${C.LIGHT_PRESETS.map((p, i) => `<button data-i="${i}" title="${p.azimuthDeg}°/${p.elevationDeg}°">${p.label}</button>`).join('')}
+    <div class="lp-puck-row">
+      <div class="puck-wrap"><div class="puck" id="sunPuck" tabindex="0" role="slider"
+        aria-label="Sun position" aria-valuemin="-30" aria-valuemax="90"><span class="horizon"></span><span class="hub"></span>
+        <div class="knob" id="sunKnob"></div><div class="knob ghost" id="sunGhost" style="display:none"></div></div></div>
+      <div class="lp-side">
+        <div class="lp-phase" id="lpPhase">Full day</div>
+        <div class="lp-az" id="lpAzEl">az 129° · el 57°</div>
+        <div class="lp-mode" id="lpMode">geo</div>
+      </div>
     </div>
-    <div class="light-nums">
-      <label>Az <input id="azNum" type="number" min="0" max="360" step="1"></label>
-      <label>El <input id="elNum" type="number" min="-30" max="90" step="1"></label>
-    </div>`;
+    <div class="presets">${C.LIGHT_PRESETS.map((p, i) => `<button data-i="${i}" title="Elevation ${p.elevationDeg}° (keeps azimuth)">${p.label}</button>`).join('')}</div>
+    <div class="lp-sec lp-geo">
+      <div class="lp-cat">Location sun</div>
+      <label>Time<input id="lpTime" type="time" step="900"></label>
+      <div class="lp-date">
+        ${SEASON_PRESETS.map(x => `<button data-doy="${x.dayOfYear}">${x.label}</button>`).join('')}
+        <input id="lpMonth" type="number" min="1" max="12" title="Month">/<input id="lpDay" type="number" min="1" max="31" title="Day">
+      </div>
+      <label>Lat °N<input id="lpLat" type="number" min="-90" max="90" step="1"></label>
+      <label>Alt m<input id="lpAlt" type="number" min="0" max="4000" step="50"></label>
+      <label>True N °<input id="lpNorth" type="number" min="-180" max="180" step="5" title="Compass bearing of the scene's -Z axis (0 = -Z is true north, +X east)"></label>
+      <div class="lp-hint" id="lpGeoHint"></div>
+    </div>
+    <div class="lp-sec">
+      <div class="lp-cat">Weather</div>
+      <div class="seg weather" id="lpWeather">${Object.keys(C.WEATHER).map(w => `<button data-w="${w}">${w[0].toUpperCase() + w.slice(1)}</button>`).join('')}</div>
+      <label class="lp-row">Indoor<input id="lpIndoor" type="checkbox"></label>
+      <label class="lp-row" id="lpAmbRow" style="display:none">Ambient<input id="lpAmb" type="range" min="0" max="1" step="0.05"><span id="lpAmbVal"></span></label>
+    </div>
+    <label class="lp-row lp-night"><input id="lpNight" type="checkbox" checked> Night lamps</label>`;
   document.querySelector('.stage-header').appendChild(el);
 
-  const knob = el.querySelector('#sunKnob');
-  const puck = el.querySelector('#sunPuck');
-  const azNum = el.querySelector('#azNum'), elNum = el.querySelector('#elNum');
+  const $id = id => el.querySelector('#' + id);
+  const puck = $id('sunPuck'), knob = $id('sunKnob'), ghost = $id('sunGhost');
+  let dragging = false;
+
+  // view-yaw-rotated knob (live AQr P8r): "up" = current view heading; ≥0.5° adoption (xQr)
+  let _yaw = 0, _yawT = 0;
+  const adoptYaw = now => {
+    if (now - _yawT < 120) return _yaw;
+    _yawT = now;
+    const m = app.camera.matrixWorld.elements;      // column 1 = world-space forward (−Z)
+    const y = (Math.atan2(m[8], -m[10]) * 180 / Math.PI + 360) % 360;
+    if (Math.abs(y - _yaw) >= 0.5) _yaw = y;
+    return _yaw;
+  };
+
+  const knobAt = (node, az, elv, yaw) => {
+    const n = (az - yaw) * Math.PI / 180;
+    const r = (90 - elv) / 120;
+    const x = Math.sin(n) * r, y = -Math.cos(n) * r;
+    node.style.left = `calc(50% + (50% - 8px) * ${x.toFixed(4)})`;   // $ye 8px inset
+    node.style.top = `calc(50% + (50% - 8px) * ${y.toFixed(4)})`;
+  };
 
   function render() {
     const l = app.light;
-    // knob: centre = zenith 90°, rim = −30°; radius = (90−el)/120; rotated by view yaw
-    const viewYaw = 0;
-    const r = (90 - l.elevationDeg) / 120;
-    const a = (l.azimuthDeg - viewYaw) * Math.PI / 180;
-    knob.style.left = `${50 + Math.sin(a) * r * 46}%`;
-    knob.style.top = `${50 - Math.cos(a) * r * 46}%`;
-    azNum.value = l.azimuthDeg.toFixed(0);
-    elNum.value = l.elevationDeg.toFixed(0);
+    const yaw = _yaw;
+    knobAt(knob, l.azimuthDeg, l.elevationDeg, yaw);
+    knob.classList.toggle('gliding', false);
+    $id('lpPhase').textContent = PHASE_OF(l.elevationDeg);
+    $id('lpAzEl').textContent = `az ${Math.round(l.azimuthDeg)}° · el ${Math.round(l.elevationDeg)}°`;
+    $id('lpMode').textContent = l.mode === 'geographic' ? 'geo' : 'custom';
+    $id('lpMode').className = 'lp-mode ' + (l.mode === 'geographic' ? 'geo' : 'custom');
+    // ghost knob: in custom mode show where the geo solver WOULD put the sun (audit P2-24)
+    if (l.mode === 'custom') {
+      const g = geoToSceneLight(l.geo, l);
+      ghost.style.display = '';
+      knobAt(ghost, g.azimuthDeg, g.elevationDeg, yaw);
+    } else ghost.style.display = 'none';
+    // geo fields
+    $id('lpTime').value = fmtHHMM(l.geo.timeOfDay ?? 9.5);
+    const doy = l.geo.dayOfYear ?? 166;
+    // month/day from dayOfYear
+    let rem = doy, mm = 1;
+    for (let i = 0; i < 12 && rem > MONTH_DAYS[i]; i++) { rem -= MONTH_DAYS[i]; mm = i + 2; }
+    if (mm > 12) mm = 12;
+    $id('lpMonth').value = mm; $id('lpDay').value = rem;
+    $id('lpLat').value = l.geo.latitudeDeg ?? 45;
+    $id('lpAlt').value = l.geo.altitudeM ?? 300;
+    $id('lpNorth').value = l.geo.northOffsetDeg ?? 0;
+    // weather + indoor
+    el.querySelectorAll('#lpWeather button').forEach(b => b.classList.toggle('on', b.dataset.w === l.weather));
+    $id('lpIndoor').checked = !!l.indoor;
+    $id('lpAmbRow').style.display = l.indoor ? '' : 'none';
+    $id('lpAmb').value = l.ambientLevel ?? 0.35;
+    $id('lpAmbVal').textContent = (l.ambientLevel ?? 0.35).toFixed(2);
+    $id('lpNight').checked = l.nightLights !== false;
+    // presets: elevation-only (aria-pressed when |el - preset| < .5)
     el.querySelectorAll('.presets button').forEach(b => {
       const p = C.LIGHT_PRESETS[+b.dataset.i];
       b.classList.toggle('on', Math.abs(p.elevationDeg - l.elevationDeg) < 0.5);
     });
+    // geo hint: raw solver elevation (pre-clamp)
+    const g2 = solarPositionDeg(l.geo);
+    $id('lpGeoHint').textContent = g2.elevationDeg < -30
+      ? 'Sun below the horizon all day at this latitude/date (clamped to ' + C.ELEV_MIN + '°)'
+      : (g2.elevationDeg < -5 ? 'Low sun — long shadows' : 'Solar time ≈ civil time ± ~30 min');
   }
-  function set(az, elv) {
-    app.light = normalizeLight({ azimuthDeg: az, elevationDeg: elv, nightLights: app.light.nightLights });
-    app.shadowFit.force();
-    app.markAutosave?.();
-    render();
-  }
-  let dragging = false;
-  puck.addEventListener('pointerdown', e => { dragging = true; puck.setPointerCapture(e.pointerId); });
+
+  const commit = fn => { app.show.beginEditGesture(); try { fn(); } finally { app.show.endEditGesture(); } };
+
+  // ---- puck drag → custom mode ----
+  puck.addEventListener('pointerdown', e => { dragging = true; app.show.beginEditGesture(); try { puck.setPointerCapture(e.pointerId); } catch (_) {} });
   puck.addEventListener('pointermove', e => {
     if (!dragging) return;
     const r = puck.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width * 2 - 1;
-    const y = (e.clientY - r.top) / r.height * 2 - 1;
-    const rad = Math.min(1, Math.hypot(x, y));
-    const az = Math.atan2(x, -y) * 180 / Math.PI;
-    set(((az % 360) + 360) % 360, 90 - rad * 120);
+    const y = r.height / 2 - 8;
+    const x = (e.clientX - r.left - r.width / 2) / y;
+    const yy = (r.top + r.height / 2 - e.clientY) / y;
+    const rad = Math.min(1, Math.hypot(x, yy));
+    const az = Math.atan2(x, yy) * 180 / Math.PI + _yaw;
+    const elv = 90 - rad * 120;
+    app.setLightCustom(((az % 360) + 360) % 360, elv);
+    render();
   });
-  puck.addEventListener('pointerup', () => dragging = false);
-  azNum.onchange = () => set(+azNum.value || 0, app.light.elevationDeg);
-  elNum.onchange = () => set(app.light.azimuthDeg, +elNum.value || 0);
+  const puckUp = () => { if (dragging) { dragging = false; app.show.endEditGesture(); } };
+  puck.addEventListener('pointerup', puckUp);
+  puck.addEventListener('pointercancel', puckUp);
+  // arrow keys (live olt/llt: az ±10°, el ±5°) — one gesture per keypress
+  puck.addEventListener('keydown', e => {
+    const k = e.key;
+    let d = null;
+    if (k === 'ArrowUp') d = [0, 5]; else if (k === 'ArrowDown') d = [0, -5];
+    else if (k === 'ArrowLeft') d = [-10, 0]; else if (k === 'ArrowRight') d = [10, 0];
+    if (!d) return;
+    e.preventDefault();
+    commit(() => app.setLightCustom(app.light.azimuthDeg + d[0], app.light.elevationDeg + d[1]));
+    render();
+  });
+
+  // ---- presets: ELEVATION ONLY (az preserved — audit P1-13) → custom mode ----
   el.querySelectorAll('.presets button').forEach(b => b.onclick = () => {
     const p = C.LIGHT_PRESETS[+b.dataset.i];
-    set(p.azimuthDeg, p.elevationDeg);
+    commit(() => app.setLightCustom(app.light.azimuthDeg, p.elevationDeg));
+    knob.classList.add('gliding');   // CSS glide; cleared on transitionend/pointerdown
+    render();
   });
+  knob.addEventListener('transitionend', () => knob.classList.remove('gliding'));
+
+  // ---- geo fields: every edit (re)enters geographic mode ----
+  const doyFrom = (m, d) => { let n = 0; for (let i = 0; i < m - 1; i++) n += MONTH_DAYS[i]; return n + d; };
+  $id('lpTime').onchange = () => {
+    const v = $id('lpTime').value; if (!v) return;
+    const [hh, mm] = v.split(':').map(Number);
+    commit(() => app.setLightGeo({ timeOfDay: (hh || 0) + (mm || 0) / 60 })); render();
+  };
+  el.querySelectorAll('.lp-date [data-doy]').forEach(b => b.onclick = () => { commit(() => app.setLightGeo({ dayOfYear: +b.dataset.doy })); render(); });
+  const onDayChange = () => {
+    const m = Math.min(12, Math.max(1, +$id('lpMonth').value || 1));
+    const d = Math.min(MONTH_DAYS[m - 1], Math.max(1, +$id('lpDay').value || 1));
+    commit(() => app.setLightGeo({ dayOfYear: doyFrom(m, d) })); render();
+  };
+  $id('lpMonth').onchange = onDayChange;
+  $id('lpDay').onchange = onDayChange;
+  $id('lpLat').onchange = () => { commit(() => app.setLightGeo({ latitudeDeg: Math.min(90, Math.max(-90, +$id('lpLat').value || 0)) })); render(); };
+  $id('lpAlt').onchange = () => { commit(() => app.setLightGeo({ altitudeM: Math.min(4000, Math.max(0, +$id('lpAlt').value || 0)) })); render(); };
+  $id('lpNorth').onchange = () => { let v = +$id('lpNorth').value || 0; v = Math.min(180, Math.max(-180, v)); commit(() => app.setLightGeo({ northOffsetDeg: v })); render(); };
+
+  // ---- weather / indoor / ambient / night ----
+  el.querySelectorAll('#lpWeather button').forEach(b => b.onclick = () => { commit(() => app.setWeather(b.dataset.w)); render(); });
+  $id('lpIndoor').onchange = () => { commit(() => app.setIndoor($id('lpIndoor').checked)); render(); };
+  const amb = $id('lpAmb');
+  amb.addEventListener('pointerdown', () => app.show.beginEditGesture());
+  amb.addEventListener('pointerup', () => app.show.endEditGesture());
+  amb.addEventListener('input', () => { app.setAmbient(+amb.value); $id('lpAmbVal').textContent = (+amb.value).toFixed(2); });
+  $id('lpNight').onchange = () => {
+    app.light = { ...app.light, nightLights: $id('lpNight').checked ? undefined : false };
+    if (!$id('lpNight').checked) app.light.nightLights = false; else delete app.light.nightLights;
+    app.env.applyDaylight(app.light); app.markAutosave?.(); render();
+  };
+
   document.addEventListener('click', e => {
     if (!el.contains(e.target) && e.target !== document.getElementById('btnLight')) el.classList.remove('open');
   });
+  // per-frame yaw adoption while open (only when visible)
+  const yawLoop = () => { if (el.classList.contains('open')) { adoptYaw(performance.now()); render(); } requestAnimationFrame(yawLoop); };
+  requestAnimationFrame(yawLoop);
+  _yaw = 0; _yawT = 0;
   render();
   return { toggle: () => { el.classList.toggle('open'); render(); }, render };
 }

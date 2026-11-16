@@ -5,6 +5,43 @@ import { C } from './const.js';
 
 const DEG = Math.PI / 180;
 
+// ================= round 6 (D): geographic sun solver (Spencer 1971 / NOAA worksheet) =================
+// Local SOLAR time assumed (no eqtime/longitude correction — documented ± ~30 min vs civil time).
+// Branch-free azimuth = atan2 of the sun vector's East/North components (finite at zenith, correct at poles).
+export function solarPositionDeg(geo) {
+  const N = geo.dayOfYear ?? 166, h = geo.timeOfDay ?? 9.5, lat = geo.latitudeDeg ?? 45;
+  const g = 2 * Math.PI / 365 * (N - 1 + (h - 12) / 24);            // fractional year
+  const decl = 0.006918                                              // Spencer declination (rad)
+    - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g)
+    - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g)
+    - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const H = 15 * (h - 12);                                           // hour angle (solar time)
+  const rad = x => x * DEG;
+  const sinEl = Math.sin(rad(lat)) * Math.sin(decl) + Math.cos(rad(lat)) * Math.cos(decl) * Math.cos(rad(H));
+  const el = Math.asin(THREE.MathUtils.clamp(sinEl, -1, 1)) / DEG;
+  const east = -Math.cos(decl) * Math.sin(rad(H));
+  const north = Math.sin(decl) * Math.cos(rad(lat)) - Math.cos(decl) * Math.cos(rad(H)) * Math.sin(rad(lat));
+  const az = (Math.atan2(east, north) / DEG + 360) % 360;              // compass, clockwise from north
+  return { elevationDeg: el, azimuthDeg: az, rawElevationDeg: el, declRad: decl };
+}
+// northOffsetDeg = compass bearing of the scene's −Z axis (0 = −Z is true north, +X east).
+// az_scene = az_true − northOffsetDeg (a sun due true-north with −Z pointing east → scene az 270).
+export function geoToSceneLight(geo, base) {
+  const s = solarPositionDeg(geo);
+  const off = geo.northOffsetDeg ?? 0;
+  const az = ((s.azimuthDeg - off) % 360 + 360) % 360;
+  return {
+    ...base,
+    mode: 'geographic',
+    azimuthDeg: az,
+    elevationDeg: Math.min(C.ELEV_MAX, Math.max(C.ELEV_MIN, s.elevationDeg)),
+    _rawElevation: s.elevationDeg,
+  };
+}
+const luma = c => 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;   // Rec.601 (linear-sRGB working space — documented)
+const _wc = new THREE.Color();
+function desat(color, k) { if (k <= 0) return color; _wc.setRGB(luma(color), luma(color), luma(color)); return color.lerp(_wc, k); }
+
 // ---------- daylight table interpolation ($Fr) ----------
 const _ca = new THREE.Color(), _cb = new THREE.Color();
 function lerpColor(a, b, t) { return new THREE.Color(a).lerp(_cb.set(b), t); }
@@ -23,12 +60,17 @@ export function daylightAt(elevationDeg) {
   };
 }
 
-// ---------- light normalize (SDe) ----------
+// ---------- light normalize (SDe) — round 6: extended passthrough (audit P0-3) ----------
 export function normalizeLight(l) {
-  if (!l) return { ...C.LIGHT_DEFAULT };
+  if (!l) return { ...C.LIGHT_DEFAULT, mode: 'custom', weather: 'clear', indoor: false, ambientLevel: 0.35, geo: { ...C.LIGHT_GEO_DEFAULTS } };
   const out = {
+    mode: l.mode === 'geographic' ? 'geographic' : 'custom',
     azimuthDeg: ((l.azimuthDeg % 360) + 360) % 360,
     elevationDeg: Math.min(C.ELEV_MAX, Math.max(C.ELEV_MIN, l.elevationDeg)),
+    weather: C.WEATHER[l.weather] ? l.weather : 'clear',
+    indoor: !!l.indoor,
+    ambientLevel: Number.isFinite(l.ambientLevel) ? Math.min(1, Math.max(0, l.ambientLevel)) : 0.35,
+    geo: { ...C.LIGHT_GEO_DEFAULTS, ...(l.geo ?? {}) },
   };
   if (l.nightLights === false) out.nightLights = false;
   return out;
@@ -93,6 +135,9 @@ export function createEnvironment(scene, settings) {
   scene.fog = new THREE.FogExp2(0xffffff, 0);
   const hemi = new THREE.HemisphereLight();
   scene.add(hemi);
+  // round 6 (D7): indoor indirect base — warm-neutral AmbientLight, intensity 0 unless indoor
+  const ambient = new THREE.AmbientLight(0xfff4e6, 0);
+  scene.add(ambient);
   const sun = new THREE.DirectionalLight();
   sun.castShadow = true;
   const mapPx = Math.min(C.SHADOW_MAP_PX, settings.renderer.capabilities.maxTextureSize);
@@ -118,18 +163,33 @@ export function createEnvironment(scene, settings) {
   };
   scene.add(floor);
 
-  let lastAz = NaN, lastEl = NaN, glow = 0;
+  let _lastKey = '', glow = 0;
   function applyDaylight(light) {
     const glowAmount = () => light.nightLights === false ? 0 : glow;
-    if (light.azimuthDeg === lastAz && light.elevationDeg === lastEl) return glowAmount();
-    lastAz = light.azimuthDeg; lastEl = light.elevationDeg;
+    const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;      // round 6 (D5)
+    const indoor = !!light.indoor;                              // round 6 (D7)
+    const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '');
+    if (key === _lastKey) return glowAmount();
+    _lastKey = key;
     const g = daylightAt(light.elevationDeg);
-    hemi.color.copy(g.fillSky); hemi.groundColor.copy(g.fillGround); hemi.intensity = g.fill;
-    sun.color.copy(g.sunColor); sun.intensity = g.sun;
-    scene.fog.color.copy(g.horizon);
+    const alt = light.geo?.altitudeM ?? 0;
+    const altK = 1 + Math.min(alt, 4000) / 4000 * 0.06;         // air-mass thinning (audit P1-7)
+    // sun (key light): table × weather × altitude × indoor (indoor kills it + hides the shadow pass)
+    sun.color.copy(g.sunColor);
+    sun.intensity = g.sun * w.sun * altK * (indoor ? 0 : 1);
+    sun.visible = sun.intensity > 0;
+    // hemi = sky-light GI (sky dome above, ground bounce below): table × weather, indoor ×1.2
+    hemi.intensity = g.fill * w.hemi * (indoor ? 1.2 : 1);
+    // ambient (D7): SINGLE scale — intensity = ambientLevel; warm neutral (window light is the hemi's job)
+    ambient.intensity = indoor ? (light.ambientLevel ?? 0.35) : 0;
+    // weather color ops: desat fillSky/fillGround/zenith/horizon/fog; darken the sky dome
+    hemi.color.copy(g.fillSky); desat(hemi.color, w.desat);
+    hemi.groundColor.copy(g.fillGround); desat(hemi.groundColor, w.desat);
     const u = sky.material.uniforms;
-    u.zenith.value.copy(g.zenith); u.horizon.value.copy(g.horizon);
-    u.flare.value.copy(g.sunColor).multiplyScalar(g.flare);
+    u.zenith.value.copy(g.zenith).multiplyScalar(1 - w.darken); desat(u.zenith.value, w.desat);
+    u.horizon.value.copy(g.horizon).multiplyScalar(1 - w.darken); desat(u.horizon.value, w.desat);
+    scene.fog.color.copy(g.horizon); desat(scene.fog.color, w.desat);   // fog matches the weathered horizon
+    u.flare.value.copy(g.sunColor).multiplyScalar(g.flare * w.flare);
     const az = light.azimuthDeg * DEG, el = Math.max(light.elevationDeg, 0) * DEG;
     u.flareDirection.value.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
     glow = g.glow;
@@ -146,7 +206,7 @@ export function createEnvironment(scene, settings) {
     return list;
   }
 
-  return { sky, floor, sun, hemi, applyDaylight, walkableSurfaces, shadowMapPx: mapPx };
+  return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx };
 }
 
 // ---------- bounds (vje/OFr) ----------
@@ -176,10 +236,17 @@ function spreadStats(boxes, centre) {
   return { focus, spread90: pct(0.9), spread95: pct(0.95) };
 }
 
-// ---------- dynamic fog / near / far (pZt + FFr/SFr/CFr) ----------
-export function createFogNearFar({ getMeshes, camera, scene, renderer }) {
+// ---------- dynamic fog / near / far (pZt + FFr/SFr/CFr) — round 6: weather multiplier INSIDE ----------
+// (audit P0-4: the density↔far coupling must stay intact; d = min(FOG_DENSITY_CAP, base × weatherK × indoor))
+export function createFogNearFar({ getMeshes, camera, scene, renderer, getLight }) {
   let bounds = null, last = -Infinity;
   const density = () => fogDensity(bounds, camera.position);
+  const fogK = () => {
+    const l = getLight?.();
+    if (!l) return 1;
+    const w = C.WEATHER[l.weather] ?? C.WEATHER.clear;
+    return w.fog * (l.indoor ? 0.5 : 1);
+  };
   function fogDensity(b, camPos) {
     const n = b ? camPos.distanceTo(b.focus) : camPos.length();
     const r = n + (b?.spread95 ?? 0);
@@ -194,7 +261,7 @@ export function createFogNearFar({ getMeshes, camera, scene, renderer }) {
   }
   function tick(now = performance.now()) {
     if (now - last >= C.BOUNDS_INTERVAL_MS) { last = now; bounds = computeBounds(getMeshes()); }
-    const d = fogDensity(bounds, camera.position);
+    const d = Math.min(C.FOG_DENSITY_CAP, fogDensity(bounds, camera.position) * fogK());
     if (scene.fog && scene.fog.isFogExp2) scene.fog.density = d;
     let far = bounds ? farFrom(bounds, camera.position) : C.FAR_FALLBACK;
     far = Math.min(C.FOG_FAR_CAP, Math.max(far, C.FAR_DENSITY_K / d));

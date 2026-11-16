@@ -61,13 +61,27 @@ export const C = {
   EL_REMAP_EDGE: -8,         // GWt
   EL_REMAP_MIN: 5,           // A8r
   EL_REMAP_K: 25,            // C8r
-  LIGHT_DEFAULT: { azimuthDeg: 128.66, elevationDeg: 57.38 }, // kDe
-  // sun presets (TQr/AQr light popover)
+  LIGHT_DEFAULT: { azimuthDeg: 128.66, elevationDeg: 57.38 }, // kDe — migrated scenes keep mode:'custom'
+  // round 6 (D): geographic defaults (NEVER auto-applied to existing scenes — audit P0-3)
+  LIGHT_GEO_DEFAULTS: { timeOfDay: 9.5, dayOfYear: 166, latitudeDeg: 45, altitudeM: 300, northOffsetDeg: 0 },
+  // round 6 (D5): weather modifiers — clear = IDENTITY (audit P0-2). sun/hemi/flare multiply the
+  // daylight-table outputs; fog multiplies the pZt density (inside createFogNearFar — audit P0-4);
+  // desat = lerp→Rec.601 luma on zenith/horizon/fillSky/fillGround/fog-color; darken multiplies sky.
+  WEATHER: {
+    clear:    { sun: 1.0,  hemi: 1.0,  fog: 1.0,  flare: 1.0,  desat: 0.00, darken: 0.00 },
+    cloudy:   { sun: 0.55, hemi: 1.15, fog: 1.15, flare: 0.30, desat: 0.10, darken: 0.00 },
+    overcast: { sun: 0.25, hemi: 1.4,  fog: 1.4,  flare: 0.10, desat: 0.25, darken: 0.05 },
+    rain:     { sun: 0.15, hemi: 1.2,  fog: 2.0,  flare: 0.08, desat: 0.30, darken: 0.15 },
+    fog:      { sun: 0.30, hemi: 1.1,  fog: 3.5,  flare: 0.00, desat: 0.35, darken: 0.10 },
+  },
+  FOG_DENSITY_CAP: 0.05,      // round 6 (audit P0-4): density clamp — visibility ≈ 20 m
+  // sun presets (TQr/AQr light popover) — ELEVATION ONLY, azimuth preserved (audit P1-13: the
+  // azimuthDeg fields here are IGNORED; live _Qr sets elevation only via r({...t, elevationDeg}))
   LIGHT_PRESETS: [
-    { label: 'Midday', azimuthDeg: 128.66, elevationDeg: 57.38 }, // kDe
-    { label: 'Golden hour', azimuthDeg: 128.66, elevationDeg: 9 },    // E8r
-    { label: 'Dusk', azimuthDeg: 128.66, elevationDeg: -4 },          // j8r
-    { label: 'Night', azimuthDeg: 128.66, elevationDeg: -28 },        // I8r
+    { label: 'Midday', elevationDeg: 57.38 }, // kDe
+    { label: 'Golden hour', elevationDeg: 9 },    // E8r
+    { label: 'Dusk', elevationDeg: -4 },          // j8r
+    { label: 'Night', elevationDeg: -28 },        // I8r
   ],
   GLOW_EMISSIVE: 16763274,   // cOr = 0xFFC98A night-lamp emissive
 
@@ -139,7 +153,7 @@ export const C = {
   LENS_SLIDER_MAX: 1000,     // Gze
 
   // ---------- tracks / items ----------
-  SCHEMA_V: 10,              // NU
+  SCHEMA_V: 11,              // NU — round 6: light geo/weather/indoor/ambient + mode (v10→v11)
   SPEED_DEFAULT: 1.4,        // Htt m/s
   SPEED_STORE_FLOOR: 0.01,   // Qae (store edit clamp)
   SPEED_UI_FLOOR: 0.2,       // Mit (timeline field min; migration fallback i6r)
