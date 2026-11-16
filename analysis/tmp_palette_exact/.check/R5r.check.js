@@ -1,0 +1,3 @@
+(() => {
+function R5r({clip:t,name:e,drawTile:n,startTilePreview:r,stopTilePreview:s,beginDrag:a,addButton:o,onActionDragEnd:l}){const c=p.useRef(null);return p.useEffect(()=>{c.current&&n(c.current,t)},[t,n]),i.jsxs("div",{className:Ze(Zr.tile,ff.tile),draggable:!0,"data-onboard-target":t==="dance"?"dance-tile":void 0,onDragStart:d=>a(d,{kind:"clip",clip:t}),onDragEnd:l,onPointerEnter:()=>{c.current&&r(c.current,t)},onPointerLeave:()=>{s(),c.current&&n(c.current,t)},children:[o,i.jsx("canvas",{ref:c,className:Zr.tileThumb,width:IP,height:IP}),i.jsx("span",{className:Zr.tileName,children:e})]})}
+});

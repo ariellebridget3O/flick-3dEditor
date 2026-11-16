@@ -1,0 +1,208 @@
+0a12,12,0,1,1-12-12A12,12,0,0,1,140,60Z>
+</path>
+</svg>
+</g>
+</svg>
+</button>
+</div>
+<div class="_rightDock_1bag4_182 _dock_1bag4_165 _hudSurface_5hecp_10">
+<div class="_reveal_1a7mk_9 _revealCollapsed_1a7mk_24" aria-hidden=true style=width:0px>
+<aside class="_hudWindow_kwh50_15 _actionsWindow_1a7mk_31" data-onboard-target=actions style=width:260px>
+<div class="_handle_1pcmd_1 _right_1pcmd_15">
+</div>
+<div class=_title_kwh50_58>Actions<button class=_close_kwh50_78 aria-label="Hide actions" title="Hide actions">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z>
+</path>
+</svg>
+</button>
+</div>
+<div class=_search_kwh50_96>
+<svg xmlns=http://www.w3.org/2000/svg width=14 height=14 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z>
+</path>
+</svg>
+<input type=text placeholder="Search actions" aria-label="Search actions" value>
+</div>
+<div class=_tabs_kwh50_135>
+<button class=_tab_kwh50_135 aria-pressed=false>
+<span class=_tabLabel_kwh50_152>Move</span>
+</button>
+<button class="_tab_kwh50_135 _active_kwh50_185" aria-pressed=true>
+<span class=_tabLabel_kwh50_152>Animate</span>
+</button>
+<button class=_tab_kwh50_135 aria-pressed=false>
+<span class=_tabLabel_kwh50_152>Camera</span>
+</button>
+</div>
+<div class=_tabCaption_1a7mk_107>Humans only</div>
+<div class="_scroll_kwh50_210 _hudScroll_kwh50_35">
+<div class=_tabPane_kwh50_217>
+<div class=_sectionLabel_1a7mk_97>Perform</div>
+<div class=_grid_kwh50_233>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true title="Drag onto a human, then play the scene like a game and record their moves">
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<span class=_iconThumb_kwh50_253 style=color:var(--stage-action-human)>
+<svg xmlns=http://www.w3.org/2000/svg width=32 height=32 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M176,110H152a6,6,0,0,1,0-12h24a6,6,0,0,1,0,12ZM104,98H94V88a6,6,0,0,0-12,0V98H72a6,6,0,0,0,0,12H82v10a6,6,0,0,0,12,0V110h10a6,6,0,0,0,0-12ZM239.84,199.5A34,34,0,0,1,212,214,34.11,34.11,0,0,1,188,204.05l-.26-.28L147.38,158H108.62L68.31,203.76,68,204A34,34,0,0,1,44,214a34,34,0,0,1-33.46-39.91s0-.06,0-.1L26.9,89.88A57.89,57.89,0,0,1,83.89,42H172a58.07,58.07,0,0,1,57.05,47.63c0,.07,0,.12,0,.19L245.46,174s0,.07,0,.11A33.75,33.75,0,0,1,239.84,199.5ZM172,146a46,46,0,0,0,0-92H83.89A45.9,45.9,0,0,0,38.71,92a.36.36,0,0,0,0,.1L22.33,176.23a22,22,0,0,0,37.11,19.45l42-47.65a6,6,0,0,1,4.5-2Zm61.67,30.23-9.79-50.35A58.06,58.06,0,0,1,172,158h-8.63l33.19,37.68a22,22,0,0,0,37.11-19.45Z>
+</path>
+</svg>
+</span>
+<span class=_tileName_kwh50_274>Play</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true title="Drag onto a human, then pose its joints in the scene">
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<span class=_iconThumb_kwh50_253 style=color:var(--stage-action-human)>
+<svg xmlns=http://www.w3.org/2000/svg width=32 height=32 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M128,78A30,30,0,1,0,98,48,30,30,0,0,0,128,78Zm0-48a18,18,0,1,1-18,18A18,18,0,0,1,128,30ZM229.14,131.09a6,6,0,0,1-8.23,2c-.37-.21-36.49-21.43-86.91-23v39.61L196.48,220a6,6,0,0,1-9,8L128,161,68.48,228a6,6,0,0,1-9-8L122,149.72V110.11c-50.42,1.6-86.55,22.82-86.92,23a6,6,0,0,1-6.17-10.29C30.6,121.84,71,98,128,98s97.39,23.84,99.09,24.86A6,6,0,0,1,229.14,131.09Z>
+</path>
+</svg>
+</span>
+<span class=_tileName_kwh50_274>Rig Transform</span>
+</div>
+</div>
+<div class=_sectionLabel_1a7mk_97>Clips</div>
+<div class=_grid_kwh50_233>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Crouch Fwd</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Crouch Idle</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true data-onboard-target=dance-tile>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Dance</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Death01</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Driving</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Fixing Kneeling</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Hit Chest</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Hit Head</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Idle</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Idle Talking</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Idle Torch</span>
+</div>
+<div class="_tile_kwh50_244 _tile_1a7mk_38" draggable=true>
+<button type=button class=_tileAdd_1a7mk_47 draggable=false aria-disabled=true aria-label="Select an object this can act on" title="Select an object this can act on">
+<svg xmlns=http://www.w3.org/2000/svg width=12 height=12 fill=currentColor viewBox="0 0 256 256" aria-hidden=true>
+<path d=M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z>
+</path>
+</svg>
+</button>
+<canvas class=_tileThumb_kwh50_252 width=128 height=128 style="background-blend-mode:normal!important;background:url(data:image/png;base64,<BASE64>)center center/100% 100%no-repeat scroll content-box content-box rgba(20,20,20,0.85)!important">
+</canvas>
+<span class=_tileName_kwh50_274>Interact</span>
+</div>
+<div class="_tile_kwh

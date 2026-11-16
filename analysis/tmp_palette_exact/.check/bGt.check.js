@@ -1,0 +1,3 @@
+(() => {
+function bGt(t){switch(t.kind){case"path":return{kind:"path"};case"play":return{kind:"play"};case"clip":return{kind:"clip",clip:t.clip};case"rotate":return{kind:"object",action:"rotate"};case"revolve":return{kind:"object",action:"revolve"};case"scale":return{kind:"object",action:t.factor>=1?"scale-up":"scale-down"};case"transform":return{kind:"object",action:"transform"};case"rig-transform":return{kind:"object",action:"rig-transform"};case"cam-still":return{kind:"camera",action:"still"};case"cam-move":return{kind:"camera",action:t.move};case"cam-path":return{kind:"camera",action:"path"};case"cam-follow":return{kind:"camera",action:"follow"};case"cam-transform":return{kind:"camera",action:"transform"};case"cam-manual":return{kind:"camera",action:"manual"}}}
+});

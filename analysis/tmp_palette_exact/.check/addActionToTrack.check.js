@@ -1,0 +1,3 @@
+class __Validate__ {
+addActionToTrack=(e,n,r)=>{const s=this.show.peek().tracks.find(o=>o.id===e);if(!s)return;const a=this.resolveActionForObject(s.characterId,n);if(a)switch(a.kind){case"path":this.addPathItem(e,r);break;case"play":this.addPlayItem(e,r);break;case"clip":this.addClipItem(e,a.clip,r);break;case"camera":this.addCameraItem(e,a.action,r);break;case"object":switch(a.action){case"rotate":this.addRotateItem(e,r);break;case"revolve":this.addRevolveItem(e,r);break;case"scale-up":this.addScaleItem(e,AHr,r);break;case"scale-down":this.addScaleItem(e,CHr,r);break;case"transform":this.addTransformItem(e,r);break;case"rig-transform":this.addRigTransformItem(e,r);break}break}};
+}
