@@ -247,8 +247,8 @@ function refreshSelectionUI(app) {
   if (ids.length && app.selection.screenBounds) {
     const b = app.selection.screenBounds;
     const host = document.getElementById('viewport');
-    tb.style.left = `${Math.max(8, Math.min(host.clientWidth - 160, b.cx - 70))}px`;
-    tb.style.top = `${Math.max(8, b.y0 - 44)}px`;
+    tb.style.left = `${Math.max(8, Math.min(host.clientWidth - 150, b.cx - 62))}px`;
+    tb.style.top = `${Math.max(8, b.y0 - 38)}px`;
   }
   // tool active state (sync AFTER any mode forcing above — keyboard z/x/c also call this)
   syncToolHighlight(app);

@@ -7,7 +7,7 @@ import { GLTFLoader } from './vendor/loaders/GLTFLoader.js';
 import { C, CLIPS } from './const.js';
 import { createEnvironment, createFogNearFar, createShadowFit, normalizeLight, sunDirection } from './env.js';
 import { ObjectManager } from './objects.js';
-import { SelectionFootprints, HoverDisc } from './selection.js';
+import { SelectionTracker, HoverDisc } from './selection.js';
 import { ObjectStore, ShowStore, PageStore } from './store.js';
 import { loadScene, saveScene, itemDuration } from './schema.js';
 import {
@@ -18,6 +18,7 @@ import {
 import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation } from './figures.js';
 import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
+import { tickGizmoHover } from './gizmo.js';
 import { buildUI } from './ui.js';
 import {
   patchSoftTerminator, createFinishComposer, finishCapable,
@@ -126,7 +127,8 @@ export class App {
     this.show.setUndoCompanion(this.objects);   // undo covers objects + show (observer-history parity)
 
     // ---- selection + hover ----
-    this.selection = new SelectionFootprints(this.scene);
+    // round 6: ground pad removed (user direction) — SelectionTracker anchors the toolbar only
+    this.selection = new SelectionTracker();
     this.hover = new HoverDisc(this.scene);
 
     // ---- manipulation + path editor ----
@@ -701,8 +703,9 @@ export class App {
     this.shadowFit.tickAOr(this.renderer);
     // 10. path editor visuals
     this.pathEditor.tick();
-    // 11. selection tick LAST
-    this.selection.tick(this.objects.selectedIds, this.meshByIdProxy, this.camera, this.container.clientHeight, now);
+    // 11. selection bounds (toolbar anchor) LAST — pad removed, bounds only
+    this.selection.tick(this.objects.selectedIds, this.meshByIdProxy, this.camera);
+    tickGizmoHover(this.manipulator?.transform);   // round 6: amber hover on the custom gizmo meshes
     this.hover.tick(this.hoverPoint, this.hoverNormal, this.camera, this.container.clientHeight, dt * 1000,
       !this.page.playing && !this.manipulator?.dragging);
 

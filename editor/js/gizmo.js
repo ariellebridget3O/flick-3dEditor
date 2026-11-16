@@ -140,7 +140,12 @@ function isNegativePicker(pickerMesh) {
   return pickerMesh.geometry.boundingBox.getCenter(new THREE.Vector3())[pickerMesh.name.toLowerCase()] < -0.01;
 }
 
-// Pzr — patch the TransformControls: swap gizmo visuals, drop negative-axis pickers, recolor
+// Pzr — patch the TransformControls: swap gizmo visuals, drop negative-axis pickers, recolor.
+// Round-6 additions: (a) the stock helper set (full-length START/END/DELTA/AXIS lines through
+// the object, depthTest-off — the "thick axis line" complaint) is REMOVED — the live ozr
+// rewrite ships no helper lines either; (b) hover amber (bzr #FFD166) is applied to the custom
+// meshes via tickGizmoHover(tc.axis poll) — the stock materialLib recolor can't reach meshes
+// that own their materials (the round-5 port left hover dead).
 export function applyCustomGizmo(tc) {
   const gizmo = tc._gizmo;
   const sets = buildCustomGizmo();
@@ -151,8 +156,26 @@ export function applyCustomGizmo(tc) {
       if (isNegativePicker(p)) gizmo.picker[mode].remove(p);
     }
   }
-  // hover + axis colors via the stock materialLib (live hover = bzr through the setHex override)
+  // round 6: no stock helper lines (START/END/DELTA full-axis lines + rotate AXIS arcs).
+  // Vendor r182 stores helpers as gizmo.helper[mode] GROUPS (an object, not the old array).
+  if (gizmo.helper) for (const m of MODES) gizmo.helper[m]?.removeFromParent?.();
   tc.setColors(AXIS_COLORS.X, AXIS_COLORS.Y, AXIS_COLORS.Z, HOVER);
-  // the custom meshes own their materials; clear the lib's _color caches are per-material — nothing else to do
   return tc;
+}
+
+// ---- hover highlight on the custom meshes (bzr amber) ----
+const hoverLast = new WeakMap();
+const handleBase = name => name in AXIS_COLORS ? AXIS_COLORS[name]
+  : name === 'XY' ? AXIS_COLORS.Z : name === 'YZ' ? AXIS_COLORS.X : name === 'XZ' ? AXIS_COLORS.Y : WHITE;
+export function tickGizmoHover(tc) {
+  if (!tc || !tc._gizmo) return;
+  const axis = tc.axis || null;
+  if (hoverLast.get(tc) === axis) return;
+  hoverLast.set(tc, axis);
+  const group = tc._gizmo.gizmo[tc.mode];
+  if (!group) return;
+  for (const m of group.children) {
+    if (m.name === 'shell') continue;                       // dark shells stay dark
+    m.material?.color?.setHex(axis && m.name === axis ? HOVER : handleBase(m.name));
+  }
 }
