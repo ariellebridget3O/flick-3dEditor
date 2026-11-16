@@ -87,16 +87,24 @@ Goal: layered programmatic clouds + PBR materials reacting to the lighting setup
 - [ ] P3 Volumetric raymarch (UE5 Volumetric Cloud class — reference only via the EULA-covered mirror shaders readable at repalash/Open-Shaders; LICENSE-SAFE implementation via @takram/three-clouds techniques: Beer shadow maps, temporal upscaling): half-res depth-aware pass reusing the finish composer's depth texture; auto-gated by the existing ≤11ms measure harness; NOT from the UE5 repo directly (404s anonymous; EULA not shippable)
 - Traps documented in the research doc: three-volumetric-clouds (no license), xiaxiangfeng/sky-cloud-3d (non-commercial), Shadertoy CC BY-NC-SA default, SkyMesh is WebGPU/TSL-only (use Sky addon for WebGLRenderer)
 
-## Round 5 backlog (ranked — from ROUND5_GAP_MATRIX.md Top-20)
-- [ ] P1 Actions palette (M5r: Move/Animate/Camera tabs, 46 clip tiles w/ live previews, search, drag-to-add — the live's core add-UX)
-- [ ] P1 Cam-path height-curve editor (bundle @5466360: curve w/ draggable points + scrub; eval already ported, UI missing)
-- [ ] P1 Through-the-lens Cameras view (adopt evaluated camera pose — port only draws the frame guide)
-- [ ] P1 Aspect-ratio picker UI (6 presets @3920360; page.recordAspect exists)
-- [ ] P1 Pixel oracle vs live flick.art (site reachable; login creds in CONTEXT.md; scene-match + screenshot diff harness)
+## Round 8 (2026-11-16) — COMPLETE (actions palette + plan gaps)
+Derived scope: PLAN round-5 backlog ranked order + HANDOFF seam items. User feedback round-7 (2D canvas exactness + upstream scenes) landed in R7; this round took the next-ranked backlog items.
+- [x] R8-1 Actions palette (M5r): the single biggest live-parity gap — verbatim store-method family + 3-tab window + tile previews (D5r/H5r/y5r verbatim classes) + drag payload model (e3r/MDe, MIME) + BUr viewport drop + nCr lane drop (magnet _ie) + revealActionsFor (lane + opens palette; inline add menu removed — live has none) + close-after-add + clear-selection-on-open + requestedTab one-shot. Design audited (4 P1 + 6 P2 applied pre-impl); 2-agent review round (1 P0 + 3 P1 + 4 P2 + P3 batch) all fixed + re-verified.
+- [x] R8-2 Cam-path height-curve editor: full verbatim family (sLr/oLr/lLr/cLr/uLr/Yhe/Kat/Kzt) + PlanStore methods + eFr panel (press-line insert, point/handle drag with Alt-break, scrub, dblclick remove, playhead sync).
+- [x] R8-3 Through-the-lens Cameras view: render camera adopts the evaluated pose; viewpoint save/restore.
+- [x] R8-4 Aspect-ratio picker: Zae presets in the stage header.
+- Extraction durability: analysis/tmp_palette_exact/ (122 byte-verified units + MAP.md) is the permanent registry for the palette + aim-math + lane-drop + height-curve families.
+
+## Backlog (ranked — next rounds)
+- [ ] P1 Pixel oracle vs live flick.art (site reachable; login creds in CONTEXT.md; scene-match + screenshot diff harness — the R7/R8 oracle pattern generalizes: verbatim-fn reference + ordered-stream diffs)
+- [ ] P1 Skybox P1 (PLAN skybox roadmap: sebh/UnrealEngineSkyAtmosphere MIT dome + night + weather-coupled uniforms + PMREM IBL; full design in analysis/R7_SKYBOX_RESEARCH.md)
 - [ ] P2 Rig posing UX (xqr joint spheres + captureFocusedRigPose + Fzr multi-joint)
 - [ ] P2 Held-pose baking (bakeRigPoseSegment flow: rig key @t=0)
-- [ ] P2 Shake apply (Dzt/oEr — constants ready), 2D plan canvas (SDr), spawn grid, deleteFocused cascade (keyframe→segment→track→object), cam-follow offset UI, color row + person-kind switch
-- [ ] UI sweep B (timeline/tools) agent timed out twice — items manually E2E'd instead (blocks/trim/diamonds/take-range/lasso/navball/playback all verified); remaining: alt-drag duplicate re-verify on repaired tree, ctrl+wheel zoom, ruler scrub visual
+- [ ] P2 Shake apply (Dzt/oEr — constants ready), spawn grid, deleteFocused cascade, cam-follow offset UI
+- [ ] P2 Component column (Xqt loader cache + prop drag-drop + VUr/$Ur ghost drop — verbatim units already in tmp_palette_exact/ MAP §11; our Scene-dock add-grid covers creation, this is the drag-UX)
+- [ ] P2 Segment-drag drop (canDropSegmentOnObject/dropSegmentOnObject verbatim in MAP §14; BUr sibling)
+- [ ] P3 Palette hotkey key-slot drop (gVr — 3rd MDe consumer, extracted), onboarding affordances (dance-tile, tips), pickPersonKind error-toast+Undo-retry, play/gamepad + pose/person icon semantics, plan canvas lens-handle E2E pass
+- [ ] UI sweep B remainder: alt-drag duplicate re-verify, ctrl+wheel zoom, ruler scrub visual
 
 ## Backlog (future rounds) — priority order; source: ROUND5_GAP_MATRIX Top-20 + AUDIT_*.md P2 lists
 - [ ] Shake apply on preview (Dzt/oEr — constants in const.js; camera rigs gq)
@@ -109,6 +117,9 @@ Goal: layered programmatic clouds + PBR materials reacting to the lighting setup
 - [ ] Live-app baseline screenshots for visual diffing (needs network); self-baseline regression exists meanwhile
 
 ## Durable facts
+- env.sh $0 bug FIXED (BASH_SOURCE) — sourced from bash -c works now
+- The watchdog rewrites .git/config in /home/z/my-project (~2min) — ALWAYS push with full PAT URLs (scripts/env.sh for tokens)
+- Palette/curve/lane-drop/aim-math verbatim registry = analysis/tmp_palette_exact/ (fn_index.json + fn_index_r8b.json, 122 units)
 - Repo IS the disk; never force-push; secrets split-coded in .env (push-protection-safe)
 - GitLab mirror = flick-3dEditor-mirror (WAF 403 ~1/3 — retry loop in background works; GH primary)
 - Editor dev loop: edit editor/** → server :8124 → agent-browser close + open ?v=N (ES module cache needs fresh session)
