@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { TransformControls } from './vendor/controls/TransformControls.js';
 import { applyCustomGizmo } from './gizmo.js';
+import { deleteObjects } from './ui.js';
 import { C, smoothstep } from './const.js';
 import { isPersonKind, camMovePose, unwrapEulerVs, subjectlessItem, CAM_ITEM_KINDS } from './tracks.js';
 import { itemDuration } from './schema.js';
@@ -453,11 +454,12 @@ export class Manipulator {
     return o?.userData?.objectId ?? null;
   }
 
-  _groupPromotion(objects, id, selectedId) { // JEe
+  _groupPromotion(objects, id, selectedId) { // JEe + _De (round 6: camera/target/spotlight never promote)
     const obj = objects[id];
     if (!obj?.parentId) return id;
     const parent = objects[obj.parentId];
     if (parent?.kind !== 'group') return id;
+    if (obj.kind === 'camera' || obj.kind === 'target' || obj.kind === 'spotlight') return id;  // _De
     if (selectedId && (selectedId === obj.parentId || objects[selectedId]?.parentId === obj.parentId)) return id;
     return obj.parentId;
   }
@@ -617,7 +619,10 @@ export class Manipulator {
       else if (mod && k === 'g') {
         e.preventDefault();
         app.show.beginEditGesture();
-        try { app.objects.groupOrUngroup(); } finally { app.show.endEditGesture(); }
+        let res;
+        try { res = app.objects.groupOrUngroup(); } finally { app.show.endEditGesture(); }
+        if (res && !res.ok && res.toast) app.toast(res.toast);
+        if (res && res.ok && res.partial) app.toast('Grouped ' + res.grouped + ' object' + (res.grouped > 1 ? 's' : '') + ' (' + res.skipped + ' already in a group — skipped)');
       }
       else if (k === 'delete' || k === 'backspace') {
         if (app.page.paint) {
@@ -629,12 +634,8 @@ export class Manipulator {
           }
         } else {
           app.show.beginEditGesture();
-          try {
-            for (const id of app.objects.selectedIds) {
-              app.show.detachReferences(id);
-              app.objects.remove(id);
-            }
-          } finally { app.show.endEditGesture(); }
+          try { deleteObjects(app, app.objects.selectedIds); }
+          finally { app.show.endEditGesture(); }
         }
       }
       else if (k === 'escape') {

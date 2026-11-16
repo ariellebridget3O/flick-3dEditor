@@ -81,8 +81,10 @@ export function buildUI(app) {
     const tool = b.dataset.tool;
     if (tool === 'delete') {
       app.show.beginEditGesture();
-      try { for (const id of app.objects.selectedIds) { app.show.detachReferences(id); app.objects.remove(id); } }
+      let refused = 0;
+      try { refused = deleteObjects(app, app.objects.selectedIds); }
       finally { app.show.endEditGesture(); }
+      if (refused) app.toast('Paired targets can\u2019t be deleted — delete their camera instead');
     } else {
       app.manipulator.transform.setMode(tool);
       app.objects.changed();
@@ -255,6 +257,18 @@ function refreshSelectionUI(app) {
   app.manipulator?.attachToSelection();
   refreshInspector(app);
 }
+// cascade-aware object delete: removes (recursive), then detaches show references for the
+// WHOLE doomed set (group-cascade children's tracks/subject refs die too, not just the group's)
+export function deleteObjects(app, ids) {
+  let refused = 0;
+  const before = new Set(Object.keys(app.objects.all()));
+  for (const id of [...ids]) {
+    if (!app.objects.remove(id)) { refused++; continue; }   // paired target refuses (live Xu)
+  }
+  for (const oid of before) if (!app.objects.get(oid)) app.show.detachReferences(oid);
+  return refused;
+}
+
 export function syncToolHighlight(app) {   // toolbar reflects the gizmo's actual mode
   const tb = document.getElementById('editToolbar');
   if (!tb) return;
@@ -346,7 +360,9 @@ function refreshInspector(app) {
     const b = e.target.closest('button'); if (!b) return;
     const act = b.dataset.act;
     if (act === 'focus') app.focusObject(id);
-    if (act === 'del') objectOp(() => { app.show.detachReferences(id); app.objects.remove(id); });
+    if (act === 'del') objectOp(() => {
+      if (deleteObjects(app, [id])) app.toast('Paired targets can\u2019t be deleted — delete their camera instead');
+    });
     if (act === 'dup') objectOp(() => { const nid = app.objects.duplicate(id, app.show); if (nid) app.objects.select([nid]); });
     if (act === 'walk' && isPerson) {
       const item = app.show.addPathItem(id, app.page.playheadS);

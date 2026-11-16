@@ -4,6 +4,23 @@ import { uuid, packItems, itemDuration } from './schema.js';
 import { arcLength, polylineOf, buildTangents } from './curves.js';
 import { C } from './const.js';
 import { moveItemToIndex, canDuplicateOnto, dropSelfRefs, moveKey } from './place.js';
+import * as THREE from 'three';
+
+// ---- TRS compose/decompose helpers (pie/VWt group math; plain THREE.Matrix4) ----
+function composeMatrix(position, rotation, scale) {
+  const m = new THREE.Matrix4();
+  m.compose(
+    new THREE.Vector3(...(position ?? [0, 0, 0])),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(...(rotation ?? [0, 0, 0]), 'XYZ')),
+    new THREE.Vector3(...(scale ?? [1, 1, 1])));
+  return m;
+}
+function decomposeTRS(m) {
+  const p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+  m.decompose(p, q, s);
+  const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
+  return { position: [p.x, p.y, p.z], rotation: [e.x, e.y, e.z], scale: [s.x, s.y, s.z] };
+}
 
 const TAKE_RANGE_MIN_S = 0.1;   // eie — min take-range width
 // rx().durationS — raw show length = max item endS (no span floor)
@@ -45,13 +62,25 @@ export class ObjectStore extends StoreBase {
     this.changed();
     return id;
   }
-  remove(id) {
-    // groups re-parent children to scene root (TWr)
-    for (const [cid, c] of Object.entries(this.objects))
-      if (c.parentId === id) this.objects[cid] = { ...c, parentId: undefined };
+  remove(id, force = false) {
+    // round 6 live-exact: group delete = RECURSIVE subtree delete (children, nested groups,
+    // cameras take their paired targets). Standalone paired-target deletion REFUSES (live Xu).
+    // (Round-5 followed EDITOR_UX §2.7's wrong “re-parent children to scene” claim — R2 verified
+    // the bundle: remove() recurses; TWr is only the mesh-layer safety net for UNGROUP.)
+    const o = this.objects[id];
+    if (!o) return false;
+    if (!force && o.kind === 'target') {
+      // paired target (a camera references it) refuses — deleting the camera removes it
+      const paired = Object.values(this.objects).some(c => c.kind === 'camera' && c.targetId === id);
+      if (paired) return false;
+    }
+    const kids = Object.entries(this.objects).filter(([, c]) => c.parentId === id).map(([cid]) => cid);
+    if (o.kind === 'camera' && o.targetId && this.objects[o.targetId]) kids.push(o.targetId);
+    for (const k of [...kids]) this.remove(k, true);   // recurse: nested groups + paired targets (force)
     delete this.objects[id];
     this.select(this.selectedIds.filter(s => s !== id));
     this.changed();
+    return true;
   }
   select(ids) {
     this.selectedIds = [...ids];   // live setSelection has no clamp (WWr caps footprint DRAW only)
@@ -106,13 +135,55 @@ export class ObjectStore extends StoreBase {
     this.changed();
     return newIds;
   }
+  // ---- groups (round 6: live-exact groupSelection/ungroup pie/VWt) ----
+  // ≥2 selected → create group at child CENTROID, children re-based to LOCAL (pie), selection=[gid].
+  // Single GROUP selected → ungroup (VWt): children world back, parentId stripped, group deleted, selection=children.
+  // Returns {ok, toast?} — callers surface the toasts (live toasts on <2 groupable / partial skips).
   groupOrUngroup() {
-    if (this.selectedIds.length < 2) return null;
+    const all = this.objects;
+    const sel = this.selectedIds.filter(id => all[id]);
+    // ungroup path: single group selected
+    if (sel.length === 1 && all[sel[0]]?.kind === 'group') {
+      const gid = sel[0];
+      const g = all[gid];
+      const gs = g.scale ?? [1, 1, 1];
+      const gp = g.position ?? [0, 0, 0];
+      const childIds = Object.entries(all).filter(([, o]) => o.parentId === gid).map(([i]) => i);
+      for (const cid of childIds) {
+        const c = all[cid];
+        // VWt: world = group ∘ local — full matrix compose (covers groups later moved/rotated/scaled)
+        const local = composeMatrix(c.position, c.rotation, c.scale);
+        const world = composeMatrix(gp, g.rotation ?? [0, 0, 0], gs);
+        world.multiply(local);
+        const dec = decomposeTRS(world);
+        this.update(cid, { parentId: undefined, position: dec.position, rotation: dec.rotation, scale: dec.scale });
+      }
+      delete this.objects[gid];
+      this.select(childIds);
+      this.changed();
+      return { ok: true, ungrouped: childIds.length };
+    }
+    // create path: groupable = non-group, TOP-LEVEL only (parentId undefined) — live groupSelection
+    const groupable = sel.filter(id => all[id].kind !== 'group' && !all[id].parentId);
+    if (groupable.length < 2) {
+      return { ok: false, toast: sel.length < 2 ? null : 'Select at least two ungrouped objects (children of a group can\u2019t be grouped again)' };
+    }
+    const skipped = sel.length - groupable.length;
+    // centroid of child positions (world — all are top-level, so store TRS = world)
+    let cx = 0, cy = 0, cz = 0;
+    for (const id of groupable) { const p = all[id].position ?? [0, 0, 0]; cx += p[0]; cy += p[1]; cz += p[2]; }
+    cx /= groupable.length; cy /= groupable.length; cz /= groupable.length;
     const gid = uuid();
-    this.objects[gid] = { id: gid, kind: 'group', name: 'Group', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
-    for (const id of this.selectedIds) this.update(id, { parentId: gid });
+    this.objects[gid] = { id: gid, kind: 'group', name: 'Group', position: [cx, cy, cz], rotation: [0, 0, 0], scale: [1, 1, 1] };
+    for (const id of groupable) {
+      // pie: local = inv(group) ∘ world; group rot=0 scale=1 at creation → local = world − centroid
+      const o = all[id];
+      const p = o.position ?? [0, 0, 0];
+      this.update(id, { parentId: gid, position: [p[0] - cx, p[1] - cy, p[2] - cz] });
+    }
     this.select([gid]);
-    return gid;
+    this.changed();
+    return { ok: true, grouped: groupable.length, skipped, partial: skipped > 0 };
   }
 }
 
