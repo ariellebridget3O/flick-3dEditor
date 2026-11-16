@@ -168,7 +168,7 @@ export function createEnvironment(scene, settings) {
     const glowAmount = () => light.nightLights === false ? 0 : glow;
     const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;      // round 6 (D5)
     const indoor = !!light.indoor;                              // round 6 (D7)
-    const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '');
+    const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0);
     if (key === _lastKey) return glowAmount();
     _lastKey = key;
     const g = daylightAt(light.elevationDeg);

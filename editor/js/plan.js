@@ -44,11 +44,21 @@ export class PlanView {
     this.rotateHandlePx = null;
     this._wire();
     this._buildBar();
-    app.onViewportMode = () => { this.setVisible(app.page?.viewportMode === 'plan'); this.bar.style.display = this.shown() ? 'flex' : 'none'; };
+    app.onViewportMode = () => this._syncShown();
+    if (app.page?.subscribe) app.page.subscribe(() => this._syncShown());
     this.setVisible(app.page?.viewportMode === 'plan');
   }
 
   shown() { return this.app.page.viewportMode === 'plan' && this.app.page.mode === 'edit' && !this.app.page.playing; }
+  _syncShown() {
+    const on = this.shown();
+    this.setVisible(on);
+    if (this.bar) this.bar.style.display = on ? 'flex' : 'none';
+    // overlays that assume the 3D view: nav-ball pad + floating toolbar must not float over the plan
+    const pad = document.getElementById('navBallPad'), tb = document.getElementById('editToolbar');
+    if (pad) pad.style.display = on ? 'none' : '';
+    if (tb) tb.style.display = on ? 'none' : (this.app.objects?.selectedIds?.length ? 'flex' : 'none');
+  }
   setVisible(v) { this.canvas.style.display = v ? 'block' : 'none'; if (v) { this.fitted = false; this.resize(); } }
 
   // ---------------- projection ----------------
@@ -61,6 +71,8 @@ export class PlanView {
   resize() {
     const r = this.host.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) return;
+    if (this._lastW === r.width && this._lastH === r.height && this.canvas.width) return;
+    this._lastW = r.width; this._lastH = r.height;
     const dpr = window.devicePixelRatio || 1;
     this.canvas.width = Math.round(r.width * dpr);
     this.canvas.height = Math.round(r.height * dpr);
@@ -141,14 +153,14 @@ export class PlanView {
     const half = Math.min(55, Math.max(3, 16 * (Math.abs(sc[0]) + Math.abs(sc[1]) + Math.abs(sc[2])) / 3)) * Math.PI / 180;   // Rhe
     const dirX = Math.sin(pose.yaw), dirZ = Math.cos(pose.yaw);     // spotlight aims −Z-of-rotation → forward = (sin yaw, cos yaw) in plan coords? use mesh world fwd:
     const mesh = app.meshById.get(item.id);
-    let fx = dirX, fz = dirZ;
+    let fx = dirX, fy = dirZ, fz = dirZ;
     if (mesh) {
       mesh.updateWorldMatrix(true, false);
       const m = mesh.matrixWorld.elements;
-      fx = m[8]; fz = m[10];       // world −Z column = forward
-    }
-    if (pose.y <= 0 || fz > -0.05) return null;                     // needs downward aim
-    const d = pose.y / -fz;
+      fx = -m[8]; fy = -m[9]; fz = -m[10];   // forward = world −Z column (live TDe: (0,0,−1)·rot)
+    } else { fy = 0; }
+    if (pose.y <= 0 || fy > -0.05) return null;                     // y-component gate (live TDe)
+    const d = pose.y / -fy;
     if (!Number.isFinite(d) || d <= 0) return null;
     return { x: pose.x + fx * d, z: pose.z + fz * d, radiusM: Math.max(0.4, d * Math.tan(half)), square: o?.spotlight?.shape === 'square' };
   }
@@ -288,7 +300,7 @@ export class PlanView {
         const r = it.fp.shape === 'marker' ? 34 : Math.max(it.fp.halfWidthM ?? .5, it.fp.halfDepthM ?? .5) * 1.2 * view.pxPerM + 10;
         ctx.strokeStyle = P.accent; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
-        const rh = this.toPx(it.fp.x + Math.sin(it.fp.yawRad ?? 0) * r / view.pxPerM, it.fp.z + Math.cos(it.fp.yawRad ?? 0) * r / view.pxPerM);
+        const rh = this.toPx(it.fp.x - Math.sin(it.fp.yawRad ?? 0) * r / view.pxPerM, it.fp.z - Math.cos(it.fp.yawRad ?? 0) * r / view.pxPerM);
         ctx.beginPath(); ctx.arc(rh.x, rh.y, 6, 0, Math.PI * 2);
         ctx.fillStyle = P.panel; ctx.fill(); ctx.strokeStyle = P.accent; ctx.lineWidth = 1.4; ctx.stroke();
         this.rotateHandlePx = rh;
@@ -324,8 +336,8 @@ export class PlanView {
       const [aw, ah] = C.ASPECTS[app.page?.recordAspect ?? '16:9'] ?? C.ASPECTS['16:9'];
       const aspect = aw / ah;
       const half = Math.atan(Math.tan((it.pose.fovDeg ?? 50) * Math.PI / 360) * aspect);
-      const f1 = this.toPx(it.fp.x + Math.sin(yaw - half) * LENS_AHEAD_M, it.fp.z + Math.cos(yaw - half) * LENS_AHEAD_M);
-      const f2 = this.toPx(it.fp.x + Math.sin(yaw + half) * LENS_AHEAD_M, it.fp.z + Math.cos(yaw + half) * LENS_AHEAD_M);
+      const f1 = this.toPx(it.fp.x - Math.sin(yaw - half) * LENS_AHEAD_M, it.fp.z - Math.cos(yaw - half) * LENS_AHEAD_M);
+      const f2 = this.toPx(it.fp.x - Math.sin(yaw + half) * LENS_AHEAD_M, it.fp.z - Math.cos(yaw + half) * LENS_AHEAD_M);
       ctx.globalAlpha = selected ? 0.2 : 0.1; ctx.fillStyle = P.camera;
       ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(f1.x, f1.y); ctx.lineTo(f2.x, f2.y); ctx.closePath(); ctx.fill();
       ctx.globalAlpha = selected ? 1 : 0.6; ctx.strokeStyle = P.camera; ctx.lineWidth = selected ? 1.4 : 1; ctx.stroke();
@@ -366,7 +378,7 @@ export class PlanView {
       ctx.moveTo(c.x - 0.45 * n, c.y + 0.3 * n); ctx.lineTo(c.x - 0.45 * n, c.y + n);       // legs
       ctx.moveTo(c.x + 0.45 * n, c.y + 0.3 * n); ctx.lineTo(c.x + 0.45 * n, c.y + n);
       ctx.stroke();
-      const fx = Math.sin(yaw), fz = Math.cos(yaw);   // facing tick 1.35n→2.1n (screen: +z is down; world fwd (sin,cos) maps to screen (sin, cos)·(x, +y))
+      const fx = -Math.sin(yaw), fz = -Math.cos(yaw);   // forward = (−sin,−cos) (live FU)
       ctx.beginPath();
       ctx.moveTo(c.x + fx * 1.35 * n, c.y + fz * 1.35 * n);
       ctx.lineTo(c.x + fx * 2.1 * n, c.y + fz * 2.1 * n);
@@ -462,7 +474,7 @@ export class PlanView {
     if (e.button !== 0) return;
     if (this.drawing) { this.drag = { kind: 'draw' }; return; }
     const hit = this.hitAt(px, py);
-    if (hit?.type === 'rotate') { this.drag = { kind: 'rotate', item: hit.item, snap: e.shiftKey }; return; }
+    if (hit?.type === 'rotate') { this.app.show.beginEditGesture(); this.drag = { kind: 'rotate', item: hit.item, snap: e.shiftKey }; return; }
     if (hit?.type === 'item') {
       let id = hit.item.id;
       const o = this.app.objects.get(id);
@@ -532,7 +544,7 @@ export class PlanView {
     if (!this.drag) return;
     const d = this.drag;
     this.drag = null;
-    if (d.kind === 'move') { app.show.endEditGesture(); return; }
+    if (d.kind === 'move' || d.kind === 'rotate') { app.show.endEditGesture(); return; }
     if (d.kind === 'marquee') {
       const m = this.marquee;
       this.marquee = null;
@@ -548,7 +560,6 @@ export class PlanView {
             picked.push(parent?.kind === 'group' && !['camera', 'target', 'spotlight'].includes(o.kind) ? o.parentId : it.id);
           }
         }
-        app.select ? null : null;
         app.objects.select([...new Set([...d.base, ...picked])]);
       }
       return;
@@ -602,14 +613,22 @@ export class PlanView {
     if (anchors.length < 2) return;
     const o = this.app.objects.get(id);
     const dur = Math.max(0.5, samples[samples.length - 1].t ?? 1);
-    const steady = this._matchSpeed !== false;
+    const steady = !this._matchSpeed;   // live: steady:!matchDrawSpeed — checked = match YOUR speed (arc/dur)
     const speed = steady ? (o.kind === 'camera' ? 2 : 1.4) : Math.max(0.01, arc / dur);
     const threeD = anchors.map(a => [a.x, o.position?.[1] ?? 0, a.z]);
+    const built = buildTangents(threeD);
     this.app.show.beginEditGesture();
     try {
-      if (o.kind === 'camera') this.app.show.addItem(id, { kind: 'cam-path', anchors: buildTangents(threeD), speedUnitsPerS: speed, aim: 'travel' });
-      else if (o.kind === 'humanoid' || o.kind === 'simple_figure') this.app.show.addItem(id, { kind: 'path', anchors: buildTangents(threeD), speedUnitsPerS: speed, gait: 'walk', aim: 'travel' });
-      else this.app.show.addItem(id, { kind: 'path', anchors: buildTangents(threeD), speedUnitsPerS: speed, aim: 'locked' });
+      // live replaceMoveFromSamples: REPLACE the existing move segment, not stack another
+      const tr = this.app.show.trackOf(id);
+      const existing = tr?.items.find(it => (it.kind === 'path' || it.kind === 'cam-path') && (it.anchors?.length ?? 0) > 1);
+      if (existing && tr) {
+        const patch = { anchors: built, speedUnitsPerS: speed };
+        if (o.kind !== 'camera' && existing.kind === 'path') patch.aim = existing.aim ?? 'travel';
+        this.app.show.patchItem(tr.id, existing.id, patch);
+      } else if (o.kind === 'camera') this.app.show.addItem(id, { kind: 'cam-path', anchors: built, speedUnitsPerS: speed, aim: 'travel' });
+      else if (o.kind === 'humanoid' || o.kind === 'simple_figure') this.app.show.addItem(id, { kind: 'path', anchors: built, speedUnitsPerS: speed, gait: 'walk', aim: 'travel' });
+      else this.app.show.addItem(id, { kind: 'path', anchors: built, speedUnitsPerS: speed, aim: 'locked' });
     } finally { this.app.show.endEditGesture(); }
   }
 

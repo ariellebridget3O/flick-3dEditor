@@ -487,6 +487,9 @@ export class ShowStore extends StoreBase {
   // ---- detach references on object delete (DHr) ----
   detachReferences(deletedId) {
     this.beginEditGesture();
+    // unlinkTarget: cameras referencing the deleted target drop the reference (live Xu)
+    for (const o of Object.values(this.objects))
+      if (o.kind === 'camera' && o.targetId === deletedId) this.update(o.id, { targetId: null });
     for (const tr of this.show.tracks) {
       for (let i = 0; i < tr.items.length; i++) {
         const it = tr.items[i];

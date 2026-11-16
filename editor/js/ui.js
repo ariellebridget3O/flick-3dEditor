@@ -242,22 +242,23 @@ function buildLightPopover(app) {
       ghost.style.display = '';
       knobAt(ghost, g.azimuthDeg, g.elevationDeg, yaw);
     } else ghost.style.display = 'none';
-    // geo fields
-    $id('lpTime').value = fmtHHMM(l.geo.timeOfDay ?? 9.5);
+    // geo fields — NEVER clobber the field the user is typing into (review P1-4)
+    const setVal = (node, v) => { if (node && document.activeElement !== node) node.value = v; };
+    setVal($id('lpTime'), fmtHHMM(l.geo.timeOfDay ?? 9.5));
     const doy = l.geo.dayOfYear ?? 166;
     // month/day from dayOfYear
     let rem = doy, mm = 1;
     for (let i = 0; i < 12 && rem > MONTH_DAYS[i]; i++) { rem -= MONTH_DAYS[i]; mm = i + 2; }
     if (mm > 12) mm = 12;
-    $id('lpMonth').value = mm; $id('lpDay').value = rem;
-    $id('lpLat').value = l.geo.latitudeDeg ?? 45;
-    $id('lpAlt').value = l.geo.altitudeM ?? 300;
-    $id('lpNorth').value = l.geo.northOffsetDeg ?? 0;
+    setVal($id('lpMonth'), mm); setVal($id('lpDay'), rem);
+    setVal($id('lpLat'), l.geo.latitudeDeg ?? 45);
+    setVal($id('lpAlt'), l.geo.altitudeM ?? 300);
+    setVal($id('lpNorth'), l.geo.northOffsetDeg ?? 0);
     // weather + indoor
     el.querySelectorAll('#lpWeather button').forEach(b => b.classList.toggle('on', b.dataset.w === l.weather));
     $id('lpIndoor').checked = !!l.indoor;
     $id('lpAmbRow').style.display = l.indoor ? '' : 'none';
-    $id('lpAmb').value = l.ambientLevel ?? 0.35;
+    setVal($id('lpAmb'), l.ambientLevel ?? 0.35);
     $id('lpAmbVal').textContent = (l.ambientLevel ?? 0.35).toFixed(2);
     $id('lpNight').checked = l.nightLights !== false;
     // presets: elevation-only (aria-pressed when |el - preset| < .5)
@@ -404,12 +405,25 @@ function refreshSelectionUI(app) {
 // cascade-aware object delete: removes (recursive), then detaches show references for the
 // WHOLE doomed set (group-cascade children's tracks/subject refs die too, not just the group's)
 export function deleteObjects(app, ids) {
+  // doomed-set accounting (review P2-11): collect the full cascade FIRST so a target that
+  // dies inside a camera/group cascade is never double-counted as "refused", and a paired
+  // target inside a group is force-removed (its camera's targetId is unlinked by detachReferences).
+  const all = () => app.objects.all();
+  const doomed = new Set();
+  const collect = id => {
+    const o = all()[id];
+    if (!o || doomed.has(id)) return;
+    doomed.add(id);
+    for (const [cid, c] of Object.entries(all())) if (c.parentId === id) collect(cid);
+    if (o.kind === 'camera' && o.targetId && all()[o.targetId]) collect(o.targetId);
+  };
+  for (const id of [...ids]) collect(id);
   let refused = 0;
-  const before = new Set(Object.keys(app.objects.all()));
   for (const id of [...ids]) {
-    if (!app.objects.remove(id)) { refused++; continue; }   // paired target refuses (live Xu)
+    if (doomed.has(id)) { app.objects.remove(id, true); continue; }
+    if (!app.objects.remove(id)) refused++;   // standalone paired target refuses (live Xu)
   }
-  for (const oid of before) if (!app.objects.get(oid)) app.show.detachReferences(oid);
+  for (const oid of doomed) if (!app.objects.get(oid)) app.show.detachReferences(oid);
   return refused;
 }
 
@@ -1028,8 +1042,12 @@ function openAddTrackMenu(app, btn, cands) {
     const search = menu.querySelector('.ctx-search');
     search.oninput = () => {
       const q = search.value.trim().toLowerCase();
-      render(q ? cands.filter(([id, o]) => (o.name ?? '') + ' ' + o.kind.toLowerCase().includes(q)) : cands);
-      menu.querySelector('.ctx-search').focus();
+      const keep = search.value, keepStart = search.selectionStart, keepEnd = search.selectionEnd;
+      render(q ? cands.filter(([id, o]) => ((o.name ?? '') + ' ' + o.kind).toLowerCase().includes(q)) : cands);
+      const s2 = menu.querySelector('.ctx-search');
+      s2.value = keep;                       // preserve query + caret across re-render
+      try { s2.setSelectionRange(keepStart, keepEnd); } catch (_) {}
+      s2.focus();
     };
     menu.querySelectorAll('button').forEach(b => b.onclick = () => {
       menu.remove();
