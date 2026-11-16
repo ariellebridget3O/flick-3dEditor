@@ -289,6 +289,11 @@ export class ObjectManager {
     try {
       const gltf = await this.cameraGlbPromise;
       const model = gltf.scene.clone(true);
+      model.traverse(o => {   // r8 (audit P2-6c): clone materials per instance — shared materials would make the palette drop-glow all-or-nothing across cameras
+        if (!o.isMesh) return;
+        const m = o.material;
+        o.material = Array.isArray(m) ? m.map(x => x.clone()) : m.clone();
+      });
       // mie: scale so max dim = .55, yaw π, centre at origin
       const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
       const m = Math.max(size.x, size.y, size.z);
@@ -363,7 +368,13 @@ export class ObjectManager {
     try {
       const gltf = await this.spotGlbPromise;
       const model = gltf.scene.clone(true);
-      model.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+      model.traverse(o => {
+        if (o.isMesh) {
+          o.castShadow = false; o.receiveShadow = false;
+          const m = o.material;   // r8 (audit P2-6c): per-instance materials (see _loadCameraGlb)
+          o.material = Array.isArray(m) ? m.map(x => x.clone()) : m.clone();
+        }
+      });
       holder.add(model);
     } catch (e) {
       const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.36, 20).rotateX(Math.PI / 2),

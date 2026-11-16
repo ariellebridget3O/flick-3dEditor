@@ -127,7 +127,7 @@ export function clampKeyTime(keys, fromTS, desiredTS, durationS) {
 // ---- cross-object kind compatibility (bGt / a$ / yGt / Art / DHr) ----
 
 // Q0 — object kinds that can own "object/path" items (everything except cameras)
-const NON_CAMERA_KINDS = new Set(['humanoid', 'simple_figure', 'cube', 'sphere', 'cylinder', 'prop', 'group', 'target', 'spotlight']);
+export const NON_CAMERA_KINDS = new Set(['humanoid', 'simple_figure', 'cube', 'sphere', 'cylinder', 'prop', 'group', 'target', 'spotlight']);
 
 // bGt — normalize an item to an abstract action
 function actionOf(it) {
@@ -151,7 +151,7 @@ function actionOf(it) {
 }
 
 // a$ — remap an action for a destination owner kind (null = incompatible)
-function remapAction(act, ownerKind) {
+export function remapAction(act, ownerKind) {
   if (ownerKind === 'camera') {
     if (act.kind === 'camera') return act;
     if (act.kind === 'path') return { kind: 'camera', action: 'path' };

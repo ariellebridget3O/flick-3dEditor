@@ -7,6 +7,7 @@ import { normalizeLight, solarPositionDeg, geoToSceneLight } from './env.js';
 import { itemDuration } from './schema.js';
 import { showLayout, ITEM_LABELS, fovFromFocal } from './tracks.js';
 import { MAGNET_PX, maxEnd, placeAvoiding, repackSequential, planMove, moveItemToIndex, clampKeyTime, canDuplicateOnto, appendPlace } from './place.js';
+import { ACTION_MIME, parseActionPayload, defaultDurationFor, revealActionsFor } from './palette.js';
 import { createRangeTool, renderTakeRange, wireRangeToolGlobal } from './takerange.js';
 import { stickFromDelta } from './navball.js';
 
@@ -996,6 +997,7 @@ function buildTimeline(app) {
     openAddTrackMenu(app, $('btnAddTrack'), cands);
   };
   app.onTimeline = () => refreshTimeline(app);
+  app._ui = { refreshInspector: () => refreshInspector(app), refreshTimeline: () => refreshTimeline(app) };
 }
 
 const isPersonKindO = k => k === 'humanoid' || k === 'simple_figure';
@@ -1123,7 +1125,7 @@ function wireTimelineInteractions(app, lanes, pps, magnet, layout) {
   });
   lanes.querySelectorAll('.lane-add').forEach(b => b.onclick = e => {
     e.stopPropagation();
-    openAddMenu(app, b);
+    revealActionsFor(app, b.dataset.char);   // r8 audit P1-2: live lane "+" opens the Actions palette
   });
   lanes.querySelectorAll('.blk').forEach(b => wireBlock(app, b, pps, magnet, layout, lanes));
   // round 6: empty-lane click clears the selected segment (live clearFocus) — closes the Action section
@@ -1135,6 +1137,73 @@ function wireTimelineInteractions(app, lanes, pps, magnet, layout) {
       refreshInspector(app);
     }
   }));
+  // ---- r8: palette action-tile drop onto lanes (nCr dragover/drop verbatim port) ----
+  wireLaneActionDrop(app, lanes, pps, magnet, layout);
+}
+
+// nCr lane-drop (verbatim Z(): dur=n3r(payload), obstacles = own items, markers = EVERY block edge
+// across ALL tracks, magnet radius Kne/pps when magnet&&!alt, fallback = maxEnd(own))
+function wireLaneActionDrop(app, lanes, pps, magnet, layout) {
+  const laneBodyZ = (lb, clientX, alt, payload) => {
+    const tr = layout.tracks.find(t => t.trackId === lb.dataset.trackId);
+    const own = tr ? tr.items.map(u => ({ startS: u.startS, endS: u.endS })) : [];
+    const markers = [];
+    for (const t of layout.tracks) for (const u of t.items) { markers.push(u.startS); markers.push(u.endS); }
+    const { startS, guidesS } = placeAvoiding({
+      desiredStartS: (clientX - lb.getBoundingClientRect().left) / pps,
+      durationS: defaultDurationFor(payload),
+      obstacles: own,
+      markersS: markers,
+      radiusS: magnet && !alt ? MAGNET_PX / pps : 0,
+      fallbackStartS: maxEnd(own.map(o => o)),
+    });
+    return { startS, durationS: defaultDurationFor(payload), guidesS };
+  };
+  const clearGhost = lb => {
+    lb.querySelectorAll('.ghost-blk,.ghost-caret,.snap-guide').forEach(g => g.remove());
+    lb.classList.remove('lane-drop');
+  };
+  lanes.querySelectorAll('.lane-body').forEach(lb => {
+    lb.addEventListener('dragover', e => {
+      if (!e.dataTransfer.types.includes(ACTION_MIME)) return;
+      const payload = app.show.draggingAction;
+      if (!payload) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      const z = laneBodyZ(lb, e.clientX, e.altKey, payload);
+      lb.classList.add('lane-drop');
+      lb.querySelectorAll('.ghost-blk,.ghost-caret,.snap-guide').forEach(g => g.remove());
+      for (const g of z.guidesS) {
+        const el = document.createElement('span');
+        el.className = 'snap-guide';
+        el.style.left = `${g * pps}px`;
+        lb.appendChild(el);
+      }
+      const ghost = document.createElement('span');
+      ghost.className = z.durationS > 0 ? 'ghost-blk' : 'ghost-caret';
+      ghost.style.left = `${z.startS * pps}px`;
+      if (z.durationS > 0) ghost.style.width = `${Math.max(3, z.durationS * pps)}px`;
+      lb.appendChild(ghost);
+    });
+    lb.addEventListener('dragleave', e => {
+      if (lb.contains(e.relatedTarget)) return;
+      clearGhost(lb);
+    });
+    lb.addEventListener('drop', e => {
+      if (!e.dataTransfer.types.includes(ACTION_MIME)) return;
+      e.preventDefault();
+      const payload = parseActionPayload(e.dataTransfer.getData(ACTION_MIME));
+      const z = payload ? laneBodyZ(lb, e.clientX, e.altKey, payload) : null;
+      clearGhost(lb);
+      if (!payload || !z) return;
+      app.show.beginEditGesture();     // audit P1-1: one outer bracket per user action
+      try { app.show.addActionToTrack(lb.dataset.trackId, payload, z.startS); }
+      finally { app.show.endEditGesture(); }
+      app.palette?.dismiss();          // SCr chain: addActionToTrack → dismissActions
+      refreshTimeline(app);
+      refreshInspector(app);
+    });
+  });
 }
 
 // live rCr: portal dropdown above the button — search input + object options
@@ -1173,32 +1242,6 @@ function openAddTrackMenu(app, btn, cands) {
   menu.style.minWidth = mw + 'px';
   menu.querySelector('.ctx-search')?.focus();
   setTimeout(() => document.addEventListener('click', e => { if (!menu.contains(e.target)) menu.remove(); }, { once: true }), 0);
-}
-
-function openAddMenu(app, btn) {
-  const char = btn.dataset.char;
-  const obj = app.objects.get(char);
-  const menu = document.createElement('div');
-  menu.className = 'ctx-menu';
-  const items = obj?.kind === 'camera'
-    ? [['cam-still', 'Camera still'], ['cam-move', 'Camera move'], ['cam-path', 'Camera path'], ['cam-follow', 'Follow'], ['cam-transform', 'Camera transform']]
-    : [['path', 'Walk path'], ['clip', 'Clip'], ['transform', 'Transform'], ['rotate', 'Rotate'], ['revolve', 'Revolve'], ['scale', 'Scale']];
-  menu.innerHTML = items.map(([k, l]) => `<button data-kind="${k}">${l}</button>`).join('');
-  document.body.appendChild(menu);
-  const r = btn.getBoundingClientRect();
-  menu.style.left = `${r.left}px`; menu.style.top = `${r.bottom + 4}px`;
-  menu.onclick = ev => {
-    const b = ev.target.closest('button'); if (!b) return;
-    menu.remove();
-    const item = addItemKind(app, char, b.dataset.kind, app.page.playheadS);
-    refreshTimeline(app);
-    if (item) {                                   // round 6: new item becomes the selected segment
-      app.page.selectedSegment = { trackId: btn.dataset.track, itemId: item.id };
-      refreshInspector(app);
-      document.querySelector('.blk[data-item="' + item.id + '"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
-    }
-  };
-  setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
 }
 
 // ---- block drag: move / reorder / alt-duplicate (nCr pointer flow, q5r/_ie solvers) ----
@@ -1523,6 +1566,12 @@ function buildViewportOverlays(app) {
   const lassoBox = document.getElementById('lassoBox');
   const pad = document.getElementById('navBallPad');
   lassoBtn.onclick = () => app.page.toggleLasso();
+  // r8: Actions palette toggle (chrome divergence: live opens via Add-menu item; we use a toolbar button)
+  const actionsBtn = document.getElementById('btnActions');
+  if (actionsBtn) {
+    actionsBtn.onclick = () => app.palette?.toggle();
+    app.objects.subscribe(() => actionsBtn.setAttribute('aria-pressed', String(!!app.palette?.state.open)));
+  }
   // round 6 B6: snap toggle + B5 shade switch
   const snapBtn = document.getElementById('btnSnap');
   if (snapBtn) {

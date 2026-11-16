@@ -171,6 +171,16 @@ export class App {
     this.manipulator = new Manipulator(this);
     this.pathEditor = new PathEditor(this);
 
+    // ---- palette store hooks (live BHr ctor wiring: objects.updateObjectTransform as 5th arg;
+    // our store split routes segment selection/paint through PageStore + PathEditor) ----
+    this.show._hooks = {
+      page: this.page,
+      updateObjectTransform: (id, patch) => this.objects.update(id, patch),
+      enterPathEdit: (trackId, itemId) => this.pathEditor.enterPaint(trackId, itemId),
+      seedAnchorY: (trackId, itemId, pos, idx) => this.pathEditor._anchorPosFor({ x: pos[0], y: pos[1], z: pos[2] }, idx),
+      propDims: key => this.objectManager?.propCatalog?.[key]?.dims,
+    };
+
     // ---- raycaster ----
     this.raycaster = new THREE.Raycaster();
 

@@ -165,7 +165,10 @@ export const C = {
   RANGE_MIN_GAP: 0.1,        // eie (old Qae=0.1; new Qae=0.01 is speed floor!)
   CURVE_RESAMPLE: 64,        // Btt
   HEIGHT_CURVE_MAX: 100,     // E2r
-  ITEM_DEFAULT_DUR: 5,
+  ITEM_DEFAULT_DUR: 5,       // N8
+  SCALE_UP_FACTOR: 2,        // AHr — palette scale-up
+  SCALE_DOWN_FACTOR: 0.5,    // CHr — palette scale-down
+  ACTION_DUR_TRANSFORM: 4,   // Jae
   CAM_PAN_DEG_PER_S: 20,     // VGt (old HGt)
   FIELD_CLAMP: { angleDeg: [15, 360], heightDeltaUnits: [0.5, 20], distanceScale: [0.1, 4], aimOffsetUnits: [-15, 15], durationS: [0.1, 120] },
   PATH_INSERT_THRESHOLD: 0.4, // Qzr — nearest-segment XZ distance for insert-vs-append

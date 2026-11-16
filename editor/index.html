@@ -52,6 +52,7 @@
         <div id="lassoBox" class="lasso-box" style="display:none"></div>
         <button id="navBallPad" class="nav-ball-pad" aria-label="Drag to move around the scene" data-onboard-target="nav-ball"></button>
         <div id="rightToolbar" class="right-toolbar">
+          <button id="btnActions" class="rt-btn" aria-label="Toggle the actions palette" aria-pressed="false" title="Actions — drag onto objects, people and timeline lanes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11L9.5 22 19 9.5h-6.5L13 2z"/></svg></button>
           <button id="btnLasso" class="rt-btn" aria-label="Lasso select: drag a box" aria-pressed="false" title="Lasso select: drag a box">⭕</button>
           <button id="btnSnap" class="rt-btn" aria-label="Snap to grid (hold Shift to invert)" aria-pressed="false" title="Snap to grid — 0.25 m / 15° (hold Shift to invert)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
         </div>
@@ -116,8 +117,11 @@
   <script type="module">
     import { boot } from './js/main.js';
     import { buildUI } from './js/ui.js';
+    import { createPalette, installActionDrop } from './js/palette.js';
     const app = await boot(document.getElementById('viewport'));
     buildUI(app);
+    createPalette(app);          // r8: the Actions window (M5r port)
+    installActionDrop(app);      // r8: viewport action-drop (BUr port)
     window.__app = app;   // test hook
     const p = new URLSearchParams(location.search);
     if (p.get('scene')) {

@@ -2,9 +2,76 @@
 // with op-based undo and beginEditGesture/endEditGesture bracketing.
 import { uuid, packItems, itemDuration } from './schema.js';
 import { arcLength, polylineOf, buildTangents } from './curves.js';
-import { C } from './const.js';
-import { moveItemToIndex, canDuplicateOnto, dropSelfRefs, moveKey } from './place.js';
+import { C, CAM_MOVE_PRESETS } from './const.js';
+import { moveItemToIndex, canDuplicateOnto, dropSelfRefs, moveKey, maxEnd, appendPlace, placeAvoiding, NON_CAMERA_KINDS, remapAction } from './place.js';
+import { CAM_ITEM_KINDS, subjectlessItem } from './tracks.js';
 import * as THREE from 'three';
+
+// ---- r8b aim-math helpers (verbatim family: CP/wDe/pie/VWt/Zo/cN/s$/NP/VDe/uje/kv) ----
+// s2e — angle wrap to (−π, π]
+const s2e = v => v - 2 * Math.PI * Math.ceil((v - Math.PI) / (2 * Math.PI));
+const _ae = new THREE.Euler();
+// wDe — decompose with the euler-flip heuristic (x+π, π−y, z+π when |x|+|z| smaller by >1e-9)
+function decomposeTRSFlip(m) {
+  const p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+  m.decompose(p, q, s);
+  _ae.setFromQuaternion(q, 'XYZ');
+  const flip = [s2e(_ae.x + Math.PI), s2e(Math.PI - _ae.y), s2e(_ae.z + Math.PI)];
+  const rot = (Math.abs(flip[0]) + Math.abs(flip[2]) < Math.abs(_ae.x) + Math.abs(_ae.z) - 1e-9) ? flip : [_ae.x, _ae.y, _ae.z];
+  return { position: [p.x, p.y, p.z], rotation: rot, scale: [s.x, s.y, s.z] };
+}
+// Zo @4908770 — one-level world TRS: parent·child (VWt), else local
+function worldTRSof(objects, id) {
+  const o = objects[id];
+  if (!o) return { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
+  const local = { position: o.position ?? [0, 0, 0], rotation: o.rotation ?? [0, 0, 0], scale: o.scale ?? [1, 1, 1] };
+  const p = o.parentId ? objects[o.parentId] : null;
+  if (!p) return local;
+  const m = composeMatrix(p.position ?? [0, 0, 0], p.rotation ?? [0, 0, 0], p.scale ?? [1, 1, 1])
+    .multiply(composeMatrix(local.position, local.rotation, local.scale));
+  return decomposeTRSFlip(m);
+}
+// uje @5263906 — object height from kind (humanoid jP·scaleY; prop catalog dims; target/spotlight 0)
+function propHeightOf(obj, propDims) {
+  if (obj.kind === 'humanoid' || obj.kind === 'simple_figure') return C.FIG_HEIGHT * obj.scale[1];
+  const cat = obj.kind === 'prop' && obj.propKey ? propDims?.(obj.propKey) : undefined;
+  if (cat) return (cat[1] || 1) * obj.scale[1];
+  return obj.kind === 'target' || obj.kind === 'spotlight' ? 0 : obj.scale[1];
+}
+// VDe @5264034 — world Y bounds (groups fold non-aid children; fie = camera/target/spotlight skip)
+function objectWorldBounds(id, obj, objs, propDims) {
+  if (obj.kind !== 'group') {
+    const a = worldTRSof(objs, id);
+    return { minY: a.position[1], maxY: a.position[1] + propHeightOf({ ...obj, scale: a.scale }, propDims) };
+  }
+  let lo = Infinity, hi = -Infinity;
+  for (const [cid, c] of Object.entries(objs)) {
+    if (c.parentId !== id || c.kind === 'camera' || c.kind === 'target' || c.kind === 'spotlight') continue;
+    const a = worldTRSof(objs, cid);
+    lo = Math.min(lo, a.position[1]);
+    hi = Math.max(hi, a.position[1] + propHeightOf({ ...c, scale: a.scale }, propDims));
+  }
+  return lo === Infinity ? { minY: obj.position[1], maxY: obj.position[1] } : { minY: lo, maxY: hi };
+}
+// pie/cN @4908396 — convert a world-space TRS patch into parent-local space
+function parentLockedTRS(obj, objs, patch, propDims) {
+  const p = obj.parentId ? objs[obj.parentId] : null;
+  if (!p) return patch;
+  const inv = composeMatrix(p.position ?? [0, 0, 0], p.rotation ?? [0, 0, 0], p.scale ?? [1, 1, 1]).invert();
+  return decomposeTRSFlip(inv.multiply(composeMatrix(patch.position, patch.rotation, patch.scale)));
+}
+// s$ @4908529 — the target position that keeps it aiming at the world-space aim point
+function keepAimPoint(obj, objs, aimWorld, propDims) {
+  return parentLockedTRS(obj, objs, { position: aimWorld, rotation: [0, 0, 0], scale: [1, 1, 1] }, propDims).position;
+}
+// kv @4911593 — lookAt rotation (yaw+pitch) from position→aim, then rotateY(π) (camera faces −Z)
+const _kvObj = new THREE.Object3D();
+function lookAtEulerRZ(pos, aim) {
+  _kvObj.position.set(pos[0], pos[1], pos[2]);
+  _kvObj.lookAt(aim[0], aim[1], aim[2]);
+  _kvObj.rotateY(Math.PI);
+  return [_kvObj.rotation.x, _kvObj.rotation.y, _kvObj.rotation.z];
+}
 
 // ---- TRS compose/decompose helpers (pie/VWt group math; plain THREE.Matrix4) ----
 function composeMatrix(position, rotation, scale) {
@@ -357,6 +424,229 @@ export class ShowStore extends StoreBase {
     this._commit(trackId, t => { t.items = moveItemToIndex(t.items, itemId, toIndex); });
   }
 
+  // ===== actions palette store family (live BHr methods, r8 extraction @5543181..5544343
+  // + r8b aim/seed units @4908396..5547928). Hooks injected at boot (main.js):
+  // _hooks = { page, updateObjectTransform, enterPathEdit, seedAnchorY, propDims }.
+  // Live keeps selectedSegment in the same signal store; our split routes through PageStore.
+  _objs() { return this._companion?.all() ?? {}; }
+
+  isCameraTarget(id) {                                   // Xu @4909267
+    const o = this._objs()[id];
+    return o?.kind === 'target' && Object.values(this._objs()).some(c => c.kind === 'camera' && c.targetId === id);
+  }
+  canOwnTrack(id) { return !this.isCameraTarget(id); }   // BHr @5543438
+  resolveActionForObject(id, payload) {                  // BHr @5543283 = a$(payload, kind)
+    return remapAction(payload, this._objs()[id]?.kind);
+  }
+  canDropActionOnObject(id, payload) {                   // BHr @5543348
+    return this.canOwnTrack(id) && this.resolveActionForObject(id, payload) !== null;
+  }
+  addPerformanceTrack(id) {                              // BHr @5542786 — Xzt gate = Q0||camera; !Xu; no existing track
+    const kind = this._objs()[id]?.kind;
+    if (!(NON_CAMERA_KINDS.has(kind) || kind === 'camera') || this.isCameraTarget(id)) return null;
+    if (this.show.tracks.some(t => t.characterId === id)) return null;
+    const tr = { id: uuid(), characterId: id, items: [] };
+    this.show.tracks.push(tr);
+    this.changed();
+    return tr.id;
+  }
+  placeItemS(items, durationS, atS) {                    // @5528347: atS===undefined ? MP : W5r
+    return atS === undefined ? maxEnd(items) : appendPlace(items, durationS, atS);
+  }
+  _selectSegment(trackId, itemId) {                      // live selectedSegment.set (same-store signal)
+    const page = this._hooks?.page;
+    if (page) { page.selectedSegment = { trackId, itemId }; page.changed(); }
+  }
+  _kindOfTrack(trackId) {                                // trackObjectKind @5544574
+    const tr = this.show.tracks.find(t => t.id === trackId);
+    return tr ? this._objs()[tr.characterId]?.kind : undefined;
+  }
+  addClipItem(trackId, clip, atS) {                      // @5544717 — humanoid gate, N8=5 FIXED duration
+    if (this._kindOfTrack(trackId) !== 'humanoid') return null;
+    const id = uuid();
+    this._commit(trackId, tr => {
+      tr.items.push({ id, kind: 'clip', clip, durationS: C.ITEM_DEFAULT_DUR, startS: this.placeItemS(tr.items, C.ITEM_DEFAULT_DUR, atS) });
+    });
+    this._selectSegment(trackId, id);
+    return id;
+  }
+  addPlayItem(trackId, atS) {                            // @5544957 — humanoid gate
+    if (this._kindOfTrack(trackId) !== 'humanoid') return null;
+    const id = uuid();
+    this._commit(trackId, tr => {
+      tr.items.push({ id, kind: 'play', durationS: 0, samples: [], keymap: {}, startS: this.placeItemS(tr.items, 0, atS) });
+    });
+    this._selectSegment(trackId, id);
+    return id;
+  }
+  _addObjectItem(trackId, durationS, build, atS, select = true) {   // addObjectItem @5545089 — Q0 gate
+    if (!NON_CAMERA_KINDS.has(this._kindOfTrack(trackId))) return null;
+    const id = uuid();
+    this._commit(trackId, tr => {
+      const startS = this.placeItemS(tr.items, durationS, atS);
+      tr.items.push(build(id, startS, durationS));
+    });
+    if (select) this._selectSegment(trackId, id);
+    return id;
+  }
+  addRotateItem(trackId, atS) {                          // @5545634 — axis y, SHr=90, N8=5
+    return this._addObjectItem(trackId, C.ITEM_DEFAULT_DUR, (id, s, d) => ({ id, kind: 'rotate', axis: 'y', degPerS: 90, durationS: d, startS: s }), atS);
+  }
+  addRevolveItem(trackId, atS) {                         // @5545690 — center = firstOtherObjectId, THr=60
+    return this._addObjectItem(trackId, C.ITEM_DEFAULT_DUR, (id, s, d) => ({ id, kind: 'revolve', centerObjectId: this.firstOtherObjectId(trackId), degPerS: 60, durationS: d, startS: s }), atS);
+  }
+  addScaleItem(trackId, factor, atS) {                   // @5545742 — factor AHr=2 / CHr=.5 from dispatch
+    return this._addObjectItem(trackId, C.ITEM_DEFAULT_DUR, (id, s, d) => ({ id, kind: 'scale', factor, durationS: d, startS: s }), atS);
+  }
+  addTransformItem(trackId, atS) {                       // @5545792 — Jae=4, keys []
+    return this._addObjectItem(trackId, 4, (id, s, d) => ({ id, kind: 'transform', durationS: d, keys: [], startS: s }), atS);
+  }
+  addRigTransformItem(trackId, atS, select = true) {     // @5546822 — humanoid gate, Jae=4
+    const tr = this.show.tracks.find(t => t.id === trackId);
+    if (!tr || this._objs()[tr.characterId]?.kind !== 'humanoid') return null;
+    return this._addObjectItem(trackId, 4, (id, s, d) => ({ id, kind: 'rig-transform', durationS: d, keys: [], startS: s }), atS, select);
+  }
+  firstSubjectId() {                                     // @5548276 — first person, else first non-spotlight Q0
+    const objs = this._objs();
+    for (const [id, o] of Object.entries(objs)) if (o.kind === 'humanoid' || o.kind === 'simple_figure') return id;
+    for (const [id, o] of Object.entries(objs)) if (NON_CAMERA_KINDS.has(o.kind) && o.kind !== 'spotlight') return id;
+    return null;
+  }
+  firstOtherObjectId(trackId) {                          // @5548475 — first other non-spotlight Q0
+    const charId = this.show.tracks.find(t => t.id === trackId)?.characterId;
+    for (const [id, o] of Object.entries(this._objs()))
+      if (id !== charId && NON_CAMERA_KINDS.has(o.kind) && o.kind !== 'spotlight') return id;
+    return null;
+  }
+  _cameraItemBuild(action, id, startS, dur, subject) {   // LHr @5538958
+    switch (action) {
+      case 'still': return { id, kind: 'cam-still', startS, durationS: dur };
+      case 'path': return { id, kind: 'cam-path', startS, anchors: [], speedUnitsPerS: 2, aim: 'travel', subjectId: subject };
+      case 'follow': return { id, kind: 'cam-follow', startS, durationS: dur, objectId: subject };
+      case 'transform': return { id, kind: 'cam-transform', startS, durationS: dur, keys: [] };
+      case 'manual': return { id, kind: 'cam-manual', startS, durationS: 0, samples: [] };
+      default: {
+        const p = CAM_MOVE_PRESETS[action];
+        return { id, kind: 'cam-move', startS, durationS: dur, move: action, subjectId: subject, direction: 'ccw', angleDeg: p.angleDeg, heightDeltaUnits: p.heightDeltaUnits, distanceScale: p.distanceScale };
+      }
+    }
+  }
+  _cameraActionDuration(action) {                        // sje @5081533
+    if (action in CAM_MOVE_PRESETS) return CAM_MOVE_PRESETS[action].durationS;
+    if (action === 'path' || action === 'manual') return 0;
+    if (action === 'transform') return 4;
+    return C.ITEM_DEFAULT_DUR;
+  }
+  addCameraItem(trackId, action, atS, subjectId, opts) { // @5546971 → appendCameraItem @5547047
+    const id = this._appendCameraItem(trackId, action, atS, subjectId, opts);
+    if (id) this._selectSegment(trackId, id);
+    return id;
+  }
+  _appendCameraItem(trackId, action, atS, subjectId, opts) {
+    const tr = this.show.tracks.find(t => t.id === trackId);
+    if (!tr) return null;
+    if (this._objs()[tr.characterId]?.kind !== 'camera') return null;
+    const id = uuid();
+    const dur = this._cameraActionDuration(action);
+    let startS = 0, subject = null, preItems = [];
+    this._commit(trackId, t => {
+      startS = this.placeItemS(t.items, dur, atS);
+      subject = subjectId === undefined ? this.firstSubjectId() : subjectId;
+      preItems = t.items;
+      t.items.push(this._cameraItemBuild(action, id, startS, dur, subject));
+    });
+    if (action === 'path') {
+      this._enterPathEdit(trackId, id);
+      if (opts?.seedStart !== false) this.seedPathStart(tr.characterId);
+    } else if (action !== 'still' && subject) {
+      this.aimCameraAtSubject(tr.characterId, preItems, id, startS, subject);
+    }
+    return id;
+  }
+  _enterPathEdit(trackId, itemId) {                      // @5539708 — segment + paint + editInteraction
+    const enter = this._hooks?.enterPathEdit;
+    if (enter) enter(trackId, itemId);
+  }
+  seedPathStart(characterId) {                           // @5539606 — anchor at object world pos, Y via anchorPosFor
+    const o = this._objs()[characterId];
+    if (!o) return;
+    const page = this._hooks?.page;
+    const p = page?.paint;
+    if (!p) return;
+    const tr = this.show.tracks.find(t => t.id === p.trackId);
+    const it = tr?.items.find(i => i.id === p.itemId);
+    const wp = worldTRSof(this._objs(), characterId).position;
+    const idx = (it?.anchors.length ?? 1) - 1;
+    const seedY = this._hooks?.seedAnchorY
+      ? this._hooks.seedAnchorY(p.trackId, p.itemId, wp, idx)
+      : wp[1];
+    const newIdx = this.appendPathAnchor(p.trackId, p.itemId, [wp[0], seedY, wp[2]]);
+    if (page && newIdx >= 0) page.paint = { ...page.paint, selectedAnchor: newIdx };
+  }
+  subjectHeightOffset(subjectId, objs) {                 // NP @5264414 — minY−y + MIr(.7)·max(0, maxY−minY)
+    const o = objs[subjectId];
+    if (!o) return 0;
+    const { minY, maxY } = objectWorldBounds(subjectId, o, objs, this._hooks?.propDims);
+    const y = worldTRSof(objs, subjectId).position[1];
+    return minY - y + C.SUBJECT_AIM_K * Math.max(0, maxY - minY);
+  }
+  subjectAimPoint(subjectId, extraOffset = 0) {          // @5531839
+    const objs = this._objs();
+    const o = objs[subjectId];
+    if (!o) return null;
+    const base = worldTRSof(objs, subjectId).position;
+    return [base[0], base[1] + this.subjectHeightOffset(subjectId, objs) + extraOffset, base[2]];
+  }
+  aimCameraAtSubject(cameraId, items, itemId, startS, subjectId, extraOffset = 0) {  // @5547561 verbatim
+    if (!this._hooks?.updateObjectTransform) return;
+    if (items.some(g => g.startS < startS && CAM_ITEM_KINDS.has(g.kind) && g.kind !== 'cam-still')) return;
+    const objs = this._objs();
+    const cam = objs[cameraId];
+    const aim = this.subjectAimPoint(subjectId, extraOffset);
+    if (!cam || !aim) return;
+    const tid = cam.targetId;
+    const tobj = tid ? objs[tid] : undefined;
+    const otherSubjectless = items.some(g => g.id !== itemId && subjectlessItem(g));   // YN
+    if (tid && tobj && tid !== subjectId && !otherSubjectless) {
+      this._hooks.updateObjectTransform(tid, { position: keepAimPoint(tobj, objs, aim) });   // s$
+    }
+    this._turnCameraToward(cameraId, aim);
+  }
+  _turnCameraToward(cameraId, aim) {                     // @5531977 — kv lookAt + cN parent-lock
+    const objs = this._objs();
+    const o = objs[cameraId];
+    if (!o || !this._hooks?.updateObjectTransform) return;
+    const base = worldTRSof(objs, cameraId);
+    this._hooks.updateObjectTransform(cameraId, { rotation: parentLockedTRS(o, objs, { ...base, rotation: lookAtEulerRZ(base.position, aim) }).rotation });
+  }
+  addActionToTrack(trackId, payload, atS) {              // @5543480 verbatim dispatch
+    const tr = this.show.tracks.find(t => t.id === trackId);
+    if (!tr) return;
+    const a = this.resolveActionForObject(tr.characterId, payload);
+    if (!a) return;
+    switch (a.kind) {
+      case 'path': this.addPathItem(trackId, atS); break;
+      case 'play': this.addPlayItem(trackId, atS); break;
+      case 'clip': this.addClipItem(trackId, a.clip, atS); break;
+      case 'camera': this.addCameraItem(trackId, a.action, atS); break;
+      case 'object':
+        switch (a.action) {
+          case 'rotate': this.addRotateItem(trackId, atS); break;
+          case 'revolve': this.addRevolveItem(trackId, atS); break;
+          case 'scale-up': this.addScaleItem(trackId, C.SCALE_UP_FACTOR, atS); break;
+          case 'scale-down': this.addScaleItem(trackId, C.SCALE_DOWN_FACTOR, atS); break;
+          case 'transform': this.addTransformItem(trackId, atS); break;
+          case 'rig-transform': this.addRigTransformItem(trackId, atS); break;
+        }
+        break;
+    }
+  }
+  appendActionToObject(id, payload) {                    // @5544148 verbatim
+    if (!this.canDropActionOnObject(id, payload)) return;
+    const trackId = this.show.tracks.find(t => t.characterId === id)?.id ?? this.addPerformanceTrack(id);
+    if (trackId) this.addActionToTrack(trackId, payload);
+  }
+
   // ---- keyframe capture (addTransformKeyframe/addCameraKeyframe/setCameraItemFields — SZt/kZt) ----
   _replaceKeyAt(itemId, key, kinds, { mergeJoints = false } = {}) {
     return t => {
@@ -420,10 +710,17 @@ export class ShowStore extends StoreBase {
   }
 
   // ---- path item ops (paint mode) ----
-  addPathItem(characterId, startS) {
-    return this.addItem(characterId, {
-      kind: 'path', anchors: [], speedUnitsPerS: C.SPEED_DEFAULT, gait: 'walk', startS,
+  addPathItem(trackId, atS, opts) {                     // live addPathItem(trackId, atS, opts) @5544370
+    if (!NON_CAMERA_KINDS.has(this._kindOfTrack(trackId))) return null;
+    const tr = this.show.tracks.find(t => t.id === trackId);
+    const humanoid = this._kindOfTrack(trackId) === 'humanoid';
+    const id = uuid();
+    this._commit(trackId, t => {
+      t.items.push({ id, kind: 'path', anchors: [], speedUnitsPerS: C.SPEED_DEFAULT, ...(humanoid ? { gait: 'walk' } : {}), startS: this.placeItemS(t.items, 0, atS) });
     });
+    this._enterPathEdit(trackId, id);
+    if (opts?.seedStart !== false) this.seedPathStart(tr.characterId);
+    return id;
   }
   appendPathAnchor(trackId, itemId, pos) {
     let idx = -1;
