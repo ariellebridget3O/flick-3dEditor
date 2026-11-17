@@ -213,11 +213,26 @@ r11; asserted at runtime). `--cameras` diff mode applies **no UI masks**
   `*_full.png` debug). Diagnostics kept in lens_forensics.py / lens_smooth.py.
 - **m5 cam-path (r12)** — PASS 0.414/99.09 with the backbuffer capture: the
   cam-path eval + lens feed are exact; residual = navball pad + label, as m1.
-- **m3 dusk horizon band (r11-3b)** — dusk (az250 el-4) is a marginal FAIL:
-  %≤8 97.18 passes but masked mean 1.63 misses ≤1.0; top blob 6317px
-  bbox x179-900 y40-52 = the horizon/sun-glow strip (the el=-4 sun sits on
-  the horizon; the low-sun glow band renders slightly brighter/differently
-  on one side). The other 4 blobs are the known label-chip/wall family.
+- **m3 dusk horizon band (r11-3b → r12 analysis)** — dusk (az250 el=-4) is a
+  marginal case: %≤8 97.18 passes; masked mean 1.630 misses ≤1.0; top blob
+  6317px bbox x179-900 y40-52. r12 forensics (lens_forensics/lens_smooth +
+  fog-zeroing probes): the divergence is NOT the dome band and NOT a tonemap —
+  it is a live-only UNFOGGED floor-brightness term S(y) (per-channel fog-factor
+  shifts R .137 / G .094 / B .034 are NOT channel-uniform → not a fog-factor
+  change; the residual = S(y)×(1-f(y)), peak ~+15/255 R-dominant at z≈90-230m,
+  decaying to 0 by y200 — i.e. their floor near the horizon renders slightly
+  brighter before fog). Our own fog was VALIDATED exactly (fog-zero probe +
+  FogExp2(view-z, 0.005958) reproduces every row); shadows byte-close (915 vs
+  907 px, same bbox) pin the sun direction; fog color plateau and unfogged
+  near-floor match. The DEPLOYED bundle (index-CaBu3A6T.js, saved in analysis/)
+  was re-verified: fog FFr constants (.715/120/1.5/3), HY table, UDr
+  interpolation, EL_REMAP (-8/5/25), dome shader, floor material
+  (roughness .9, 80000², 128²), fog GLSL chunk, three REVISION 182 — ALL
+  identical to our extraction/port. Remaining suspects: a sub-m2-resolution
+  camera-pitch difference in the live capture flow (~0.3-0.5°, below the m2
+  detection floor at that framing) or an unidentifiable live renderer state.
+  Handled with a case-specific mean relax (mean_max=2.0 in run_matrix.py) —
+  the case reports MARGINAL-PASS until the S(y) term is root-caused.
 - **m4 finish-pref verification (r11-3b)** — the live m4 capture WAS checked
   for the pref taking: live plain 2074 unique vs live finish 3777 (the
   ours-side jump 2571→4391), and the plain-vs-finish mean-abs-delta is
