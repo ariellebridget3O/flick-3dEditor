@@ -679,7 +679,7 @@ export function createRealisticSky({ renderer }) {
       u.uMieAbsorption.value.set(...mieA);
     }
     const du = domeMat.uniforms;
-    du.uNightAmount.value = p.nightAmount ?? 0;
+    du.uNightAmount.value = p.nightAmt ?? 0;   // env.js buildSkyParams field: nightAmt
     du.uMoonDir.value.copy(p.moonDir);
     du.uWeatherDesat.value = p.weatherDesat ?? 0;
     du.uWeatherDarken.value = p.weatherDarken ?? 0;
