@@ -16,6 +16,7 @@ import {
   pathStateAt, pathRotation,
 } from './tracks.js';
 import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation } from './figures.js';
+const _hoeV = new THREE.Vector3(), _hoeE = new THREE.Euler(), _hoeQ = new THREE.Quaternion(), _hoePQ = new THREE.Quaternion(); // hoe scratch (verbatim units, SKILL #46)
 import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
 import { tickGizmoHover } from './gizmo.js';
@@ -293,19 +294,20 @@ export class App {
     finally { this.show.endEditGesture(); }
     this.palette?.render?.();   // r8: the animate tab (switch notice + add-button states) reflects the kind change
   }
-  tickDrawPreview() {  // z port: pose the mesh to the stroke preview ghost; restore on end
+  tickDrawPreview() {  // z port: pose the mesh to the stroke preview ghost; restore on end (hoe verbatim @5476375)
     const d = this._drawPreview;
     if (d) {
       const m = this.meshById.get(d.id);
       if (m) {
         this._drawPreviewId = d.id;
-        // world pose → mesh-local (parent-aware, live Hie)
-        if (m.parent && m.parent !== this.scene) {
-          const v = new THREE.Vector3(...d.position);
-          m.parent.worldToLocal(v);
-          m.position.copy(v);
-        } else m.position.set(...d.position);
-        m.rotation.set(...d.rotation);
+        // world pose → mesh-local: verbatim hoe @5476375 (worldToLocal + parent world quat invert)
+        if (m.parent) {
+          m.parent.updateWorldMatrix(true, false);
+          const v = _hoeV.set(...d.position);
+          m.position.copy(m.parent.worldToLocal(v));
+          m.parent.getWorldQuaternion(_hoePQ);
+          m.quaternion.copy(_hoePQ.invert().multiply(_hoeQ.setFromEuler(_hoeE.set(...d.rotation))));
+        } else { m.position.set(...d.position); m.quaternion.setFromEuler(_hoeE.set(...d.rotation)); }
         if (d.look && m.userData.figure) m.userData.figure.head.rotation.set(0, d.look.headYawRad, d.look.headPitchRad);
       }
     } else if (this._drawPreviewId) {
@@ -956,9 +958,13 @@ export class App {
     const now = performance.now();
 
     // --- update ticks (D2.7 order) ---
-    // 1. rig tick: restore → mixer → rig offsets
+    // 1. rig tick: restore → mixer → rig offsets (ghost head-look merged: bundle O @5790417 — rigOffsets rebuilt every frame, no accumulation)
+    const _ghost = this._drawPreview;
+    const _ghostLook = _ghost?.look && this.objects.get(_ghost.id)?.kind === 'humanoid' ? headLookOffsets(_ghost.look) : null;
     for (const [id, rig] of this.objectManager.humanoidRigs) {
-      rig.tick(dt, this.rigOffsets.get(id));
+      let off = this.rigOffsets.get(id);
+      if (_ghostLook && id === _ghost.id) off = mergeRigOffsets(off ?? {}, _ghostLook);
+      rig.tick(dt, off);
     }
     // 2. playback
     if (this.page.playing) {

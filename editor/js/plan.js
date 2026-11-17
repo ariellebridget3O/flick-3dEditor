@@ -36,7 +36,8 @@ const RIr = 1.299, sA = 1.75 / RIr, PP = [.406 * sA, 1.059 * sA, .289 * sA], Nie
   Pie = 72 * Math.PI / 180, Pst = "#ffffff", BIr = "#1c0f09", HIr = .72;
 const WIr = 16, GIr = .72, qIr = 28, $2e = 4;                                                  // consts_labelpos
 const Rst = 22, uN = 13;                                                                       // consts_edgeind
-const Vie = .25, Yat = Math.PI / 12, Qat = 3, Jat = 4, SLr = 4, TLr = 48, ALr = .8, CLr = 720; // consts_state
+const Vie = .25, Yat = Math.PI / 12, Qat = 3, Jat = 4, SLr = 4, TLr = 48, AP_DEADZONE = .8, AP_BAND_PX = 28, AP_DWELL_MS = 250, AP_SPEED = .6; // consts_state (autopan v2: bundle LLr/DLr/HLr/BLr @5449053)
+const gvr = ["cam-still", "cam-move", "cam-path", "cam-follow", "cam-transform", "cam-manual"]; // cam move kinds (Lp filter @4325385)
 const eit = 40, VLr = .05, ULr = 4e3, zLr = .05, WLr = 20, GLr = 12, qLr = 4, ZLr = 50,       // consts_drag
   KLr = .18, XLr = .12, YLr = 1.6, QLr = 1.4, JLr = { minX: -3, minZ: -3, maxX: 3, maxZ: 3 },
   tit = { prop: 0, cube: 0, sphere: 0, cylinder: 0, group: 0, humanoid: 1, simple_figure: 1, target: 2, spotlight: 3, camera: 3 },
@@ -562,19 +563,21 @@ export function DZt(t, e, n) {                                                  
   return c.push(r.kind === "rotate" ? { type: "yaw", id: r.item.id, yawRad: l } : { type: "lens", id: r.item.id, focalLengthMm: l }),
     { state: { ...t, drag: { ...r, last: l } }, intents: c };
 }
-export function BLr(t, e, n, r) {                                                                   // autopan during drag (deadzone .8, 720px/s)
+export function BLr(t, e, n, r) {                                                                   // autopan JLr verbatim (@5452693: dwell 250ms + quadratic ramp)
   const s = t.drag;
   if (!s || s.kind !== "stroke" && s.kind !== "move") return { state: t, intents: [] };
   if (s.kind === "move" && !s.last) return { state: t, intents: [] };
   const { widthPx: a, heightPx: o } = t.view,
-    l = (f, m) => { const g = m * ALr / 2, b = f - m / 2, y = Math.abs(b) - g; return y <= 0 ? 0 : Math.sign(b) * Math.min(1, y / Math.max(m / 2 - g, 1)); },
-    c = CLr * Math.min(r, 100) / 1e3, d = l(n.x, a) * c, u = l(n.y, o) * c;
-  if (d === 0 && u === 0) return { state: t, intents: [] };
-  const h = { ...t, view: UDe(t.view, -d, -u) };
-  return s.kind === "stroke" ? { state: h, intents: [{ type: "stroke-move", at: S1(h.view, n) }] } : DZt(h, e, { p: n, shift: !1 });
+    l = (f, m) => { const v = Math.min(m * AP_DEADZONE / 2, m / 2 - AP_BAND_PX), x = f - m / 2, w = Math.abs(x) - v; if (w <= 0) return 0; const k = Math.min(1, w / Math.max(m / 2 - v, 1)); return Math.sign(x) * k * k; },
+    c = l(n.x, a), d = l(n.y, o);
+  if (c === 0 && d === 0) return t.edgeHeldMs ? { state: { ...t, edgeHeldMs: 0 }, intents: [] } : { state: t, intents: [] };
+  const u = (t.edgeHeldMs ?? 0) + r;
+  if (u < AP_DWELL_MS) return { state: { ...t, edgeHeldMs: u }, intents: [] };
+  const h = AP_SPEED * Math.min(r, 100) / 1e3, f = c * a * h, m = d * o * h, g = { ...t, edgeHeldMs: u, view: UDe(t.view, -f, -m) };
+  return s.kind === "stroke" ? { state: g, intents: [{ type: "stroke-move", at: S1(g.view, n) }] } : DZt(g, e, { p: n, shift: !1 });
 }
-export function HLr(t, e) {                                                                         // pointerup reducer
-  const n = t.drag, r = { ...t, drag: null };
+export function HLr(t, e) {                                                                         // pointerup reducer (eDr @5455044)
+  const n = t.drag, r = { ...t, drag: null, edgeHeldMs: 0 };
   if (!n) return { state: t, intents: [] };
   if (n.kind === "stroke") return { state: r, intents: [{ type: "stroke-end" }] };
   if (n.kind === "tap-or-draw") return { state: r, intents: [{ type: "focus", id: n.focusId }] };
@@ -588,7 +591,7 @@ export function HLr(t, e) {                                                     
 }
 export function $Lr(t) {                                                                            // finalize (pointercancel)
   const e = t.drag, n = !!e && e.kind !== "marquee" && e.kind !== "stroke" && e.kind !== "tap-or-draw" && e.last !== null;
-  return { state: { ...t, drag: null }, intents: n ? [{ type: "commit" }] : [] };
+  return { state: { ...t, drag: null, edgeHeldMs: 0 }, intents: n ? [{ type: "commit" }] : [] };
 }
 
 // ============================================================================
@@ -1039,9 +1042,10 @@ export class PlanStore {
       trackIdOf: e => show.trackOf(e)?.id ?? null,
       addPerformanceTrack: e => show.ensureTrack(e)?.id ?? null,
       // live moveSegmentOf: covering-time selection with first-item fallback (incl. anchors≤1 + play items)
-      moveSegmentOf: (trackId, s) => {
+      moveSegmentOf: (trackId, s) => {                                                                 // verbatim @5575262: camera tracks replace any cam-* segment
         const tr = show.show.tracks.find(t => t.id === trackId); if (!tr) return null;
-        const cands = (tr.items ?? []).filter(o => o.kind === 'path' || o.kind === 'cam-path' || o.kind === 'play');
+        const isCam = facade.objects[tr.characterId ?? '']?.kind === 'camera';
+        const cands = (tr.items ?? []).filter(o => isCam ? gvr.includes(o.kind) : o.kind === 'path' || o.kind === 'play');
         return cands.find(o => s >= o.startS && s < o.startS + itemDuration(o)) ?? cands[0] ?? null;
       },
       updateTrackItems: (trackId, fn) => this._updateTrackItems(trackId, fn),                          // packed (lje)
@@ -1051,43 +1055,57 @@ export class PlanStore {
   }
   showRehearseTip() { this.hideRehearseTip(), this.rehearseTip = !0, this._onTip?.(!0), this.tipTimer = setTimeout(this.hideRehearseTip, ULr); }
   hideRehearseTip = () => { this.tipTimer && clearTimeout(this.tipTimer), this.tipTimer = null, this.rehearseTip && (this.rehearseTip = !1, this._onTip?.(!1)); };
-  // ---- focus (camera: active cam-item subject / walker: path-item subject) ----
-  activeCamItem(camId) {
-    const tr = this.a.show.trackOf(camId); if (!tr) return null;
-    return tr.items.find(i => (i.kind === 'cam-path' || i.kind === 'cam-move' || i.kind === 'cam-still') && i.aim === 'subject' && i.subjectId) ?? null;
+  // ---- focus (verbatim: moveSegmentOf covering the playhead @5575262; xot @5552688; camera/walkerFocusId @5574597) ----
+  _moveSegmentOf(tr, s) {
+    if (!tr) return null;
+    const isCam = this.a.objects.get(tr.characterId ?? '')?.kind === 'camera';
+    const cands = (tr.items ?? []).filter(o => isCam ? gvr.includes(o.kind) : o.kind === 'path' || o.kind === 'play');
+    return cands.find(o => s >= o.startS && s < o.startS + itemDuration(o)) ?? cands[0] ?? null;
   }
-  activePathItem(walkerId) {
-    const tr = this.a.show.trackOf(walkerId); if (!tr) return null;
-    return tr.items.find(i => i.kind === 'path' && i.aim === 'subject' && i.subjectId) ?? null;
+  _xot(item) {
+    return item.kind === "cam-path" ? (item.aim === "subject" ? item.subjectId ?? null : null)
+      : item.kind === "cam-move" || item.kind === "cam-still" ? item.subjectId ?? null : null;
+  }
+  cameraFocusId(camId) {
+    const tr = this.a.show.trackOf(camId);
+    const r = tr ? this._moveSegmentOf(tr, this.a.page.playheadS) : null;
+    return r ? this._xot(r) : null;
+  }
+  walkerFocusId(walkerId) {
+    const tr = this.a.show.trackOf(walkerId);
+    const r = tr ? this._moveSegmentOf(tr, this.a.page.playheadS) : null;
+    return r?.kind === "path" && r.aim === "subject" ? r.subjectId ?? null : null;
   }
   focusOf(e) {
     const n = this.a.objects.get(e)?.kind;
-    if (n === "camera") return this.activeCamItem(e)?.subjectId ?? this.a.objects.get(e)?.targetId ?? null;
+    if (n === "camera") return this.cameraFocusId(e);
     if (!el(n)) return null;
     const r = this.pendingWalkerFocus;
-    return this.activePathItem(e)?.subjectId ?? (r?.id === e && this.drawing() ? r.subjectId : null);
+    return this.walkerFocusId(e) ?? (r?.id === e && this.drawing() ? r.subjectId : null);
   }
   toggleFocus(e) {
     const n = this.drawTarget();
-    if (n && el(this.a.objects.get(n)?.kind)) {                                                        // walker: patch path item subject
+    if (n && el(this.a.objects.get(n)?.kind)) {                                                        // walker: setWalkerFocus @5574597 (covering-time segment)
       const o = this.focusOf(n) === e;
       this.a.show.beginEditGesture();
-      const tr = this.a.show.trackOf(n), it = tr?.items.find(i => i.kind === 'path' && i.anchors?.length > 1);
+      const tr = this.a.show.trackOf(n), it = tr ? this._moveSegmentOf(tr, this.a.page.playheadS) : null;
       let ok = false;
-      if (it) { this.a.show.patchItem(tr.id, it.id, o ? { aim: 'travel', subjectId: null } : { aim: 'subject', subjectId: e }); ok = true; }
+      if (it?.kind === 'path') { this.a.show.patchItem(tr.id, it.id, o ? { aim: 'travel', subjectId: null } : { aim: 'subject', subjectId: e }); ok = true; }
       this.a.show.endEditGesture();
       this.pendingWalkerFocus = ok || o ? null : { id: n, subjectId: e };
       return;
     }
     if (!n || this.a.objects.get(n)?.kind !== "camera") return;
     this.a.show.beginEditGesture();
-    const s = this.focusOf(n) === e, tr = this.a.show.trackOf(n), it = tr?.items.find(i => (i.kind === 'cam-path') && i.anchors?.length > 1);
-    if (it) this.a.show.patchItem(tr.id, it.id, s ? { aim: 'locked', subjectId: null } : { aim: 'subject', subjectId: e });
+    const s = this.focusOf(n) === e;
+    this.setCameraFocus(n, s ? null : e);
     this.a.show.endEditGesture();
   }
-  setCameraFocus(camId, subjectId) {
-    const tr = this.a.show.trackOf(camId), it = tr?.items.find(i => i.kind === 'cam-path' && i.anchors?.length > 1);
-    if (it) this.a.show.patchItem(tr.id, it.id, { aim: 'subject', subjectId });
+  setCameraFocus(camId, subjectId) {                                                                   // setCameraFocus core @5573096 (covering-time; keepLookOnClear = backlog)
+    const tr = this.a.show.trackOf(camId);
+    const it = tr ? this._moveSegmentOf(tr, this.a.page.playheadS) : null;
+    if (it?.kind === 'cam-path' || it?.kind === 'cam-move' || it?.kind === 'cam-still')
+      this.a.show.patchItem(tr.id, it.id, { ...(it.kind === 'cam-path' ? { aim: subjectId ? 'subject' : 'locked', subjectId } : { subjectId }) });
     else this.a.objects.update(camId, { targetId: subjectId });
   }
   // ---- move / turn / commit (rDr machinery; camera pipeline via manipulator SZt) ----
