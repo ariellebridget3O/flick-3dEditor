@@ -973,7 +973,7 @@ export class App {
     let m;
     try {
       m = measureFinish({
-        drawPlain: () => { this.renderer.setRenderTarget(null); this.renderer.render(this.scene, this.camera); },
+        drawPlain: () => { this.env.updateRealisticSky(this.camera, true); this.renderer.setRenderTarget(null); this.renderer.render(this.scene, this.camera); },
         drawFinished: () => this.finish.render(this.scene, this.camera),
         finishGpu: () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px),
         pixels,

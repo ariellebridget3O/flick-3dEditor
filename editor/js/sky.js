@@ -114,7 +114,9 @@ const GLSL_COMMON = /* glsl */`
   }
   float cornetteShanks(float g, float cosTheta) {
     float k = 3.0 / (8.0 * PI) * (1.0 - g * g) / (2.0 + g * g);
-    return k * (1.0 + cosTheta * cosTheta) / pow(1.0 + g * g + 2.0 * g * (-cosTheta), 1.5);
+    // reference literal: pow(1 + g^2 - 2*g*(-cosTheta), 1.5) — call sites pass -cosTheta,
+    // so the evaluated phase peaks looking TOWARD the sun (c = +1). Do not double-negate.
+    return k * (1.0 + cosTheta * cosTheta) / pow(1.0 + g * g - 2.0 * g * (-cosTheta), 1.5);
   }
   float hgPhase(float g, float cosTheta) { return cornetteShanks(g, cosTheta); }
 
@@ -174,7 +176,8 @@ const GLSL_COMMON = /* glsl */`
     float Beta = acos(CosBeta);
     float ZenithHorizonAngle = PI - Beta;
     if (uv.y < 0.5) {
-      float coord = 1.0 - (1.0 - (1.0 - 2.0 * uv.y) * (1.0 - 2.0 * uv.y));
+      // NONLINEARSKYVIEWLUT: coord = 1 - (1-2uv.y)^2 — 0 at zenith (uv.y=0), rising to 1 at horizon
+      float coord = 1.0 - (1.0 - 2.0 * uv.y) * (1.0 - 2.0 * uv.y);
       viewZenithCosAngle = cos(ZenithHorizonAngle * coord);
     } else {
       float coord = uv.y * 2.0 - 1.0;
@@ -534,11 +537,12 @@ ${GLSL_COMMON}
     L = mix(vec3(lum), L, 1.0 - uWeatherDesat);
     L *= (1.0 - uWeatherDarken);
 
-    // --- horizon fog band: blends to the SAME linear fog color the FogExp2 ground uses,
-    //     applied post-curve so the seam matches the classic horizon exactly ---
+    // --- horizon fog band: converges to the FULL linear fog color at the horizon line (the
+    //     classic dome horizon IS the fog color), easing out over ~3.4 deg; post-curve so the
+    //     seam matches the FogExp2 ground exactly ---
     float band = exp(-max(worldDir.y, 0.0) / 0.06);
     if (uToneMap > 0.5) L = vec3(1.0) - exp(-max(L, vec3(0.0)) / uWhitePoint * uExposure);
-    L = mix(L, uFogColor, band * uFogBlend);
+    L = mix(L, uFogColor, band * mix(uFogBlend, 1.0, band));
 
     if (uOutputSRGB > 0.5) L = linearToSrgb(max(L, vec3(0.0)));
     outColor = vec4(L, 1.0);
@@ -652,7 +656,7 @@ export function createRealisticSky({ renderer }) {
   const _cam = new THREE.Vector3();
   let paramKey = '', camHeightKm = -1, lutDirty = true, svDirty = true;
   let lastBakeAt = -1e9, lastPmremAt = -1e9, pmremPending = false;
-  let lastEnvTex = null, enabled = false, altitudeM = 0;
+  let enabled = false, altitudeM = 0;
 
   function setParams(p) {
     const mats = [transMat, msMat, svMat, domeMat];
@@ -754,7 +758,7 @@ export function createRealisticSky({ renderer }) {
   function setEnabled(v) {
     enabled = !!v;
     dome.visible = enabled;
-    if (!enabled) { pmremRT?.dispose(); pmremRT = null; lastEnvTex = null; }
+    if (!enabled) { pmremRT?.dispose(); pmremRT = null; }
     else { lutDirty = true; }   // re-enable always rebakes: the PMREM RT was disposed on disable
   }
 
@@ -768,9 +772,7 @@ export function createRealisticSky({ renderer }) {
     for (let i = 0; i < raw.length; i++) {
       const h = raw[i];
       const s = (h & 0x8000) >> 15, e = (h & 0x7c00) >> 10, f = h & 0x03ff;
-      data[i] = e === 0 ? (f === 0 ? 0 : (f / 1024) * 2 ** -24) * (s ? -1 : 1)
-        : e === 31 ? (f ? NaN : (s ? -Infinity : Infinity))
-        : (1 + f / 1024) * 2 ** (e - 15) * (s ? -1 : 1);
+      data[i] = e === 0 ? (s ? -1 : 1) * (f / 1024) * 2 ** -14 : (s ? -1 : 1) * (e === 31 ? Infinity : (1 + f / 1024) * 2 ** (e - 15));
     }
     return { w: rt.width, h: rt.height, data };
   }

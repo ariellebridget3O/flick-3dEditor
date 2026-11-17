@@ -231,7 +231,8 @@ export function loadScene(input, propCatalog = {}) {
   if (t && t.scene && t.scene.v !== undefined) t = t.scene;
   if (!t || typeof t !== 'object') return null;
   try {
-    if (t.v === 11 || t.v === 12) return normalizeScene(deepCopy(t), propCatalog);
+    if (t.v === 11) return normalizeScene(v11to12(deepCopy(t)), propCatalog);   // bump in-memory v too (review P3-8)
+    if (t.v === 12) return normalizeScene(deepCopy(t), propCatalog);
     let n = deepCopy(t);
     if (n.v === 1) { if (!n.performances) return null; n = v1to2(n); }
     if (n.v === 2) n = { ...n, v: 3, show: v2to3(n.show) };
