@@ -19,10 +19,14 @@ parsed JSON for the quoted/pretty forms.
 """
 import json
 import os
+import re
 import subprocess
 import time
 
 DEFAULT_TIMEOUT = 90  # live page is heavy in SwiftShader; be generous
+
+# snapshot ref formats: "[ref=e47]" (v0.43 live) and "[ref=@e47]" (docs)
+_REF_RE = re.compile(r"ref=@?(e\w+)")
 
 
 class ABError(RuntimeError):
@@ -107,20 +111,23 @@ def snapshot(session, timeout=60):
     return run(session, "snapshot", "-i", timeout=timeout)
 
 
-def find_ref(snap_text, *needles, all=False):
+def find_ref(snap_text, *needles, return_all=False):
     """Find @eN refs in a snapshot whose line contains every needle
     (case-insensitive). Returns list of refs (or single first ref).
-    A snapshot line looks like:
-      - button "GET STARTED" [ref=@e12]
+    Snapshot line formats seen (agent-browser 0.43):
+      - button "GET STARTED" [ref=e47]     ← live (NO @ after ref=)
+      - button "GET STARTED" [ref=@e47]    ← older doc example
+    Both normalize to "@e47". NB: the kwarg is `return_all` — a param
+    named `all` would shadow the builtin and crash the loop.
     """
     refs = []
     for line in snap_text.splitlines():
         low = line.lower()
-        if all(n.lower() in low for n in needles) and "ref=@e" in line:
-            r = line.split("ref=@")[1].split("]")[0].split()[0].strip()
-            if r:
-                refs.append("@" + r)
-    if all:
+        if all(n.lower() in low for n in needles):
+            m = _REF_RE.search(line)
+            if m:
+                refs.append("@" + m.group(1))
+    if return_all:
         return refs
     return refs[0] if refs else None
 

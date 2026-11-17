@@ -105,38 +105,60 @@ def live_scene_id(kind):
     return live.BASE_SCENE_ID if kind == BASE else live.ORACLE_SCENE_ID
 
 
+def _png_stats(path):
+    """Capture sanity: size, unique colors, pixel std (a gray never-rendered
+    canvas has ~0 std; the finish composer shows up as a unique-color jump)."""
+    import numpy as np
+    from PIL import Image
+    im = Image.open(path).convert("RGB")
+    colors = im.getcolors(maxcolors=500000)
+    a = np.asarray(im)
+    return (f"{im.size[0]}x{im.size[1]} unique={len(colors) if colors else '>500k'} "
+            f"std={a.std():.1f}")
+
+
 # ------------------------------------------------------------------- runners
 def run_live(names, session="po-live"):
     import live as L
     os.makedirs(os.path.join(OUT, "live"), exist_ok=True)
     s = L.LiveSession(session=session)
-    s.login()
-    s.inject_flags()  # flags persist in localStorage across the deep links
-    for name in names:
-        c = CASES[name]
-        print(f"=== LIVE {name}: {c['title']}")
-        # oracle cases PATCH the scene content from the generated fixture
-        if c["live_scene"] == ORACLE:
-            fx = os.path.join(REPO, "editor", c["fixture"])
-            with open(fx) as f:
-                scene = json.load(f)
-            print("  " + s.ensure_oracle_scene(scene))
-            print("  " + str(s.rest_patch(L.ORACLE_SCENE_ID, scene, name=L.ORACLE_SCENE_NAME)))
-        sid = live_scene_id(c["live_scene"])
-        s.deep_link(sid, finish=c["finish"], expect_objects=BASE_SCENE_OBJECTS)
-        s.collapse_panels()
-        s.seek_kick(c["t"])
-        conv = s.converge()
-        print(f"  converge: {conv}")
-        if not conv["converged"]:
-            print(f"  WARN: live render did not fully converge (diff={conv['diff']})")
-        out = os.path.join(OUT, "live", name + ".png")
-        if c["view"] == "cameras":
-            s.cameras_capture(out)
-        else:
-            s.capture(out)
-        print(f"  → {out}")
-    s.close()
+    try:
+        s.login()
+        s.inject_flags()  # flags persist in localStorage across the deep links
+        for name in names:
+            c = CASES[name]
+            print(f"=== LIVE {name}: {c['title']}")
+            tab = "Scene 1"  # base Scene 1 tab (the r11-verified flow)
+            if c["live_scene"] == ORACLE:
+                fx = os.path.join(REPO, "editor", c["fixture"])
+                with open(fx) as f:
+                    scene = json.load(f)
+                # PATCH the oracle row + READ-BACK VERIFY before deep-linking
+                # (a 2xx PATCH can silently affect 0 rows — the quirk)
+                print("  " + s.patch_oracle_verified(scene))
+                # the tab strip lists one tab per scene row — click by NAME
+                tab = L.ORACLE_SCENE_NAME
+            sid = live_scene_id(c["live_scene"])
+            loaded = s.deep_link(sid, finish=c["finish"],
+                                 expect_objects=BASE_SCENE_OBJECTS,
+                                 tab_name=tab)
+            print(f"  scene: {loaded}")
+            rect = s.collapse_panels()
+            print(f"  panels: canvas {rect}")
+            sk = s.seek_kick(c["t"])
+            print(f"  seek: {sk}")
+            conv = s.converge()
+            print(f"  converge: {conv}")
+            if not conv["converged"]:
+                print(f"  WARN: live render did not fully converge (diff={conv['diff']})")
+            out = os.path.join(OUT, "live", name + ".png")
+            if c["view"] == "cameras":
+                s.cameras_capture(out)
+            else:
+                s.capture(out)
+            print(f"  → {out}  [{_png_stats(out)}]")
+    finally:
+        s.close()
     return 0
 
 
@@ -211,7 +233,19 @@ def main():
     ap.add_argument("--all", action="store_true", help="--ours + --diff")
     ap.add_argument("--list", action="store_true", help="list the case registry")
     ap.add_argument("--bump", type=int, default=None, help="cache-bust ?v= for ours")
+    ap.add_argument("--case", action="append", metavar="CASE",
+                    help="select case(s) by name for the mode flags (repeatable; "
+                         "`--live --case X` == `--live X`) — appends to the "
+                         "positional case list of whichever mode was given")
+    ap.add_argument("--session", default="po-live",
+                    help="agent-browser session name for --live (use a fresh "
+                         "name per run — a crashed run can leave its browser)")
     args = ap.parse_args()
+    if args.case:  # bare `--live --case X` parses as live=[] + case=[X]
+        for mode in ("live", "ours", "diff"):
+            v = getattr(args, mode)
+            if v is not None:
+                setattr(args, mode, v + args.case)
 
     if args.list:
         for name in ORDER:
@@ -226,7 +260,7 @@ def main():
 
     rc = 0
     if args.live is not None:
-        rc |= run_live(sel_cases(args.live))
+        rc |= run_live(sel_cases(args.live), session=args.session)
     if args.ours is not None:
         rc |= run_ours(sel_cases(args.ours), bump=args.bump)
     elif args.all:

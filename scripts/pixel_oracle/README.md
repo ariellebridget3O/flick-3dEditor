@@ -13,6 +13,7 @@ scripts/pixel_oracle/
   live.py        LiveSession — the live capture chain (steps 1–13 below)
   ours.py        our-side capture (fixture, seek, cameras lens)
   diff.py        masked diff + buckets + blobs, PASS/FAIL exit code
+  stack.py       diagnostic 3-panel stack (live | ours | amplified diff)
   fixtures.py    generates the M3/M5 variant fixtures (node → curves.js)
   run_matrix.py  case registry + CLI (--live / --ours / --diff / --all)
   golden/        committed live references (m2_default_live.png)
@@ -48,7 +49,8 @@ python3 scripts/pixel_oracle/run_matrix.py --list            # case registry
 python3 scripts/pixel_oracle/run_matrix.py --ours m2_default # our capture
 python3 scripts/pixel_oracle/diff.py golden/m2_default_live.png out/ours_m2_default.png
 python3 scripts/pixel_oracle/run_matrix.py --all             # ours + diff, all cases
-python3 scripts/pixel_oracle/run_matrix.py --live m3_light_golden   # live PATCH+capture
+python3 scripts/pixel_oracle/run_matrix.py --live m3_light_golden --session oracle-r11   # live PATCH+capture
+python3 scripts/pixel_oracle/stack.py out/live/m1_lens.png out/ours_m1_lens.png out/m1_stack.png   # diagnostic
 python3 scripts/pixel_oracle/fixtures.py --sync              # regenerate variants
 ```
 
@@ -57,8 +59,8 @@ python3 scripts/pixel_oracle/fixtures.py --sync              # regenerate varian
 | case | fixture | t | view | live scene | status |
 |---|---|---|---|---|---|
 | m2_default | `samples/live_oracle_r11_base.json` | 2.51 | scene | base Scene 1 | **GREEN 99.30 / 0.354** |
-| m1_lens | base | 5.0 (end-of-orbit) | cameras (lens) | base | READY — R9 lens was 97.81/1.3, re-measure under the r11 camera-poser |
-| m3_light_golden | `oracle_r11/light_golden.json` | 2.51 | scene | oracle row PATCHed | LIVE-ONLY-READY |
+| m1_lens | base | 5.0 (end-of-orbit) | cameras (lens) | base | **GOLDEN r11-3a, FAIL 56.27/32.72** — lens-view divergence (see gotchas) |
+| m3_light_golden | `oracle_r11/light_golden.json` | 2.51 | scene | oracle row PATCHed | **GREEN r11-3a 98.72 %≤8 / mean 0.996** (marginal vs 1.0) |
 | m3_light_dusk | `oracle_r11/light_dusk.json` | 2.51 | scene | oracle row PATCHed | LIVE-ONLY-READY |
 | m3_light_night | `oracle_r11/light_night.json` | 2.51 | scene | oracle row PATCHed | LIVE-ONLY-READY |
 | m4_finish | base | 2.51 | scene, finish ON | base | READY |
@@ -96,11 +98,14 @@ r11; asserted at runtime). `--cameras` diff mode applies **no UI masks**
    about:blank. The r11 base Scene 1 id =
    `27b98b6b-8a4d-4b3a-a810-7d542342ce41` (**8a4d** — an older index file
    said 7a4d, which is WRONG).
-5. Wait 10000 → click the scene tab (button 'Scene 1' at y≈49, synthetic
-   pointerdown/pointerup/click on `closest('[class*=_tab_]')`) → poll the
-   components column until 'Scene is empty' is gone (5s poll, 40s cap).
-6. Collapse panels (aria-labels 'Collapse panel', 'Hide the components
-   column') → canvas becomes ~1000x375 at (0,75).
+5. Wait 10000 → click the scene tab (the tab whose TEXT = the scene-row
+   NAME — 'Scene 1' for the base scene, 'Oracle R11' for oracle cases;
+   button at y≈49, synthetic pointerdown/pointerup/click on
+   `closest('[class*=_tab_]')`) → poll the components column until
+   'Scene is empty' is gone (5s poll, 40s cap).
+6. Collapse panels → the canvas must land in the canonical basis
+   ~1000x375 at (0,75), VERIFIED by geometry (collapse_panels runs a
+   probe-verified state machine — see the gotchas ledger).
 7. **Seek-kick (REQUIRED)**: the live 3D viewport is render-on-demand and
    stays gray without a real interaction; a native ruler click poses the
    scene AND triggers a render without changing the camera.
@@ -122,9 +127,12 @@ r11; asserted at runtime). `--cameras` diff mode applies **no UI masks**
     - **POST** (create): `{scene_id, name, project_id, scene}` with
       `Prefer: return=representation` → 201.
     - **PATCH** (update scene): `?scene_id=eq.<id>` + body `{scene}` — the
-      eq-filter works for PATCH even though GET returns empty; if it ever
-      fails, live.py falls back to POST upsert
-      (`Prefer: resolution=merge-duplicates`), then PATCH by name.
+      eq-filter works for PATCH even though GET returns empty; **CAVEAT: a
+      2xx PATCH can silently affect 0 rows** — always verify by read-back
+      (`patch_oracle_verified` → `rest_scene_matches`, an IN-PAGE deep-equal
+      of the row's scene vs the fixture; jsonb reorders keys so string
+      compare would lie). Fallback: POST upsert
+      (`Prefer: resolution=merge-duplicates`, = `rest_upsert`), re-verify.
     - **DELETE**: `?scene_id=eq.<id>` → 204.
     - M3/M5 use a dedicated oracle row ('Oracle R11',
       `ba11e0ba-0000-4000-8000-0000000000ba`), created once, PATCHed per
@@ -170,6 +178,27 @@ r11; asserted at runtime). `--cameras` diff mode applies **no UI masks**
 
 ## Gotchas ledger (all live-verified r11)
 
+- **Layout drift (2026-11, r11-3a)** — the live layout varies PER LOAD and the
+  r11 click-list no longer implies the r11 geometry: clicking BOTH r11
+  collapse buttons on a wide viewHost (1280) yields a 1280x375 canvas
+  (= different aspect — poisons the diff). Probe-verified canonical path:
+  a chat sidePanel (360px, auto-opens) must be closed via ITS OWN 'Collapse
+  panel' button; then 'Collapse panel' alone lands exactly 1000x375 on a
+  wide viewHost (components column stays in-flow, eating its 280px).
+  'Hide the components column' is only a narrow-layout fallback. The band
+  is asserted (970–1030 x 368–382) — a capture outside it raises.
+- **Lens feed convergence** — the cameras feed is its own render target; it
+  needs the same screenshot-pair convergence as the scene view (added to
+  cameras_capture; the feed is stably 805x452 across layout variants).
+- **m1 lens divergence (OPEN)** — the r11-3a live lens at t=5.0 is a flat-
+  bright image (no px < 30 lum, min ~170, 0.18% saturated, mean 190) while
+  ours renders full contrast (mean 134, deep darks + clipped spots); pair
+  diff mean 56.27, %≤8 32.72, one whole-frame blob. NOT a geometry
+  mismatch: mid-frame structure aligns and the live/ours per-pixel ratio is
+  bimodal 1.0/1.67 (a tonemap/exposure-style divergence in the through-
+  the-lens path — R9 measured 97.81/1.3, so one side changed since; both
+  captures are deterministic, live reproducible byte-stable). Editor-side
+  fix needed; harness captures are correct.
 - **SPA soft-nav** — deep-linking from inside the SPA does not reset
   editor state; bounce `about:blank` → wait 1000 → deep link.
 - **Render-on-demand / seek-kick** — the live viewport stays gray without
@@ -180,7 +209,8 @@ r11; asserted at runtime). `--cameras` diff mode applies **no UI masks**
   readout, don't assume).
 - **REST eq-filter quirk** — GET `scene_id=eq.<uuid>` returns empty;
   filter by `project_id` and pick client-side. PATCH `scene_id=eq.` is
-  reported to work; upsert fallback coded.
+  reported to work; upsert fallback coded; EVERY oracle PATCH is
+  read-back-verified in-page before the deep link (patch_oracle_verified).
 - **1.5KB eval limit** — long JS (REST bodies with scene JSON ~2.6KB)
   must go through `ab.eval_file()` (the code is passed as a single argv
   element — never through a shell, so JS backticks/`$()` are safe).
