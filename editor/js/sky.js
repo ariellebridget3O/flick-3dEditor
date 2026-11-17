@@ -651,6 +651,7 @@ export function createRealisticSky({ renderer }) {
   domeTwin.frustumCulled = false;
   pmremScene.add(domeTwin);
   let pmremGen = null, pmremRT = null;
+  let cloudTwin = null;   // P2: cloud-layer twin registered via setCloudTwin (additive)
 
   // ---- state ----
   const _cam = new THREE.Vector3();
@@ -727,16 +728,42 @@ export function createRealisticSky({ renderer }) {
 
   function bakePMREM() {
     if (!pmremGen) pmremGen = new THREE.PMREMGenerator(renderer);
-    const u = domeMat.uniforms;
-    const prevOut = u.uOutputSRGB.value, prevTone = u.uToneMap.value;
-    u.uOutputSRGB.value = 0; u.uToneMap.value = 0;    // linear HDR, no disc/moon/stars
-    const prev = pmremRT;
+    // linear HDR bake: the dome AND any registered cloud twin (same uOutputSRGB/uToneMap gates)
+    const mats = [domeMat, ...(cloudTwin ? [cloudTwin.material] : [])];
+    const prev = mats.map(m => [m.uniforms.uOutputSRGB.value, m.uniforms.uToneMap.value]);
+    for (const m of mats) { m.uniforms.uOutputSRGB.value = 0; m.uniforms.uToneMap.value = 0; }
+    const prevRT = pmremRT;
     pmremRT = pmremGen.fromScene(pmremScene, 0, 0.1, 1000);
-    prev?.dispose();
-    u.uOutputSRGB.value = prevOut; u.uToneMap.value = prevTone;
+    prevRT?.dispose();
+    mats.forEach((m, i) => { m.uniforms.uOutputSRGB.value = prev[i][0]; m.uniforms.uToneMap.value = prev[i][1]; });
     lastPmremAt = performance.now();
     pmremPending = false;
   }
+
+  // ---- P2 (cloud layer) — additive accessors: no behavior change when unused ----
+  // Shared scalar uniform OBJECTS (same {value} instances as domeMat): the cloud material
+  // references these, so sky.setParams / setCamera one-copy updates reach the clouds too.
+  function sharedUniforms() {
+    const u = domeMat.uniforms;
+    return {
+      uSunDir: u.uSunDir,
+      uSunIlluminance: u.uSunIlluminance,
+      uCameraPosKm: u.uCameraPosKm,
+      uBottomRadius: u.uBottomRadius,
+      uTopRadius: u.uTopRadius,
+    };
+  }
+  // Cloud twin in the PMREM scene (same pattern as domeTwin) + renderOrder flip:
+  // with clouds the dome drops to -2 so the cloud dome (renderOrder -1) composites over it;
+  // passing null restores dome.renderOrder = -1 (classic/realistic-when-off byte-identity).
+  function setCloudTwin(mesh) {
+    if (cloudTwin) pmremScene.remove(cloudTwin);
+    cloudTwin = mesh || null;
+    if (cloudTwin) pmremScene.add(cloudTwin);
+    dome.renderOrder = cloudTwin ? -2 : -1;
+  }
+  // Cloud param changes rebake the IBL WITHOUT a LUT rebake (research doc §4 PMREM interplay)
+  function markPMREMDirty() { pmremPending = true; }
 
   // per-frame: rebake LUTs when dirty (throttled), refresh IBL debounced, set output mode
   function update(camera, outputSRGB, scene) {
@@ -789,6 +816,7 @@ export function createRealisticSky({ renderer }) {
     mesh: dome, setParams, setCamera, update, setEnabled, bake, dispose, dumpLut,
     luts: { transmittance: transRT, multiscat: msRT, skyView: svRT },
     materials: { transmittance: transMat, multiscat: msMat, skyView: svMat, dome: domeMat },
+    sharedUniforms: sharedUniforms(), setCloudTwin, markPMREMDirty,
     _debug: { bakePMREM, get pmremPending() { return pmremPending; }, get lutDirty() { return lutDirty; } },
   };
 }
