@@ -75,6 +75,12 @@ export const C = {
     fog:      { sun: 0.30, hemi: 1.1,  fog: 3.5,  flare: 0.00, desat: 0.35, darken: 0.10 },
   },
   FOG_DENSITY_CAP: 0.05,      // round 6 (audit P0-4): density clamp — visibility ≈ 20 m
+  // round 10 (skybox P1): realistic sky dome (sebh/UnrealEngineSkyAtmosphere port — values from
+  // the MIT reference demo; analysis/tmp_skybox/NOTES.md). Post curve 1-exp(-c/wp*e).
+  SKY_EXPOSURE: 10.0,
+  SKY_WHITE_POINT: [1.08241, 0.96756, 0.95003],
+  // skyStyle: 'classic' (flick DAYLIGHT_STOPS dome, byte-identical default) | 'realistic'
+  SKY_STYLES: ['classic', 'realistic'],
   // sun presets (TQr/AQr light popover) — ELEVATION ONLY, azimuth preserved (audit P1-13: the
   // azimuthDeg fields here are IGNORED; live _Qr sets elevation only via r({...t, elevationDeg}))
   LIGHT_PRESETS: [
@@ -153,7 +159,7 @@ export const C = {
   LENS_SLIDER_MAX: 1000,     // Gze
 
   // ---------- tracks / items ----------
-  SCHEMA_V: 11,              // NU — round 6: light geo/weather/indoor/ambient + mode (v10→v11)
+  SCHEMA_V: 12,              // round 10: light.skyStyle (classic|realistic); v11→v12
   SPEED_DEFAULT: 1.4,        // Htt m/s
   SPEED_STORE_FLOOR: 0.01,   // Qae (store edit clamp)
   SPEED_UI_FLOOR: 0.2,       // Mit (timeline field min; migration fallback i6r)

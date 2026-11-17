@@ -8,6 +8,9 @@ const DEG = Math.PI / 180;
 // ================= round 6 (D): geographic sun solver (Spencer 1971 / NOAA worksheet) =================
 // Local SOLAR time assumed (no eqtime/longitude correction — documented ± ~30 min vs civil time).
 // Branch-free azimuth = atan2 of the sun vector's East/North components (finite at zenith, correct at poles).
+// round 10 (skybox P1): realistic atmosphere dome (sebh/UnrealEngineSkyAtmosphere port)
+import { createRealisticSky } from './sky.js';
+
 export function solarPositionDeg(geo) {
   const N = geo.dayOfYear ?? 166, h = geo.timeOfDay ?? 9.5, lat = geo.latitudeDeg ?? 45;
   const g = 2 * Math.PI / 365 * (N - 1 + (h - 12) / 24);            // fractional year
@@ -85,6 +88,37 @@ export function sunDirection(light) {
   return new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
 }
 
+// round 10 (skybox P1): realistic-sky parameter bundle from the light state.
+// Sun direction follows sunDirection(light) so the disc, shadows and flare always agree;
+// the atmosphere illuminance is reference-normalized (1.0) with a mild daylight sun tint.
+const _tint = new THREE.Color(), _white = new THREE.Color(1, 1, 1);
+const _moonRight = new THREE.Vector3();
+const SKY_FOG_BLEND = { clear: 0.06, cloudy: 0.2, overcast: 0.32, rain: 0.45, fog: 0.85 };
+function buildSkyParams(light, fogColor, g) {
+  const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;
+  const gg = g ?? daylightAt(light.elevationDeg);
+  const sunDir = sunDirection(light);
+  _tint.copy(gg.sunColor);
+  const mx = Math.max(_tint.r, _tint.g, _tint.b, 1e-6);
+  _tint.multiplyScalar(1 / mx).lerp(_white, 0.5);          // hue only, halved toward white
+  const nightAmt = Math.min(1, Math.max(0, (-light.elevationDeg - 3) / 11));
+  const moonDir = sunDir.clone().multiplyScalar(-1);       // anti-solar full moon
+  _moonRight.set(-sunDir.z, 0, sunDir.x).normalize();
+  moonDir.addScaledVector(_moonRight, 0.25).normalize();
+  return {
+    sunDir,
+    sunIlluminance: [_tint.r, _tint.g, _tint.b],
+    altitudeM: light.geo?.altitudeM ?? 0,
+    weather: light.weather,
+    nightAmt, moonDir,
+    weatherDesat: w.desat, weatherDarken: w.darken,
+    fogColor: fogColor ? fogColor.clone() : new THREE.Color(0xffffff),
+    fogBlend: SKY_FOG_BLEND[light.weather] ?? 0.06,
+    sunDiscL: new THREE.Vector3(30, 30, 30),
+    exposure: C.SKY_EXPOSURE,
+  };
+}
+
 // ---------- sky dome (xOr) ----------
 const SKY_VERT = /* glsl */`
   varying vec3 vDirection;
@@ -132,6 +166,11 @@ function makeSkyDome() {
 export function createEnvironment(scene, settings) {
   const sky = makeSkyDome();
   scene.add(sky);
+  // round 10 (skybox P1): realistic dome — hidden until light.skyStyle === 'realistic'
+  const realistic = createRealisticSky({ renderer: settings.renderer });
+  scene.add(realistic.mesh);
+  let skyStyle = 'classic';
+  let _lastLight = null;
   scene.fog = new THREE.FogExp2(0xffffff, 0);
   const hemi = new THREE.HemisphereLight();
   scene.add(hemi);
@@ -166,6 +205,7 @@ export function createEnvironment(scene, settings) {
   let _lastKey = '', glow = 0;
   function applyDaylight(light) {
     const glowAmount = () => light.nightLights === false ? 0 : glow;
+    _lastLight = light;
     const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;      // round 6 (D5)
     const indoor = !!light.indoor;                              // round 6 (D7)
     const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0);
@@ -190,6 +230,7 @@ export function createEnvironment(scene, settings) {
     u.horizon.value.copy(g.horizon).multiplyScalar(1 - w.darken); desat(u.horizon.value, w.desat);
     scene.fog.color.copy(g.horizon); desat(scene.fog.color, w.desat);   // fog matches the weathered horizon
     u.flare.value.copy(g.sunColor).multiplyScalar(g.flare * w.flare);
+    if (skyStyle === 'realistic') realistic.setParams(buildSkyParams(light, scene.fog.color, g));
     const az = light.azimuthDeg * DEG, el = Math.max(light.elevationDeg, 0) * DEG;
     u.flareDirection.value.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
     glow = g.glow;
@@ -206,7 +247,21 @@ export function createEnvironment(scene, settings) {
     return list;
   }
 
-  return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx };
+  function setSkyStyle(style, light) {
+    skyStyle = style === 'realistic' ? 'realistic' : 'classic';
+    sky.visible = skyStyle === 'classic';
+    realistic.setEnabled(skyStyle === 'realistic');
+    if (skyStyle === 'realistic') {
+      const l = light ?? _lastLight;
+      if (l) realistic.setParams(buildSkyParams(l, scene.fog.color));
+    }
+  }
+  function updateRealisticSky(camera, outputSRGB) {
+    if (skyStyle !== 'realistic') return;
+    realistic.update(camera, outputSRGB, scene);
+  }
+  return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx,
+    setSkyStyle, updateRealisticSky, realisticSky: () => realistic, getSkyStyle: () => skyStyle };
 }
 
 // ---------- bounds (vje/OFr) ----------

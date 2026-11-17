@@ -122,6 +122,13 @@ export class App {
       this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.();
     };
     this.setWeather = weather => { if (!C.WEATHER[weather]) return; this.light = { ...this.light, weather }; this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); };
+    // round 10 (skybox P1): sky style — classic (byte-identical flick dome) | realistic (Hillaire atmosphere)
+    this.setSkyStyle = style => {
+      const v = style === 'realistic' ? 'realistic' : 'classic';
+      this.light = { ...this.light, skyStyle: v };
+      this.env.setSkyStyle(v, this.light);
+      this.markAutosave?.();
+    };
     this.setIndoor = indoor => { this.light = { ...this.light, indoor: !!indoor }; this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); };
     this.setAmbient = v => { this.light = { ...this.light, ambientLevel: Math.min(1, Math.max(0, v)) }; this.env.applyDaylight(this.light); this.markAutosave?.(); };
     this.recomputeGeoLight = () => this.setLightGeo({});
@@ -317,6 +324,7 @@ export class App {
     this.objects.setObjects(scene.objects ?? {});
     this.show.setShow(scene.show ?? { name: 'Show', tracks: [] });
     this.light = normalizeLight(scene.light ?? null);
+    this.env.setSkyStyle(this.light.skyStyle === 'realistic' ? 'realistic' : 'classic', this.light);
     this.page.recordAspect = scene.recordAspect ?? '16:9';
     this._syncObjects();
     this.shadowFit.force();
@@ -929,6 +937,7 @@ export class App {
     const size = this.renderer.getDrawingBufferSize(_bufSize);
     if (size.x === 0 || size.y === 0) return;
     const finishOn = this.finishOn();
+    this.env.updateRealisticSky(this.camera, !finishOn);   // round 10: bakes + IBL + sRGB mode
     if (!finishOn) this.finish.release();
     if (finishOn) this.finish.render(this.scene, this.camera);
     else this.renderer.render(this.scene, this.camera);

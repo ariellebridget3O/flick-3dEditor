@@ -326,6 +326,11 @@ function buildLightPopover(app) {
       <label class="lp-row">Indoor<input id="lpIndoor" type="checkbox"></label>
       <label class="lp-row" id="lpAmbRow" style="display:none">Ambient<input id="lpAmb" type="range" min="0" max="1" step="0.05"><span id="lpAmbVal"></span></label>
     </div>
+    <div class="lp-sec">
+      <div class="lp-cat">Sky</div>
+      <div class="seg sky" id="lpSky">${C.SKY_STYLES.map(t => `<button data-s="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>
+      <div class="lp-hint" id="lpSkyHint"></div>
+    </div>
     <label class="lp-row lp-night"><input id="lpNight" type="checkbox" checked> Night lamps</label>`;
   document.querySelector('.stage-header').appendChild(el);
 
@@ -386,6 +391,11 @@ function buildLightPopover(app) {
     setVal($id('lpAmb'), l.ambientLevel ?? 0.35);
     $id('lpAmbVal').textContent = (l.ambientLevel ?? 0.35).toFixed(2);
     $id('lpNight').checked = l.nightLights !== false;
+    // round 10 (skybox P1): sky style
+    el.querySelectorAll('#lpSky button').forEach(b => b.classList.toggle('on', b.dataset.s === (l.skyStyle === 'realistic' ? 'realistic' : 'classic')));
+    $id('lpSkyHint').textContent = l.skyStyle === 'realistic'
+      ? 'Physically based atmosphere (Hillaire 2020) with stars and moon at night.'
+      : 'flick daylight gradient (default).';
     // presets: elevation-only (aria-pressed when |el - preset| < .5)
     el.querySelectorAll('.presets button').forEach(b => {
       const p = C.LIGHT_PRESETS[+b.dataset.i];
@@ -459,6 +469,8 @@ function buildLightPopover(app) {
 
   // ---- weather / indoor / ambient / night ----
   el.querySelectorAll('#lpWeather button').forEach(b => b.onclick = () => { commit(() => app.setWeather(b.dataset.w)); render(); });
+  // round 10 (skybox P1): sky style toggle
+  el.querySelectorAll('#lpSky button').forEach(b => b.onclick = () => { commit(() => app.setSkyStyle(b.dataset.s)); render(); });
   $id('lpIndoor').onchange = () => { commit(() => app.setIndoor($id('lpIndoor').checked)); render(); };
   const amb = $id('lpAmb');
   amb.addEventListener('pointerdown', () => app.show.beginEditGesture());

@@ -184,6 +184,8 @@ function normLight(t) { // g6r/N8r/SDe — round 6: geo/weather/indoor/ambient/m
   }
   const n = { azimuthDeg: ((l.azimuthDeg % 360) + 360) % 360, elevationDeg: Math.min(C.ELEV_MAX, Math.max(C.ELEV_MIN, l.elevationDeg)) };
   if (l.nightLights === false) n.nightLights = false;
+  // round 10 (skybox P1): realistic sky style — absent = classic (migrated scenes unchanged)
+  if (l.skyStyle === 'realistic') n.skyStyle = 'realistic';
   // round 6 D — extended fields (clamped; unknown → dropped)
   if (l.mode === 'geographic' || l.mode === 'custom') n.mode = l.mode;
   else n.mode = 'custom';                       // audit P0-3: migrated scenes keep their az/el
@@ -229,7 +231,7 @@ export function loadScene(input, propCatalog = {}) {
   if (t && t.scene && t.scene.v !== undefined) t = t.scene;
   if (!t || typeof t !== 'object') return null;
   try {
-    if (t.v === 11) return normalizeScene(deepCopy(t), propCatalog);
+    if (t.v === 11 || t.v === 12) return normalizeScene(deepCopy(t), propCatalog);
     let n = deepCopy(t);
     if (n.v === 1) { if (!n.performances) return null; n = v1to2(n); }
     if (n.v === 2) n = { ...n, v: 3, show: v2to3(n.show) };
@@ -241,7 +243,8 @@ export function loadScene(input, propCatalog = {}) {
     if (n.v === 8) n = { ...n, v: 9 };
     if (n.v === 9) n = { ...n, v: 10 };
     if (n.v === 10) n = v10to11(n);
-    return n.v === 11 ? normalizeScene(n, propCatalog) : null;
+    if (n.v === 11) n = v11to12(n);
+    return n.v === 12 ? normalizeScene(n, propCatalog) : null;
   } catch (e) {
     console.error('Stage: scene migration failed, refusing the row', e);
     return null;
@@ -263,6 +266,11 @@ function v10to11(n) {
     else n.light = { ...n.light, geo: { ...C.LIGHT_GEO_DEFAULTS, ...n.light.geo } };
   }
   return n;
+}
+
+// round 10 (skybox P1): v11→v12 — light may carry skyStyle (normalizeLight defaults 'classic').
+function v11to12(n) {
+  return { ...n, v: 12 };
 }
 
 // ---- save: strip undefined + pack items (lje sequential bumping) ----
