@@ -16,7 +16,7 @@
 //   thins the air physically (exp(-alt/8km) Rayleigh scale).
 
 import * as THREE from './vendor/three.module.js';
-import * as C from './const.js';
+import { C } from './const.js';
 
 // ---- Earth constants (SetupEarthAtmosphere, km units; analysis/tmp_skybox/NOTES.md) ----
 const EARTH = {
