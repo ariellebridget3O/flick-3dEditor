@@ -76,6 +76,7 @@ export function normalizeLight(l) {
     geo: { ...C.LIGHT_GEO_DEFAULTS, ...(l.geo ?? {}) },
   };
   if (l.nightLights === false) out.nightLights = false;
+  if (l.skyStyle === 'realistic') out.skyStyle = 'realistic';   // round 10: classic default when absent
   return out;
 }
 
@@ -97,7 +98,11 @@ const SKY_FOG_BLEND = { clear: 0.06, cloudy: 0.2, overcast: 0.32, rain: 0.45, fo
 function buildSkyParams(light, fogColor, g) {
   const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;
   const gg = g ?? daylightAt(light.elevationDeg);
-  const sunDir = sunDirection(light);
+  // TRUE sun direction for the atmosphere (no EL_REMAP): the sky is physical — the disc sets
+  // below the horizon. Scene lighting keeps the classic remapped sunDirection (P1 design:
+  // object lighting identical to classic; at night sun.intensity is 0 so no disagreement).
+  const azT = light.azimuthDeg * DEG, elT = light.elevationDeg * DEG;
+  const sunDir = new THREE.Vector3(Math.sin(azT) * Math.cos(elT), Math.sin(elT), -Math.cos(azT) * Math.cos(elT));
   _tint.copy(gg.sunColor);
   const mx = Math.max(_tint.r, _tint.g, _tint.b, 1e-6);
   _tint.multiplyScalar(1 / mx).lerp(_white, 0.5);          // hue only, halved toward white
@@ -250,6 +255,7 @@ export function createEnvironment(scene, settings) {
   function setSkyStyle(style, light) {
     skyStyle = style === 'realistic' ? 'realistic' : 'classic';
     sky.visible = skyStyle === 'classic';
+    if (skyStyle !== 'realistic' && scene.environment) scene.environment = null;  // drop IBL BEFORE the RT dispose
     realistic.setEnabled(skyStyle === 'realistic');
     if (skyStyle === 'realistic') {
       const l = light ?? _lastLight;

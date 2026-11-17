@@ -755,6 +755,7 @@ export function createRealisticSky({ renderer }) {
     enabled = !!v;
     dome.visible = enabled;
     if (!enabled) { pmremRT?.dispose(); pmremRT = null; lastEnvTex = null; }
+    else { lutDirty = true; }   // re-enable always rebakes: the PMREM RT was disposed on disable
   }
 
   // E2E/debug: read a LUT back — r182 readRenderTargetPixels reads HalfFloat RTs with type
