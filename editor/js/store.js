@@ -2,9 +2,10 @@
 // with op-based undo and beginEditGesture/endEditGesture bracketing.
 import { uuid, packItems, itemDuration } from './schema.js';
 import { arcLength, polylineOf, buildTangents } from './curves.js';
-import { C, CAM_MOVE_PRESETS } from './const.js';
+import { C, CAM_MOVE_PRESETS } from './const.js';   // CAM_MOVES_FOCUSABLE/STILL_* via the second const import below
 import { moveItemToIndex, canDuplicateOnto, dropSelfRefs, moveKey, maxEnd, appendPlace, placeAvoiding, NON_CAMERA_KINDS, remapAction } from './place.js';
-import { CAM_ITEM_KINDS, subjectlessItem } from './tracks.js';
+import { CAM_ITEM_KINDS, subjectlessItem, isPersonKind } from './tracks.js';
+import { CAM_MOVES_FOCUSABLE, STILL_DUR, STILL_MIN_DUR } from './const.js';
 import * as THREE from 'three';
 
 // ---- r8b aim-math helpers (verbatim family: CP/wDe/pie/VWt/Zo/cN/s$/NP/VDe/uje/kv) ----
@@ -269,6 +270,11 @@ export class ObjectStore extends StoreBase {
 }
 
 // ============ show store: tracks + items, undoable ops ============
+function camItemFocusSubject(item) {                 // Cit @5523845 — cam-path needs aim==='subject'; cam-move/cam-still take subjectId directly
+  return item.kind === 'cam-path' ? (item.aim === 'subject' ? item.subjectId ?? null : null)
+    : item.kind === 'cam-move' || item.kind === 'cam-still' ? item.subjectId ?? null : null;
+}
+
 export class ShowStore extends StoreBase {
   constructor() {
     super();
@@ -723,6 +729,91 @@ export class ShowStore extends StoreBase {
         t.items[i] = { ...t.items[i], ...fields };
       }
     });
+  }
+
+
+  // ---- focus / move-segment family (live show-store methods; r13 audit P0-3 + P1-8;
+  // setCameraFocus/keepLookOnClear/moveSegmentOf normalized-identical in DBE17t4T + CaBu3A6T) ----
+  _playheadS() { return this._hooks?.playheadS?.() ?? 0; }
+  moveSegmentOf(trackId, s) {                              // @5546275 — camera: Fp/V2r set; walker: path|play; covering + first fallback
+    const tr = this.show.tracks.find(t => t.id === trackId);
+    const objs = this._objs();
+    const isCam = objs[tr?.characterId ?? '']?.kind === 'camera';
+    const cands = (tr?.items ?? []).filter(o => isCam ? CAM_ITEM_KINDS.has(o.kind) : o.kind === 'path' || o.kind === 'play');
+    return cands.find(o => s >= o.startS && s < o.startS + itemDuration(o)) ?? cands[0] ?? null;
+  }
+  cameraFocusId(cameraId) {                                // @5545617 — covering cam item at playhead -> Cit
+    const trackId = this.show.tracks.find(t => t.characterId === cameraId)?.id ?? null;
+    const r = trackId ? this.moveSegmentOf(trackId, this._playheadS()) : undefined;
+    return r ? camItemFocusSubject(r) : null;
+  }
+  walkerFocusId(walkerId) {                                // @5545745
+    const trackId = this.show.tracks.find(t => t.characterId === walkerId)?.id ?? null;
+    const r = trackId ? this.moveSegmentOf(trackId, this._playheadS()) : undefined;
+    return r?.kind === 'path' && r.aim === 'subject' ? r.subjectId ?? null : null;
+  }
+  setWalkerFocus(walkerId, subjectId) {                    // @5545918 verbatim (guards + covering path at playhead)
+    const objs = this._objs();
+    if (!isPersonKind(objs[walkerId]?.kind) || subjectId !== null && (subjectId === walkerId || !objs[subjectId])) return false;
+    const trackId = this.show.tracks.find(t => t.characterId === walkerId)?.id ?? null;
+    const a = trackId ? this.moveSegmentOf(trackId, this._playheadS()) : undefined;
+    return !trackId || a?.kind !== 'path' ? false
+      : (this.updatePathItemAim(trackId, a.id, subjectId ? 'subject' : 'travel', subjectId), true);
+  }
+  updatePathItemAim(trackId, itemId, aim, subjectId) {     // @5542837 — subjectId kept when travel (gates check aim)
+    this._commit(trackId, t => {
+      t.items = t.items.map(o => o.id === itemId && o.kind === 'path' ? { ...o, aim, ...(aim === 'subject' ? { subjectId } : {}) } : o);
+    });
+  }
+  setCameraFocus(cameraId, subjectId, opts) {              // @5544109 verbatim (r13 audit P0-3)
+    const objs = this._objs();
+    if (objs[cameraId]?.kind !== 'camera' || subjectId !== null && (subjectId === cameraId || !objs[subjectId])) return false;
+    const trackId = this.show.tracks.find(t => t.characterId === cameraId)?.id ?? this.addPerformanceTrack(cameraId);
+    if (!trackId) return false;
+    const items = this.show.tracks.find(t => t.id === trackId).items;
+    const c = this.moveSegmentOf(trackId, this._playheadS());
+    const patchable = c?.kind === 'cam-path' || c?.kind === 'cam-move' && CAM_MOVES_FOCUSABLE.includes(c.move);   // yP gate
+    if (c && !patchable && c.kind !== 'cam-still') return false;   // refuse follow/transform/manual/pan_sweep
+    const u = c ? camItemFocusSubject(c) : null;
+    if (subjectId === null) {
+      if (!c || !u) return false;
+      const y = opts?.lookingAt ?? this.subjectAimPoint(u, c.aimOffsetUnits || 0);   // $6
+      if (y) this.keepLookOnClear(cameraId, c, items, y);
+    }
+    if (c && patchable) {
+      this.setCameraItemFields(trackId, c.id, { ...(c.kind === 'cam-path' ? { aim: 'subject' } : {}), subjectId });
+      return true;
+    }
+    if (c?.kind === 'cam-still' && subjectId === null) {
+      this.setCameraItemFields(trackId, c.id, { subjectId: null });
+      return true;
+    }
+    const h = c?.startS ?? 0;
+    const f = this._restDurationS(trackId);               // rx(show minus this track).durationS
+    const m = items.find(y => y.startS > h)?.startS ?? Infinity;
+    const g = Math.min(m, Math.max(f, h + (c ? itemDuration(c) : STILL_DUR)));       // sje('still') = N8 = 5
+    const b = { id: c?.id ?? uuid(), kind: 'cam-still', startS: h,
+      durationS: Math.max(STILL_MIN_DUR, g - h),           // Ije = .1
+      ...(c && c.focalLengthMm !== undefined ? { focalLengthMm: c.focalLengthMm } : {}), subjectId };
+    this._commit(trackId, t => { t.items = [b, ...t.items.filter(v => v.id !== c?.id)]; });
+    return true;
+  }
+  keepLookOnClear(cameraId, item, items, lookPoint) {      // @5545290 verbatim
+    if (!this._hooks?.updateObjectTransform) return;
+    if (item.kind === 'cam-still') this._turnCameraToward(cameraId, lookPoint);
+    const objs = this._objs();
+    const o = objs[cameraId];
+    const tid = o?.targetId, tobj = tid ? objs[tid] : undefined;
+    if (!tid || !tobj) { this._hooks.updateObjectTransform(cameraId, { lastAimPosition: lookPoint }); return; }
+    if (!items.some(d => d.id !== item.id && subjectlessItem(d))) this._hooks.updateObjectTransform(tid, { position: keepAimPoint(tobj, objs, lookPoint) });
+  }
+  _restDurationS(excludeTrackId) {                          // rx({...show minus track}).durationS — max endS over the rest
+    let d = 0;
+    for (const t of this.show.tracks) {
+      if (t.id === excludeTrackId) continue;
+      for (const it of t.items) d = Math.max(d, it.startS + itemDuration(it));
+    }
+    return d;
   }
 
   // ---- path item ops (paint mode) ----

@@ -219,7 +219,7 @@ export class HumanoidRig {
 // head-look rig offsets (jZt): DEF-neck 40% / DEF-head 60%; rotation built as
 // euler(pitch·f, yaw·f, 0, 'YXZ') converted to XYZ (EZt), pitch NEGATED.
 const _jzE = new THREE.Euler(), _jzQ = new THREE.Quaternion();
-function ezHeadRotation(yaw, pitch) { // EZt
+export function ezHeadRotation(yaw, pitch) { // EZt
   _jzQ.setFromEuler(_jzE.set(pitch, yaw, 0, 'YXZ'));
   _jzE.setFromQuaternion(_jzQ);
   return [_jzE.x, _jzE.y, _jzE.z];

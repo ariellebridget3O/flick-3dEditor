@@ -752,7 +752,15 @@ export class PlanStore {
     const bump = () => { this._epoch++; this._cache = null; };
     app.objects.subscribe?.(bump); app.show.subscribe?.(bump);
     // locked → cancel stroke (live disposer): drawing while playing refuses
-    app.page.subscribe?.(() => { if (this.locked() && this.stroke) { this.stroke = null; this.strokeClock = null; this.a._drawPreview = null; } if (this.locked()) this.drawingFor = null; });
+    app.page.subscribe?.(() => { if (this.locked() && this.stroke) { this.stroke = null; this.strokeClock = null; this.a._drawPreview = null; this.hideRehearseTip(); } if (this.locked()) this.drawingFor = null; });
+    let lastDrawTarget = this.drawTarget();                                                            // live rDr ctor @5462644: drawTarget change exits draw mode (audit P1-5)
+    app.objects.subscribe?.(() => {
+      const t = this.drawTarget();
+      if (t !== lastDrawTarget) {
+        lastDrawTarget = t;
+        if (this.drawingFor !== null) { this.drawingFor = null; this._onDrawingChange?.(); }
+      }
+    });
   }
   // ---- derived (recomputed lazily per epoch) ----
   _c() {
@@ -949,13 +957,13 @@ export class PlanStore {
     this.drawingFor = null;
     this.a.show.beginEditGesture();
     this.a.show.removeItem(n.id, r.id);
-    s && this.setCameraFocus(e, s);
+    s && this.a.show.setCameraFocus(e, s);                                                       // @5469975 via the store machine
     this.a.show.endEditGesture();
   }
-  toggleDrawing() { this.pendingWalkerFocus = null; this.drawingFor = this.drawing() ? null : this.drawTarget(); this.a.markAutosave?.(); }
-  stopDrawing() { this.endStroke(), this.pendingWalkerFocus = null, this.drawingFor = null, this.hideRehearseTip(); }
+  toggleDrawing() { this.pendingWalkerFocus = null; this.drawingFor = this.drawing() ? null : this.drawTarget(); this._onDrawingChange?.(); this.a.markAutosave?.(); }
+  stopDrawing() { this.endStroke(), this.pendingWalkerFocus = null, this.drawingFor = null, this.hideRehearseTip(), this._onDrawingChange?.(); }
   stepBack() {                                                                                         // Esc chain (stroke → drawing → selection)
-    return this.stroke ? !0 : this.drawing() ? (this.drawingFor = null, !0) : this.a.objects.selectedIds.length ? (this.a.objects.select([]), !0) : !1;
+    return this.stroke ? !0 : this.drawing() ? (this.drawingFor = null, this._onDrawingChange?.(), !0) : this.a.objects.selectedIds.length ? (this.a.objects.select([]), !0) : !1;
   }
   drawFrame(e) {                                                                                       // per-frame: tick stroke + focus/dim info
     const n = this.stroke; n && this.tickStroke(n, e);
@@ -1027,11 +1035,12 @@ export class PlanStore {
   }
   endStroke() {
     const e = this.stroke; if (!e) return;
-    this.stroke = null, this.strokeClock = null, this.a._drawPreview = null, this.a.page.stop();
+    this.stroke = null, this.strokeClock = null, this.a._drawPreview = null;
+    this.a.stopPerformance?.();                                                                     // live stopPerformance @5548587 — reset to rest (audit P1-4)
     const n = this.drawnMoveIds().includes(e.id);
     this.a.show.beginEditGesture();
     const r = this.matchDrawSpeed, s = this._replaceMove(e.id, 0, e.samples, { focusId: e.focusId, steady: !r });
-    this.a.show.endEditGesture(), this.drawingFor = null;
+    this.a.show.endEditGesture(), this.drawingFor = null, this._onDrawingChange?.();
     s && (this.showRehearseTip(), this.a.onMoveDrawn?.({ itemKind: e.kind === "camera" ? "camera" : e.kind === "humanoid" ? "human" : e.kind === "simple_figure" ? "figure" : "prop", focus: !!e.focusId, durationS: e.samples[e.samples.length - 1].t, updated: n, matchDrawSpeed: r }));
     this.a.markAutosave?.();
   }
@@ -1085,28 +1094,28 @@ export class PlanStore {
   }
   toggleFocus(e) {
     const n = this.drawTarget();
-    if (n && el(this.a.objects.get(n)?.kind)) {                                                        // walker: setWalkerFocus @5574597 (covering-time segment)
+    if (n && el(this.a.objects.get(n)?.kind)) {                                                        // walker: setWalkerFocus @5545918 verbatim (guards + covering path)
       const o = this.focusOf(n) === e;
       this.a.show.beginEditGesture();
-      const tr = this.a.show.trackOf(n), it = tr ? this._moveSegmentOf(tr, this.a.page.playheadS) : null;
-      let ok = false;
-      if (it?.kind === 'path') { this.a.show.patchItem(tr.id, it.id, o ? { aim: 'travel', subjectId: null } : { aim: 'subject', subjectId: e }); ok = true; }
+      const l = this.a.show.setWalkerFocus(n, o ? null : e);
       this.a.show.endEditGesture();
-      this.pendingWalkerFocus = ok || o ? null : { id: n, subjectId: e };
+      this.pendingWalkerFocus = l || o ? null : { id: n, subjectId: e };
       return;
     }
-    if (!n || this.a.objects.get(n)?.kind !== "camera") return;
-    this.a.show.beginEditGesture();
-    const s = this.focusOf(n) === e;
-    this.setCameraFocus(n, s ? null : e);
+    const r = n;
+    if (!r || this.a.objects.get(r)?.kind !== "camera") return;
+    this.a.show.beginEditGesture();                                                                   // camera: setCameraFocus machine @5544109 (audit P0-3)
+    const s = this.cameraFocusId(r) === e;
+    const a = s ? this.clearFocus(r) : this.a.show.setCameraFocus(r, e);
     this.a.show.endEditGesture();
+    !a && !s && this.a.toast?.("Couldn't set focus on this camera");                                  // ot.warning(sDr()) — i18n equivalent
   }
-  setCameraFocus(camId, subjectId) {                                                                   // setCameraFocus core @5573096 (covering-time; keepLookOnClear = backlog)
-    const tr = this.a.show.trackOf(camId);
-    const it = tr ? this._moveSegmentOf(tr, this.a.page.playheadS) : null;
-    if (it?.kind === 'cam-path' || it?.kind === 'cam-move' || it?.kind === 'cam-still')
-      this.a.show.patchItem(tr.id, it.id, { ...(it.kind === 'cam-path' ? { aim: subjectId ? 'subject' : 'locked', subjectId } : { subjectId }) });
-    else this.a.objects.update(camId, { targetId: subjectId });
+  clearFocus(camId) {                                                                                  // @5474407 — keep the current look point when clearing
+    const n = this.cameraFocusId(camId);
+    if (!n) return false;
+    const t = this.a.page.playheadS;
+    const s = this.a.resolvers().aim(n, t, 0);                                                        // foldResolvers().resolveAim
+    return this.a.show.setCameraFocus(camId, null, { lookingAt: s ?? undefined });
   }
   // ---- move / turn / commit (rDr machinery; camera pipeline via manipulator SZt) ----
   startPose(e) { const n = this.drag?.start, r = n?.get(e); if (r) return r; const s = this.shownOrStored(e); return s && n && n.set(e, s), s; }
@@ -1139,19 +1148,10 @@ export class PlanStore {
   carryPaths(e, n, r) {
     if (this.a.objects.get(e)?.kind === "camera") {
       const a = this.a.show.trackOf(e)?.items ?? [], o = this.a.page.playheadS;
-      if (this.driveMode(a, o, "translate") !== "path-position") return !1;                            // _je: ONLY path-position cameras carry
+      if (this.a.manipulator?._refusalReason(a, o, "translate") !== "path-position") return !1;        // _je via the manipulate port (wZt gates: manual needs samples, path needs anchors>=2) — audit P2-1
     }
     const s = this.drag?.carried.get(e) ?? [0, 0];
     return this.shiftPaths(e, n - s[0], r - s[1]) ? (this.drag?.carried.set(e, [n, r]), !0) : !1;
-  }
-  driveMode(items, t, mode) {                                                                          // _je port
-    let n = null;
-    for (const it of items) { if (t < it.startS) break; if (['cam-path', 'cam-manual', 'cam-still', 'cam-move', 'cam-follow'].includes(it.kind)) n = it; if (t < it.startS + itemDuration(it)) break; }
-    if (!n || t > n.startS + itemDuration(n)) return null;
-    if (n.kind === 'cam-manual') return 'manual';
-    if (mode !== 'rotate') return 'path-position';
-    if ((n.aim ?? 'travel') !== 'locked') return 'path-look';
-    return null;
   }
   shiftPaths(e, dx, dz) {                                                                              // live shiftPaths: path/cam-path anchors ONLY (Eit), zero-delta → true, packed
     if (dx === 0 && dz === 0) return !0;
@@ -1373,10 +1373,11 @@ export class PlanCanvas {
     store._onStrokeClock = c => this._syncTimer(c);
     this._curveTick = () => this._curve && this.shown() && this._curve.render();
     store._onTip = on => this._syncBar();
+    store._onDrawingChange = () => this._syncBar();   // P2-3: Esc/selection changes refresh the Finish pill
     this.setVisible(app.page?.viewportMode === 'plan');
   }
 
-  shown() { return this.app.page.viewportMode === 'plan' && this.app.page.mode === 'edit' && !this.app.page.playing; }
+  shown() { return this.app.page.viewportMode === 'plan' && this.app.page.mode === 'edit'; }   // planShown @5787136 — gates on playSession (recording) only, not playback (audit P1-7)
   _syncShown() {
     const on = this.shown();
     this.setVisible(on);

@@ -229,6 +229,9 @@ export class ObjectManager {
       }
       case 'simple_figure': {
         g.add(buildSimpleFigure());
+        // live nBe(t)=t.userData.figure reads the MESH; our wrapper must promote the inner
+        // figure handle so applyHeadRotation/setFigureColor/ghost-head (nBe consumers) work
+        g.userData.figure = g.children[0].userData.figure;
         break;
       }
       case 'humanoid': {

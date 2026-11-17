@@ -287,7 +287,10 @@ export const CAM_MOVE_PRESETS = {
   spiral:    { durationS: 8, angleDeg: 180, heightDeltaUnits: 3 },
   pan_sweep: { durationS: 6, angleDeg: 90 },
 };
-export const CAM_MOVES = ['orbit', 'dolly_in', 'dolly_out', 'dolly_zoom', 'crane_up', 'crane_down', 'spiral', 'pan_sweep']; // yP
+export const CAM_MOVES = ['orbit', 'dolly_in', 'dolly_out', 'dolly_zoom', 'crane_up', 'crane_down', 'spiral', 'pan_sweep']; // bP
+export const CAM_MOVES_FOCUSABLE = ['orbit', 'dolly_in', 'dolly_out', 'dolly_zoom', 'crane_up', 'crane_down', 'spiral']; // yP = bP minus pan_sweep (setCameraFocus patch gate)
+export const STILL_DUR = 5;     // sje('still') -> N8 = 5 (default cam-still duration, _1 has no still key)
+export const STILL_MIN_DUR = .1; // Ije (min cam-still duration)
 
 // smoothstep (eDe, old rDe)
 export const smoothstep = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);

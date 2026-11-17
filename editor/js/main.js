@@ -15,7 +15,7 @@ import {
   evalCameraObject, rigJointsAtTime, evalObjectItems, fovFromFocal, itemsOfTrack, isPersonKind,
   pathStateAt, pathRotation,
 } from './tracks.js';
-import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation } from './figures.js';
+import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation, ezHeadRotation } from './figures.js';
 const _hoeV = new THREE.Vector3(), _hoeE = new THREE.Euler(), _hoeQ = new THREE.Quaternion(), _hoePQ = new THREE.Quaternion(); // hoe scratch (verbatim units, SKILL #46)
 import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
@@ -188,6 +188,8 @@ export class App {
       enterPathEdit: (trackId, itemId) => this.pathEditor.enterPaint(trackId, itemId),
       seedAnchorY: (trackId, itemId, pos, idx) => this.pathEditor._anchorPosFor({ x: pos[0], y: pos[1], z: pos[2] }, idx),
       propDims: key => this.objectManager?.propCatalog?.[key]?.dims,
+      playheadS: () => this.page.playheadS,                     // performanceTimeS for the focus family
+      resolveAim: (id, t, off) => this.resolvers().aim(id, t, off),
     };
 
     // ---- raycaster ----
@@ -308,7 +310,7 @@ export class App {
           m.parent.getWorldQuaternion(_hoePQ);
           m.quaternion.copy(_hoePQ.invert().multiply(_hoeQ.setFromEuler(_hoeE.set(...d.rotation))));
         } else { m.position.set(...d.position); m.quaternion.setFromEuler(_hoeE.set(...d.rotation)); }
-        if (d.look && m.userData.figure) m.userData.figure.head.rotation.set(0, d.look.headYawRad, d.look.headPitchRad);
+        if (d.look && m.userData.figure) m.userData.figure.head.rotation.set(...ezHeadRotation(d.look.headYawRad, d.look.headPitchRad));   // kje=EZt(yaw,pitch) — audit P1-6b
       }
     } else if (this._drawPreviewId) {
       const id = this._drawPreviewId; this._drawPreviewId = null;
@@ -689,6 +691,15 @@ export class App {
     return hits[0]?.point?.y ?? null;
   }
 
+  stopPerformance() { // live stopPerformance @5548587: playing=false + performanceSeekS=null -> at-rest tick resets (timeS 0 + stored TRS)
+    this.page.stop();
+    this.page.playheadS = 0;
+    this.page.seekEpoch = (this.page.seekEpoch ?? 0) + 1;
+    this.page.changed();
+    this._restEval = false;
+    this._restSeekPending = false;
+    this.resetToBase();
+  }
   resetToBase() { // ye(): meshes back to stored TRS + rigs to their animation record (rest)
     for (const [id, obj] of Object.entries(this.objects.all())) {
       const mesh = this.meshById.get(id);
@@ -1036,7 +1047,7 @@ export class App {
     // --- render passes (re/ae port) ---
     // round 6 (C): plan shown → the 3D render pauses (live NUr gating: updateMatrixWorld only);
     // rigs/playback/livePose ticks above keep running so shownPose mirrors the show on the plan.
-    if (this.page.viewportMode === 'plan' && this.page.mode === 'edit' && !this.page.playing) {
+    if (this.page.viewportMode === 'plan' && this.page.mode === 'edit') {   // planShown @5787136: gates on playSession (recording) only — audit P1-7
       this.scene.updateMatrixWorld();
       this.tickDrawPreview();
       this.planView?.tick(performance.now());
