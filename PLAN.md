@@ -110,9 +110,16 @@ Top-ranked backlog item: the R7/R8 verbatim-fn oracle generalized to a PIXEL har
 - Live cameras view = XXr feed WALL (pager + tiles + labels); ours = full-viewport lens (single-camera case near-identical).
 - Live W-resolver `objectPoseAt` folds rig quaternion/yaw at t — ours returns position only (aim uses position only too).
 
+## Round 10 (2026-11-17) — COMPLETE (skybox P1: realistic atmosphere + night)
+Top-ranked backlog item. Reference set analysis/tmp_skybox/ (sebh/UnrealEngineSkyAtmosphere, MIT ©2020 Epic Games — fetched verbatim + NOTES.md ported-constant registry). Full detail in FIDELITY round-10.
+- [x] R10-1 realistic sky (editor/js/sky.js): Hillaire-2020 3-LUT architecture (transmittance 256x64 / multi-scattering 32x32 / sky-view 192x108, RGBA16F) + GLSL3 dome (xyww far-plane recipe, manual sRGB OETF via uOutputSRGB for plain-vs-finish-RT, demo post curve 1-exp(-c/wp*e) inside the shader). Feedback-free bake design: the transmittance pass declares NO samplers (compile-time USE_TRANSMIT_TEX).
+- [x] R10-2 coupling: TRUE-elevation atmosphere sun (EL_REMAP kept for scene lighting — documented), weather physics (SKY_WEATHER Rayleigh/Mie multipliers) + classic mood (desat/darken) on the dome, geo altitude via planet-center offset (exp(-alt/8km) verified), night stars + moon (uNightAmt ramp -3..-14 deg), horizon fog band converging to the linear fog color at the seam, PMREM sky-only IBL (250ms debounce, linear HDR, no disc/moon/stars).
+- [x] R10-3 schema v12 light.skyStyle ('classic' default — migrated scenes unchanged; byte-identical classic gate GREEN 4/4 vs the pre-feature tree), main.js setSkyStyle + renderFrame/drawPlain hooks, ui.js Sky section.
+- [x] R10-4 review round (empirical harness: GPU LUT dumps + double-precision re-bake at 0.5% error): P0 sky-view LUT vertically inverted + P1 Mie double-negation + 2 P2 + 4 P3 — ALL fixed + re-verified (zenith dark / horizon bright monotonic; sunset sun-side ratio 10.4 solar; classic gate re-GREEN).
+
 ## Backlog (ranked — next rounds)
-- [ ] P1 Skybox P1 (PLAN skybox roadmap: sebh/UnrealEngineSkyAtmosphere MIT dome + night + weather-coupled uniforms + PMREM IBL; full design in analysis/R7_SKYBOX_RESEARCH.md)
 - [ ] P1 Pixel oracle ROUND 2: widen beyond the lens view — editor-view default framing, daylight table stops, finish composer (force stage-finish manual both sides), second camera / cam-path feed; script the live-session flow (login → flag override → deep link) into scripts/pixel_oracle/ for re-runnable regression
+- [ ] P2 Skybox P2: weather-driven cloud layers (3 altitudes, runtime fbm/Worley; research doc §6.3 table ready); consider exposing sky exposure / envMapIntensity
 - [ ] P2 Rig posing UX (xqr joint spheres + captureFocusedRigPose + Fzr multi-joint)
 - [ ] P2 Held-pose baking (bakeRigPoseSegment flow: rig key @t=0)
 - [ ] P2 Shake apply (Dzt/oEr — constants ready), spawn grid, deleteFocused cascade, cam-follow offset UI
