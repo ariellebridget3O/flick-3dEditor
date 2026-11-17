@@ -82,7 +82,15 @@ const GLSL_COMMON = /* glsl */`
   uniform vec3 uSunIlluminance;
   uniform vec3 uCameraPosKm;      // planet-frame camera (editor cam + planet offset), km
 
+  #ifdef USE_TRANSMIT_TEX
+  uniform sampler2D uTransmitTex;   // NOT declared for the transmittance pass — feedback-free by construction
+  #endif
+  #ifdef MULTISCAT_APPROX
+  uniform sampler2D uMultiScatTex;   // declared only where the approximation compiles in
+  #endif
+
   float sat(float x) { return clamp(x, 0.0, 1.0); }
+  vec2 sat(vec2 x) { return clamp(x, vec2(0.0), vec2(1.0)); }
 
   // raySphereIntersectNearest — SkyAtmosphereCommon.hlsl @150
   float raySphereIntersectNearest(vec3 r0, vec3 rd, vec3 s0, float sR) {
@@ -213,7 +221,7 @@ const GLSL_COMMON = /* glsl */`
   struct SSSResult { vec3 L; vec3 opticalDepth; vec3 transmittance; vec3 multiScatAs1; };
   SSSResult integrateScatteredLuminance(
       vec3 worldPos, vec3 worldDir, vec3 sunDir,
-      float sampleCountIni, bool variableSampleCount, bool mieRayPhase, bool useTransmitTex) {
+      float sampleCountIni, bool variableSampleCount, bool mieRayPhase) {
     SSSResult result = SSSResult(vec3(0.0), vec3(0.0), vec3(1.0), vec3(0.0));
     vec3 earthO = vec3(0.0);
     float tBottom = raySphereIntersectNearest(worldPos, worldDir, earthO, uBottomRadius);
@@ -273,7 +281,11 @@ const GLSL_COMMON = /* glsl */`
       float sunZenithCosAngle = dot(sunDir, upVector);
       vec2 uvT;
       lutTransmittanceParamsToUv(pHeight, sunZenithCosAngle, uvT);
-      vec3 transmittanceToSun = useTransmitTex ? texture(uTransmitTex, uvT).rgb : vec3(1.0);
+      #ifdef USE_TRANSMIT_TEX
+      vec3 transmittanceToSun = texture(uTransmitTex, uvT).rgb;
+      #else
+      vec3 transmittanceToSun = vec3(1.0);
+      #endif
 
       vec3 phaseTimesScattering = mieRayPhase
         ? medium.scatteringMie * miePhaseValue + medium.scatteringRay * rayleighPhaseValue
@@ -312,7 +324,11 @@ const GLSL_COMMON = /* glsl */`
       float sunZenithCosAngle = dot(sunDir, upVector);
       vec2 uvT;
       lutTransmittanceParamsToUv(pHeight, sunZenithCosAngle, uvT);
-      vec3 transmittanceToSun = useTransmitTex ? texture(uTransmitTex, uvT).rgb : vec3(1.0);
+      #ifdef USE_TRANSMIT_TEX
+      vec3 transmittanceToSun = texture(uTransmitTex, uvT).rgb;
+      #else
+      vec3 transmittanceToSun = vec3(1.0);
+      #endif
       float NdotL = sat(dot(upVector, sunDir));
       L += globalL * transmittanceToSun * throughput * NdotL * uGroundAlbedo / PI;
     }
@@ -339,8 +355,7 @@ const BAKE_VERT = /* glsl */`
 // uniform spacing, MieRayPhase off. Only opticalDepth is consumed.
 const TRANS_FRAG = /* glsl */`
   #define PASS_TRANSMITTANCE
-  ${'' /* uTransmitTex declared but NOT bound for this pass (feedback-loop-free by design) */}
-  uniform sampler2D uTransmitTex;
+${GLSL_COMMON}
   in vec2 vUv;
   layout(location = 0) out vec4 outColor;
   void main() {
@@ -348,7 +363,7 @@ const TRANS_FRAG = /* glsl */`
     uvToLutTransmittanceParams(viewHeight, viewZenithCosAngle, vUv);
     vec3 worldPos = vec3(0.0, viewHeight, 0.0);
     vec3 worldDir = vec3(0.0, viewZenithCosAngle, sqrt(max(0.0, 1.0 - viewZenithCosAngle * viewZenithCosAngle)));
-    SSSResult r = integrateScatteredLuminance(worldPos, worldDir, uSunDir, 40.0, false, false, false);
+    SSSResult r = integrateScatteredLuminance(worldPos, worldDir, uSunDir, 40.0, false, false);
     outColor = vec4(exp(-r.opticalDepth), 1.0);
   }
 `;
@@ -359,7 +374,8 @@ const MULTISCAT_FRAG = /* glsl */`
   #define PASS_MULTISCAT
   #define ILLUMINANCE_IS_ONE
   #define GROUND_BOUNCE
-  uniform sampler2D uTransmitTex;
+  #define USE_TRANSMIT_TEX
+${GLSL_COMMON}
   in vec2 vUv;
   layout(location = 0) out vec4 outColor;
   void main() {
@@ -378,7 +394,7 @@ const MULTISCAT_FRAG = /* glsl */`
       float phi = acos(1.0 - 2.0 * (j / SQ));      // uniform sphere sampling
       float sinPhi = sin(phi), cosPhi = cos(phi);
       vec3 worldDir = vec3(cos(theta) * sinPhi, cosPhi, sin(theta) * sinPhi);
-      SSSResult r = integrateScatteredLuminance(worldPos, worldDir, sunDir, 20.0, false, false, true);
+      SSSResult r = integrateScatteredLuminance(worldPos, worldDir, sunDir, 20.0, false, false);
       msSum += r.multiScatAs1;
       lSum += r.L;
     }
@@ -395,8 +411,8 @@ const MULTISCAT_FRAG = /* glsl */`
 const SKYVIEW_FRAG = /* glsl */`
   #define PASS_SKYVIEW
   #define MULTISCAT_APPROX
-  uniform sampler2D uTransmitTex;
-  uniform sampler2D uMultiScatTex;
+  #define USE_TRANSMIT_TEX
+${GLSL_COMMON}
   in vec2 vUv;
   layout(location = 0) out vec4 outColor;
   void main() {
@@ -411,7 +427,7 @@ const SKYVIEW_FRAG = /* glsl */`
     vec3 worldDir = vec3(vzsa * lightViewCosAngle, viewZenithCosAngle,
                          vzsa * sqrt(max(0.0, 1.0 - lightViewCosAngle * lightViewCosAngle)));
     if (!moveToTopAtmosphere(worldPos, worldDir)) { outColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
-    SSSResult ss = integrateScatteredLuminance(worldPos, worldDir, sunDir, 30.0, true, true, true);
+    SSSResult ss = integrateScatteredLuminance(worldPos, worldDir, sunDir, 30.0, true, true);
     outColor = vec4(ss.L, 1.0);
   }
 `;
@@ -434,8 +450,9 @@ const DOME_VERT = /* glsl */`
 
 const DOME_FRAG = /* glsl */`
   #define PASS_DOME
+  #define USE_TRANSMIT_TEX
+${GLSL_COMMON}
   uniform sampler2D uSkyViewLut;
-  uniform sampler2D uTransmitTex;
   uniform float uExposure;
   uniform vec3 uWhitePoint;
   uniform float uOutputSRGB;     // 1 = plain render (apply OETF), 0 = linear target (finish RT / PMREM)
@@ -740,12 +757,21 @@ export function createRealisticSky({ renderer }) {
     if (!enabled) { pmremRT?.dispose(); pmremRT = null; lastEnvTex = null; }
   }
 
-  // E2E/debug: read a LUT back (Float32 RGBA) — r182 readRenderTargetPixels on HalfFloat RT
+  // E2E/debug: read a LUT back — r182 readRenderTargetPixels reads HalfFloat RTs with type
+  // HALF_FLOAT, so the buffer must be Uint16Array (raw half bits) which we decode here.
   function dumpLut(name) {
     const rt = name === 'transmittance' ? transRT : name === 'multiscat' ? msRT : svRT;
-    const buf = new Float32Array(rt.width * rt.height * 4);
-    renderer.readRenderTargetPixels(rt, 0, 0, rt.width, rt.height, buf);
-    return { w: rt.width, h: rt.height, data: buf };
+    const raw = new Uint16Array(rt.width * rt.height * 4);
+    renderer.readRenderTargetPixels(rt, 0, 0, rt.width, rt.height, raw);
+    const data = new Float32Array(raw.length);
+    for (let i = 0; i < raw.length; i++) {
+      const h = raw[i];
+      const s = (h & 0x8000) >> 15, e = (h & 0x7c00) >> 10, f = h & 0x03ff;
+      data[i] = e === 0 ? (f === 0 ? 0 : (f / 1024) * 2 ** -24) * (s ? -1 : 1)
+        : e === 31 ? (f ? NaN : (s ? -Infinity : Infinity))
+        : (1 + f / 1024) * 2 ** (e - 15) * (s ? -1 : 1);
+    }
+    return { w: rt.width, h: rt.height, data };
   }
 
   function dispose() {
