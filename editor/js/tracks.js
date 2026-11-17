@@ -369,7 +369,7 @@ export function evalCameraItem(item, elapsedS, durationS, ctx) { // fFr
   }
 }
 
-export function evalCameraObject({ base, out, items, timeS, aspect, resolvers }) { // dZt
+export function evalCameraObject({ base, out, items, timeS, aspect, resolvers, cameraId }) { // dZt
   out.position.set(...base.position);
   out.quaternion.setFromEuler(new THREE.Euler(...base.rotation));
   out.fovDeg = fovFromFocal(base.focalLengthMm, aspect);
@@ -379,7 +379,7 @@ export function evalCameraObject({ base, out, items, timeS, aspect, resolvers })
     if (timeS < item.startS) break;
     any = true;
     const dur = itemDuration(item);
-    evalCameraItem(item, Math.min(timeS - item.startS, dur), dur, { base, out, timeS, aspect, resolvers, items });
+    evalCameraItem(item, Math.min(timeS - item.startS, dur), dur, { base, out, timeS, aspect, resolvers, items, cameraId });
     if (timeS < item.startS + dur) break;
   }
   return any;
