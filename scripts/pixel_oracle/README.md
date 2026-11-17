@@ -61,14 +61,15 @@ python3 scripts/pixel_oracle/fixtures.py --sync              # regenerate varian
 | m2_default | `samples/live_oracle_r11_base.json` | 2.51 | scene | base Scene 1 | **GREEN 99.30 / 0.354** |
 | m1_lens | base | 5.0 (end-of-orbit) | cameras (lens) | base | **GOLDEN r11-3a, FAIL 56.27/32.72** — lens-view divergence (see gotchas) |
 | m3_light_golden | `oracle_r11/light_golden.json` | 2.51 | scene | oracle row PATCHed | **GREEN r11-3a 98.72 %≤8 / mean 0.996** (marginal vs 1.0) |
-| m3_light_dusk | `oracle_r11/light_dusk.json` | 2.51 | scene | oracle row PATCHed | LIVE-ONLY-READY |
-| m3_light_night | `oracle_r11/light_night.json` | 2.51 | scene | oracle row PATCHed | LIVE-ONLY-READY |
-| m4_finish | base | 2.51 | scene, finish ON | base | READY |
-| m5_cam_path | `oracle_r11/cam_path.json` | 4.0 | cameras (lens) | oracle row PATCHed | LIVE-ONLY-READY |
+| m3_light_dusk | `oracle_r11/light_dusk.json` | 2.51 | scene | oracle row PATCHed | **r11-3b FAIL (marginal) 97.18 %≤8 / mean 1.630** — horizon-band sun-glow drift |
+| m3_light_night | `oracle_r11/light_night.json` | 2.51 | scene | oracle row PATCHed | **GREEN r11-3b 99.30 %≤8 / mean 0.818** |
+| m4_finish | base | 2.51 | scene, finish ON | base | **GREEN r11-3b 99.16 %≤8 / mean 0.440** |
+| m5_cam_path | `oracle_r11/cam_path.json` | 4.0 | cameras (lens) | oracle row PATCHed | **GOLDEN r11-3b, FAIL 32.72/60.99** — same lens-path divergence as m1 |
 
-LIVE-ONLY-READY = the our-side fixture is generated and the live REST
-machinery is scripted, but no golden has been captured yet — run
-`--live <case>` then `--ours <case> --diff <case>` to land the first golden.
+Full matrix r11-3b: 4/7 PASS (m2, m3_golden, m3_night, m4_finish); m1_lens +
+m5_cam_path share the OPEN lens-path divergence; m3_light_dusk is a marginal
+FAIL (mean 1.63, %≤8 97.18 — passes %≤8, misses mean≤1.0 on the horizon
+sun-glow band). All 7 cases now have committed goldens.
 
 ### Lens-case geometry (M1/M5)
 
@@ -199,6 +200,26 @@ r11; asserted at runtime). `--cameras` diff mode applies **no UI masks**
   the-lens path — R9 measured 97.81/1.3, so one side changed since; both
   captures are deterministic, live reproducible byte-stable). Editor-side
   fix needed; harness captures are correct.
+- **m5 cam-path = the SAME lens divergence (OPEN, r11-3b)** — the cam-path
+  case (t=4.0 through-the-lens) reproduces the m1 signature exactly: %≤8
+  32.72 (identical), one whole-frame blob, live flat-bright (mean 213,
+  min 58) vs ours full contrast (mean 153, min 32), live/ours lum-ratio
+  bimodal 1.0/1.67 (233k px at ~1.67, 121k at ~1.0). The cam-path MOTION
+  works (feed not empty: 2476 unique, std 32) — the divergence is the lens
+  path, not the path eval. Same editor-side fix as m1.
+- **m3 dusk horizon band (r11-3b)** — dusk (az250 el-4) is a marginal FAIL:
+  %≤8 97.18 passes but masked mean 1.63 misses ≤1.0; top blob 6317px
+  bbox x179-900 y40-52 = the horizon/sun-glow strip (the el=-4 sun sits on
+  the horizon; the low-sun glow band renders slightly brighter/differently
+  on one side). The other 4 blobs are the known label-chip/wall family.
+- **m4 finish-pref verification (r11-3b)** — the live m4 capture WAS checked
+  for the pref taking: live plain 2074 unique vs live finish 3777 (the
+  ours-side jump 2571→4391), and the plain-vs-finish mean-abs-delta is
+  0.50 live vs 0.53 ours (same magnitude) — the finish composer rendered
+  on both sides; final diff GREEN 0.440/99.16.
+- **Night case noise** — feared the dark scene would make the diff noisy;
+  measured GREEN 0.818/99.30 (the metric is absolute-channel, so a dark
+  scene actually diffs quietly).
 - **SPA soft-nav** — deep-linking from inside the SPA does not reset
   editor state; bounce `about:blank` → wait 1000 → deep link.
 - **Render-on-demand / seek-kick** — the live viewport stays gray without
