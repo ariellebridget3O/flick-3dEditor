@@ -22,6 +22,7 @@ import time
 from PIL import Image
 
 import ab
+import bb
 
 OURS_BASE = "http://localhost:3000/editor/index.html"
 # verified geometry (r11): scene-view chrome = 264px right + 88 top + 176 bottom
@@ -105,14 +106,20 @@ class OursSession:
                 raise OursError(f"cameras view failed: {r}")
             time.sleep(1.5)
         time.sleep(1.2)
-        # --- canvas rect assert + screenshot + crop
+        # --- canvas rect assert + capture
         x, y, w, h = self.canvas_rect()
         if (x, y, w, h) != want:
             raise OursError(f"canvas rect {(x, y, w, h)} != expected {want} "
                             f"(viewport {viewport})")
+        # r12: the compositor present path FREEZES for the WebGL canvas once
+        # the cameras (lens) view activates under headless SwiftShader — the
+        # page screenshot keeps returning the last pre-lens frame (reproduced
+        # r11 + r12; the r11 m1/m5 "divergence" was this artifact). Capture the
+        # canvas from the BACKBUFFER instead (force renderFrame + readPixels
+        # per chunk; deterministic at rest). Full screenshot kept for debug.
         full = str(out_path).replace(".png", "_full.png")
         ab.screenshot(self.session, full)
-        Image.open(full).convert("RGB").crop((x, y, x + w, y + h)).save(out_path)
+        bb.capture_png(self.session, out_path, w=w, h=h)
         return out_path
 
     def close(self):

@@ -59,17 +59,23 @@ python3 scripts/pixel_oracle/fixtures.py --sync              # regenerate varian
 | case | fixture | t | view | live scene | status |
 |---|---|---|---|---|---|
 | m2_default | `samples/live_oracle_r11_base.json` | 2.51 | scene | base Scene 1 | **GREEN 99.30 / 0.354** |
-| m1_lens | base | 5.0 (end-of-orbit) | cameras (lens) | base | **GOLDEN r11-3a, FAIL 56.27/32.72** — lens-view divergence (see gotchas) |
+| m1_lens | base | 5.0 (end-of-orbit) | cameras (lens) | base | **GREEN r12 99.12 %≤8 / mean 0.410** (r11 FAIL 56.27/32.72 was the capture artifact — see gotcha) |
 | m3_light_golden | `oracle_r11/light_golden.json` | 2.51 | scene | oracle row PATCHed | **GREEN r11-3a 98.72 %≤8 / mean 0.996** (marginal vs 1.0) |
 | m3_light_dusk | `oracle_r11/light_dusk.json` | 2.51 | scene | oracle row PATCHed | **r11-3b FAIL (marginal) 97.18 %≤8 / mean 1.630** — horizon-band sun-glow drift |
 | m3_light_night | `oracle_r11/light_night.json` | 2.51 | scene | oracle row PATCHed | **GREEN r11-3b 99.30 %≤8 / mean 0.818** |
 | m4_finish | base | 2.51 | scene, finish ON | base | **GREEN r11-3b 99.16 %≤8 / mean 0.440** |
-| m5_cam_path | `oracle_r11/cam_path.json` | 4.0 | cameras (lens) | oracle row PATCHed | **GOLDEN r11-3b, FAIL 32.72/60.99** — same lens-path divergence as m1 |
+| m5_cam_path | `oracle_r11/cam_path.json` | 4.0 | cameras (lens) | oracle row PATCHed | **GREEN r12 99.09 %≤8 / mean 0.414** (r11 FAIL was the same artifact) |
 
-Full matrix r11-3b: 4/7 PASS (m2, m3_golden, m3_night, m4_finish); m1_lens +
-m5_cam_path share the OPEN lens-path divergence; m3_light_dusk is a marginal
-FAIL (mean 1.63, %≤8 97.18 — passes %≤8, misses mean≤1.0 on the horizon
-sun-glow band). All 7 cases now have committed goldens.
+Full matrix r12 (backbuffer capture): **6/7 PASS** — m1_lens 0.410/99.12 and
+m5_cam_path 0.414/99.09 now GREEN (residual blobs = the navball pad + the
+live's DOM 'Camera 1' label — the known r9 divergences); m3_light_dusk is the
+only FAIL (marginal: mean 1.63, %≤8 97.18 — the horizon sun-glow band).
+All 7 cases have committed goldens.
+
+r12 capture-method note: the lens cases (and any ours-side capture) must go
+through `bb.py` (backbuffer readPixels) — see the gotcha below. The r11
+ours-lens captures compared the live feed against a STALE pre-lens editor
+frame; the "flat-bright 1.39x tonemap" never existed.
 
 ### Lens-case geometry (M1/M5)
 
@@ -191,22 +197,22 @@ r11; asserted at runtime). `--cameras` diff mode applies **no UI masks**
 - **Lens feed convergence** — the cameras feed is its own render target; it
   needs the same screenshot-pair convergence as the scene view (added to
   cameras_capture; the feed is stably 805x452 across layout variants).
-- **m1 lens divergence (OPEN)** — the r11-3a live lens at t=5.0 is a flat-
-  bright image (no px < 30 lum, min ~170, 0.18% saturated, mean 190) while
-  ours renders full contrast (mean 134, deep darks + clipped spots); pair
-  diff mean 56.27, %≤8 32.72, one whole-frame blob. NOT a geometry
-  mismatch: mid-frame structure aligns and the live/ours per-pixel ratio is
-  bimodal 1.0/1.67 (a tonemap/exposure-style divergence in the through-
-  the-lens path — R9 measured 97.81/1.3, so one side changed since; both
-  captures are deterministic, live reproducible byte-stable). Editor-side
-  fix needed; harness captures are correct.
-- **m5 cam-path = the SAME lens divergence (OPEN, r11-3b)** — the cam-path
-  case (t=4.0 through-the-lens) reproduces the m1 signature exactly: %≤8
-  32.72 (identical), one whole-frame blob, live flat-bright (mean 213,
-  min 58) vs ours full contrast (mean 153, min 32), live/ours lum-ratio
-  bimodal 1.0/1.67 (233k px at ~1.67, 121k at ~1.0). The cam-path MOTION
-  works (feed not empty: 2476 unique, std 32) — the divergence is the lens
-  path, not the path eval. Same editor-side fix as m1.
+- **r12 RESOLVED: the r11 m1/m5 "lens tonemap divergence" was a CAPTURE
+  ARTIFACT, not a render divergence** — Chrome's compositor present path for
+  the WebGL canvas FREEZES once the cameras (lens) view activates under
+  headless SwiftShader: renderer.info.render.frame keeps incrementing and the
+  forced-render backbuffer holds the correct lens image, but the page
+  screenshot returns the LAST PRE-LENS FRAME forever (byte-identical across
+  sessions; resize/transform/guide-hide do not unstick it; DOM overlays still
+  composite). All r11 lens-case forensics ("live flat-bright 1.39x, ratio
+  bimodal 1.0/1.67") were artifacts of diffing the live feed against that
+  stale editor frame. Fix = `bb.py`: per eval force `app.renderFrame()` then
+  readPixels row-chunks → base64 → PNG (deterministic at rest; the backbuffer
+  only survives within the render task — preserveDrawingBuffer=false).
+  ours.py now captures EVERY case through bb.py (full screenshot kept as
+  `*_full.png` debug). Diagnostics kept in lens_forensics.py / lens_smooth.py.
+- **m5 cam-path (r12)** — PASS 0.414/99.09 with the backbuffer capture: the
+  cam-path eval + lens feed are exact; residual = navball pad + label, as m1.
 - **m3 dusk horizon band (r11-3b)** — dusk (az250 el-4) is a marginal FAIL:
   %≤8 97.18 passes but masked mean 1.63 misses ≤1.0; top blob 6317px
   bbox x179-900 y40-52 = the horizon/sun-glow strip (the el=-4 sun sits on
