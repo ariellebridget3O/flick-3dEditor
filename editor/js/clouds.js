@@ -36,9 +36,10 @@ const CL_ALBEDO = 0.96;          // scattering albedo (whiteness)
 const CL_TMAX_KM = 30.0;         // absolute slab clamp for grazing rays
 const CL_MARCH_SPAN_KM = 15.0;    // r13: marched span cap — keeps dt <= ~375m at 40 steps so shallow rays sample the noise field finely enough
 const CL_AERIAL_K = 0.05;        // aerial-perspective strength per km per unit density
+const CL_HORIZON_FADE = 0.09;   // r13 tune: cloud-alpha fade over the lowest ~5° of elevation (grazing rays: 15km of slab march saturates L and the alpha seam at the floor line reads as a blowout band)
 const CL_CIRRUS_KM = 7.0;        // cirrus sheet altitude (6-8 km band)
-const CL_DETAIL_FREQ = 6.0;      // erosion re-sample frequency multiplier
-const CL_DETAIL_STRENGTH = 0.35; // erosion depth (Nubis)
+const CL_DETAIL_FREQ = 9.0;      // erosion re-sample frequency multiplier (r13 tune: 6 under-eroded at 12km tiles — fat feathered edges)
+const CL_DETAIL_STRENGTH = 0.5; // erosion depth (Nubis) (r13 tune: 0.35 left edges mushy)
 const CL_SHEET_COUNT = 6;        // layered fallback sheets (4-6; atlas rows)
 const CL_SHEET_ATLAS_W = 256;
 const CL_SHEET_RELIEF = 1.4;     // layered normal strength
@@ -160,6 +161,7 @@ const CL_ATMOS_CHUNK = /* glsl */`
   #define MARCH_SPAN_KM ${CL_MARCH_SPAN_KM.toFixed(1)}
   #define AERIAL_K ${CL_AERIAL_K.toFixed(4)}
   #define CIRRUS_KM ${CL_CIRRUS_KM.toFixed(2)}
+  #define HORIZON_FADE ${CL_HORIZON_FADE.toFixed(3)}
 
   uniform vec3 uSunDir;
   uniform vec3 uSunIlluminance;
@@ -289,12 +291,15 @@ ${CL_ATMOS_CHUNK}
     return uDensity * base * prof;
   }
 
-  // 2-step secondary sun march — density midpoints (NOT Beer shadow maps)
+  // 2-step secondary sun march — density midpoints (NOT Beer shadow maps).
+  // r13 tune: reach 0.4/1.6 km toward the sun (scaled by deck thickness) — the old 0.12/0.36 km
+  // samples stayed inside one ~3km noise cell, so Tlight was near-constant and cloud bodies
+  // had no sun-side/lee-side shading at all. Same sample count (cost unchanged).
   float lightMarch(vec3 p, vec3 Ld) {
-    float dl = max(uHeightKm * 0.4, 0.15);
-    float d1 = sampleDensity(p + Ld * dl * 0.25);
-    float d2 = sampleDensity(p + Ld * dl * 0.75);
-    return exp(-SIGMA_K * (d1 + d2) * dl * 0.5);
+    float s = max(uHeightKm, 1.0) / 1.2;
+    float d1 = sampleDensity(p + Ld * (0.4 * s));
+    float d2 = sampleDensity(p + Ld * (1.6 * s));
+    return exp(-SIGMA_K * (d1 * 0.4 + d2 * 1.2) * s);
   }
 
   // shell [rBot, rTop] above the planet center — entry/exit along the ray;
@@ -351,8 +356,13 @@ ${CL_ATMOS_CHUNK}
         vec2 cuv = pC.xz / SHAPE_TILE_KM * 0.5 + uWindOffset * vec2(1.0, 0.35);
         float streak = texture(uShapeTex, vec3(cuv * 2.0, 0.5)).g * 0.625
                      + texture(uShapeTex, vec3(cuv * 4.0, 0.25)).b * 0.375;
-        float aC = uCirrus * sat(remap(streak, 1.0 - uCirrus * 0.7, 1.0, 0.0, 1.0)) * sat(worldDir.y * 6.0 + 0.4);
-        vec3 cirrusL = Lc * (0.55 + 0.45 * phase2(mu)) + msAmb * 0.6;
+        // r13 tune: contrast-normalized streak — the raw worley-fbm sits in ~[0.15,0.8], so the
+        // old threshold (1-uCirrus*0.7 ~ 0.75) clipped ~everything: cirrus was invisible.
+        // sC^3 keeps it to streak CORES: a thin veil additive over the sky clips to white
+        // (the composite adds display-space radiance), so the veil must stay sparse + dim.
+        float sC = sat(remap(streak, 0.34, 0.86, 0.0, 1.0));
+        float aC = uCirrus * sC * sC * sC * sat(worldDir.y * 6.0 + 0.4);
+        vec3 cirrusL = (Lc * (0.22 + 0.28 * phase2(mu)) + msAmb * 0.4) * 0.6;
         L += Tview * cirrusL * aC;
         Tview *= 1.0 - aC;
       }
@@ -429,15 +439,31 @@ ${CL_ATMOS_CHUNK}
       vec3 skyBehind = texture(uSkyViewLut, uv).rgb;
       L = mix(L, skyBehind, aerial);
     }
+    // r13 tune: horizon alpha fade — the lowest ~5° of the deck melts into the dome's fog band
+    // instead of ending in a saturated white slab + hard seam where the floor line cuts it.
+    // L scales by the same fade so hf=0 is exactly the dome (L=0, alpha=1).
+    float hf = smoothstep(0.0, HORIZON_FADE, worldDir.y);
+    L *= hf;
+    Tview = mix(1.0, Tview, hf);
+
     // mood ops (same Rec.601 desat + darken as the domes)
     float lum = dot(L, vec3(0.299, 0.587, 0.114));
     L = mix(vec3(lum), L, 1.0 - uWeatherDesat);
     L *= (1.0 - uWeatherDarken);
     if (uToneMap > 0.5) L = vec3(1.0) - exp(-max(L, vec3(0.0)) / uWhitePoint * uExposure);
-    // horizon fog band — converges to the dome's fog color exactly (dst * Tview supplies the rest)
+    // horizon fog band — same POST-curve linear mix as the dome (the dome mixes uFogColor into
+    // its tonemapped L; matching it here removes the tone-order seam: pre-curve, fogColor 0.83
+    // went through exp -> 0.9995 = the white blowout band where the deck met the floor line).
     float band = exp(-max(worldDir.y, 0.0) / 0.06);
-    L = mix(L, uFogColor * (1.0 - Tview), band * mix(uFogBlend, 1.0, band));
+    L = mix(L, uFogColor, band * mix(uFogBlend, 1.0, band));
     if (uOutputSRGB > 0.5) L = linearToSrgb(max(L, vec3(0.0)));
+    // r13 tune: premultiplied over-composite. The blend is dst' = src.rgb + src.a * dst, so
+    // emitting the RAW tonemapped radiance made semi-transparent edges ADD onto the intact
+    // sky (exposure-10 tone curve expands a 0.02-linear edge to 0.45 sRGB -> every edge and
+    // veil glowed/clipped white). Emitting C * (1 - Tview) turns the blend into a clean
+    // display-space crossfade: opaque cores unchanged (Tview~0), edges fade to the dome, and
+    // at the horizon dst' = fogColor*(1-T) + T*domeFog = fogColor exactly.
+    L *= (1.0 - Tview);
     outColor = vec4(L, Tview);
   }
 `;
@@ -482,6 +508,14 @@ export function createCloudLayer({ renderer, sky }) {
     uFogColor: { value: new THREE.Color(0xffffff) },
     uFogBlend: { value: 0.06 },
   };
+  // r13 P0 fix: bind the sky's LUT render targets — these were left null, so the cloud shader
+  // sampled black for sun transmittance (direct light = 0), multi-scatter ambient (0) and the
+  // aerial sky (0): the deck rendered as a pure transmittance silhouette + fog band (gray/black
+  // clouds, no shading, aerial DARKENING). Texture objects are stable for the RT lifetime
+  // (bake() renders into the same RTs; the dome's lazy bake always precedes the first frame).
+  uniforms.uTransmitTex.value = sky.luts.transmittance.texture;
+  uniforms.uSkyViewLut.value = sky.luts.skyView.texture;
+  uniforms.uMultiScatTex.value = sky.luts.multiscat.texture;
 
   const material = new THREE.ShaderMaterial({
     ...glsl3,

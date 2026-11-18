@@ -142,12 +142,14 @@ function buildSkyParams(light, fogColor, g) {
 
 // ---------- clouds (P2): params from light.clouds + weather coupling (realistic branch only) ----------
 const CLOUD_STEPS = 40;                    // procedural primary march (32-48 per design)
+// r13 tune: the USER coverage is authoritative; weather modulates ±30% max. The old anchoring
+// (userCov × weatherCov/0.45) crushed clear weather to ×0.4 — user 0.5 rendered as 0.2 and the
+// deck dissolved into wisps. Overcast/rain factors still reach 1.0 at high user coverage.
+const CLOUD_COV_FACTOR = { clear: 0.85, cloudy: 1.15, overcast: 1.3, rain: 1.35, fog: 1.2 };
 function buildCloudParams(light, sp) {     // sp = buildSkyParams bundle (shares night/moon/fog)
   const cl = light.clouds ?? {};
-  const wCov = C.CLOUD_COVERAGE_BY_WEATHER[light.weather] ?? C.CLOUD_COVERAGE_BY_WEATHER.clear;
-  // weather multiplies user coverage (the table values are the anchors at the default)
-  const coverage = Math.min(1, Math.max(0,
-    (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT) * (wCov / C.CLOUD_COVERAGE_DEFAULT)));
+  const wFac = CLOUD_COV_FACTOR[light.weather] ?? 1;
+  const coverage = Math.min(1, Math.max(0, (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT) * wFac));
   return {
     coverage,
     density: cl.density ?? 1,
