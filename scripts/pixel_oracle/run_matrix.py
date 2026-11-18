@@ -70,7 +70,19 @@ CASES = {
                "%≤8 passes; the mean excess = a live-only near-horizon floor-"
                "brightness term (S×(1-f), peak ~+15/255 R-dominant at z≈90-230m); "
                "fog formula/table/interp/remap/shader/floor material/three r182 "
-               "all byte-identical vs the DEPLOYED bundle (r12 re-verified)",
+               "all byte-identical vs the DEPLOYED bundle (r12 re-verified). "
+               "r14 probe: THREE suspects eliminated — (1) camera pitch: photo-"
+               "grammetric horizon-row comparison live-vs-ours aligns within 1 "
+               "row (~0.14deg, below the 0.3-0.5deg suspect); (2) IBL/env: BOTH "
+               "bundles contain ZERO PMREMGenerator occurrences; (3) sun-el "
+               "sensitivity: our el -4.0/-3.9/-4.1 sweep moves the far-floor "
+               "band only +/-0.2-0.6 luma per 0.1deg (the +7 residual would "
+               "need ~3deg). Residual is column-UNIFORM (not sun-azimuth-"
+               "coupled), R-dominant, exists ONLY in the el -8..0 remap band "
+               "(golden el10 + night el-25 both GREEN) where the scene sun sits "
+               "grazing — consistent with a rough-surface grazing Fresnel sheen "
+               "(roughness .9 lobe is broad = column-uniform). NEXT PROBE: live-"
+               "side el sweep (-2/-6/-8) to bracket when the term switches on",
     ),
     "m3_light_night": dict(
         title="M3 light stop: night az300 el-25",
