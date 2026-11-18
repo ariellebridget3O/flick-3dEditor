@@ -197,6 +197,7 @@ const COMPOSITE_FRAG = `
   uniform sampler2D tColor;
   uniform sampler2D tDepth;
   uniform sampler2D tOcclusion;
+  uniform sampler2D tBloom;      // round 13 (HDR): ½-res mip-composited bloom (bloom.js)
   uniform vec2 texel;
   uniform vec2 occlusionTexel;
   uniform float fogDensity;
@@ -204,6 +205,9 @@ const COMPOSITE_FRAG = `
   uniform float far;
   uniform vec3 occlusionTint;
   uniform vec3 edgeTint;
+  uniform float uHdr;            // 1 = HDR path (linear add + ACES), 0 = exact SDR path
+  uniform float uExposure;       // light.hdr.exposure (linear pre-tonemap multiplier)
+  uniform float uBloomStrength;  // strength = light.hdr.bloom × C.HDR_BLOOM_STRENGTH_K
 
   // 1/z runs straight across any flat face in screen space, so its second difference
   // is zero on a face and non-zero only on a crease or a silhouette.
@@ -213,6 +217,25 @@ const COMPOSITE_FRAG = `
 
   vec3 toSrgb(vec3 c) {
     return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
+  }
+
+  // round 13 (HDR): ACES filmic tone map — Stephen Hill's RRT+ODT fit, constants
+  // verbatim from three r182 tonemapping_pars_fragment ACESFilmicToneMapping
+  // (MIT, © three.js authors; the vendored build's chunk is the source of record).
+  vec3 RRTAndODTFit(vec3 v) {
+    vec3 a = v * (v + 0.0245786) - 0.000090537;
+    vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
+    return a / b;
+  }
+  vec3 acesHill(vec3 color) {
+    const mat3 ACESInputMat = mat3(
+      vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
+    const mat3 ACESOutputMat = mat3(
+      vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
+    color = ACESInputMat * color;
+    color = RRTAndODTFit(color);
+    color = ACESOutputMat * color;
+    return clamp(color, 0.0, 1.0);
   }
 
   // One 8-bit level of triangular noise, per channel. Pale gradients change by less
@@ -255,6 +278,14 @@ const COMPOSITE_FRAG = `
       float line = smoothstep(0.004, 0.03, crease) * ${CREASE_STRENGTH.toFixed(3)};
       color *= mix(vec3(1.0), edgeTint, line * clearAir);
     }
+    // round 13 (HDR): with uHdr the occlusion tint / crease edges above ran on the
+    // linear HalfFloat scene color as before; bloom adds in LINEAR (mip-composited,
+    // pre-scaled by strength in bloom.js's chain), then ACES × exposure rolls the
+    // highlights off instead of clipping. uHdr = 0 keeps the exact SDR path below.
+    if (uHdr > 0.5) {
+      color += texture2D(tBloom, vUv).rgb * uBloomStrength;
+      color = acesHill(color * uExposure);
+    }
     gl_FragColor = vec4(toSrgb(clamp(color, 0.0, 1.0)) + dither(), 1.0);
     // Kept for whatever draws after this, depth tested against the set.
     gl_FragDepth = depth;
@@ -294,9 +325,10 @@ export function createFinishComposer(renderer) {
     texel: { value: new THREE.Vector2() }, occlusionTexel: { value: new THREE.Vector2() },
     fogDensity: { value: 0 }, near: { value: 0.1 }, far: { value: 500 },
     occlusionTint: { value: OCCLUSION_TINT }, edgeTint: { value: EDGE_TINT },
+    tBloom: { value: null }, uHdr: { value: 0 }, uExposure: { value: 1 }, uBloomStrength: { value: 0 },
   }, { depthTest: true, depthFunc: THREE.AlwaysDepth, depthWrite: true });
 
-  let rtScene = null, rtA = null, rtB = null;
+  let rtScene = null, rtA = null, rtB = null, rtBloom = null;
   let lastAspect = 0;
   const sizeLatch = makeSizeLatch(REALLOC_DEBOUNCE_MS);
 
@@ -304,7 +336,8 @@ export function createFinishComposer(renderer) {
     rtScene?.depthTexture?.dispose();
     rtScene?.dispose();
     rtA?.dispose(); rtB?.dispose();
-    rtScene = rtA = rtB = null;
+    rtBloom?.dispose();
+    rtScene = rtA = rtB = rtBloom = null;
   };
   const alloc = (w, h) => {  // g
     const needResize = !rtScene || rtScene.width !== w || rtScene.height !== h;
@@ -318,6 +351,18 @@ export function createFinishComposer(renderer) {
     const opt = { format: THREE.RedFormat, type: THREE.HalfFloatType, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter };
     rtA = new THREE.WebGLRenderTarget(ow, oh, opt);
     rtB = new THREE.WebGLRenderTarget(ow, oh, opt);
+    // round 13 (HDR): the ½-res bloom texture is allocated LAZILY ONLY when hdr is on
+    // (see ensureBloom) so the default path never pays for it; release() frees all.
+  };
+  const bloomSize = (w, h) => [Math.max(1, Math.round(w / 2)), Math.max(1, Math.round(h / 2))];
+  const ensureBloom = (w, h) => {
+    const [bw, bh] = bloomSize(w, h);
+    if (rtBloom && rtBloom.width === bw && rtBloom.height === bh) return;
+    rtBloom?.dispose();
+    rtBloom = new THREE.WebGLRenderTarget(bw, bh, {
+      type: THREE.HalfFloatType, depthBuffer: false, stencilBuffer: false,
+      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+    });
   };
   const blit = (material, target) => {  // b
     quad.material = material;
@@ -327,14 +372,25 @@ export function createFinishComposer(renderer) {
   const bufSize = new THREE.Vector2();
 
   return {
-    render(mainScene, mainCamera) {
+    // hdrHook (round 13, optional): { run(tSrc, bloomTex, dt), strength, exposure } —
+    // runs the bloom pre-pass over the resolved scene RT before the composite.
+    render(mainScene, mainCamera, hdrHook = null) {
       renderer.getDrawingBufferSize(bufSize);
       if (bufSize.x === 0 || bufSize.y === 0) return;
       alloc(bufSize.x, bufSize.y);
+      if (hdrHook) ensureBloom(bufSize.x, bufSize.y);
+      else if (rtBloom) { rtBloom.dispose(); rtBloom = null; }   // hdr off → release lazily
       const k = rtScene, S = rtA, T = rtB;
       renderer.setRenderTarget(k);
       renderer.render(mainScene, mainCamera);
       lastAspect = mainCamera.aspect;
+      let hdrTex = null;
+      if (hdrHook && rtBloom) {
+        renderer.setRenderTarget(rtBloom);
+        renderer.clear();                     // deterministic even if the chain hasn't sized yet
+        hdrHook.run(k.texture, rtBloom, 0);   // bloom pre-pass (dt unused — no temporal term)
+        hdrTex = rtBloom.texture;
+      }
       shared.tDepth.value = k.depthTexture;
       shared.invProjection.value.copy(mainCamera.projectionMatrixInverse);
       ssao.uniforms.texel.value.set(1 / S.width, 1 / S.height);
@@ -355,6 +411,10 @@ export function createFinishComposer(renderer) {
       cu.fogDensity.value = mainScene.fog instanceof THREE.FogExp2 ? mainScene.fog.density : 0;
       cu.near.value = mainCamera.near;
       cu.far.value = mainCamera.far;
+      cu.tBloom.value = hdrTex;
+      cu.uHdr.value = hdrTex ? 1 : 0;
+      cu.uBloomStrength.value = hdrTex ? hdrHook.strength : 0;
+      cu.uExposure.value = hdrTex ? hdrHook.exposure : 1;
       blit(composite, null);
     },
     repaint(mainCamera) {  // re-composite only (aspect-stable)

@@ -79,6 +79,18 @@ export function normalizeLight(l) {
   };
   if (l.nightLights === false) out.nightLights = false;
   if (l.skyStyle === 'realistic') out.skyStyle = 'realistic';   // round 10: classic default when absent
+  // round 13 (HDR): tone mapping + bloom passthrough — only when enabled (absence = off),
+  // same clamps/defaults as the schema normLight passthrough
+  if (l.hdr && typeof l.hdr === 'object' && l.hdr.enabled === true) {
+    const h = l.hdr;
+    out.hdr = {
+      enabled: true,
+      exposure: Number.isFinite(h.exposure) ? Math.min(2, Math.max(0.5, h.exposure)) : C.HDR_DEFAULTS.exposure,
+      bloom: Number.isFinite(h.bloom) ? Math.min(1, Math.max(0, h.bloom)) : C.HDR_DEFAULTS.bloom,
+      bloomThreshold: Number.isFinite(h.bloomThreshold) ? Math.min(2, Math.max(0.6, h.bloomThreshold)) : C.HDR_DEFAULTS.bloomThreshold,
+      bloomRadius: Number.isFinite(h.bloomRadius) ? Math.min(1, Math.max(0, h.bloomRadius)) : C.HDR_DEFAULTS.bloomRadius,
+    };
+  }
   // round 13 (P2): clouds passthrough — only when enabled (absence = off), same clamps as schema
   if (l.clouds && typeof l.clouds === 'object' && l.clouds.enabled === true) {
     const c = l.clouds;
@@ -262,7 +274,8 @@ export function createEnvironment(scene, settings) {
     const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;      // round 6 (D5)
     const indoor = !!light.indoor;                              // round 6 (D7)
     const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0) + '|s' + skyStyle
-      + '|c' + (light.clouds?.enabled ? [light.clouds.mode, light.clouds.coverage, light.clouds.density, light.clouds.altitudeM, light.clouds.thicknessM, light.clouds.cirrus, light.clouds.windSpeed].join(',') : 'off');   // r13 audit P1: skyStyle in the key
+      + '|c' + (light.clouds?.enabled ? [light.clouds.mode, light.clouds.coverage, light.clouds.density, light.clouds.altitudeM, light.clouds.thicknessM, light.clouds.cirrus, light.clouds.windSpeed].join(',') : 'off')   // r13 audit P1: skyStyle in the key
+      + '|h' + (light.hdr?.enabled ? [light.hdr.exposure, light.hdr.bloom, light.hdr.bloomThreshold, light.hdr.bloomRadius].join(',') : 'off');   // r13 HDR: memo-key parity with setHdr
     if (key === _lastKey) return glowAmount();
     _lastKey = key;
     const g = daylightAt(light.elevationDeg);
@@ -339,9 +352,12 @@ export function createEnvironment(scene, settings) {
     else if (kind === 'layered') { if (cloudLayer.enabled) cloudLayer.setMode('layered'); }
     else if (kind === 'procedural') { if (cloudLayer.enabled) cloudLayer.setMode('procedural'); }
   }
-  function updateRealisticSky(camera, outputSRGB) {
+  // linearHDR (round 13, optional): finish+HDR — the dome outputs LINEAR HDR so the sun
+  // disc / stars / moon cross the bloom threshold (sky.js update uCurve=0 + uOutputSRGB=0);
+  // the cloud twin keeps its own output gate (clouds.js is not hdr-aware by design).
+  function updateRealisticSky(camera, outputSRGB, linearHDR = false) {
     if (skyStyle !== 'realistic') return;
-    realistic.update(camera, outputSRGB, scene);
+    realistic.update(camera, outputSRGB, scene, linearHDR);
     if (cloudLayer.enabled) cloudLayer.update(camera, outputSRGB);   // P2: wind drift + camera + sRGB gate
   }
   return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx,

@@ -459,7 +459,11 @@ ${GLSL_COMMON}
   uniform float uExposure;
   uniform vec3 uWhitePoint;
   uniform float uOutputSRGB;     // 1 = plain render (apply OETF), 0 = linear target (finish RT / PMREM)
-  uniform float uToneMap;        // 1 = visible dome (demo post curve), 0 = PMREM (linear HDR)
+  uniform float uToneMap;        // 1 = visible dome (disc/moon/stars + post-curve gate), 0 = PMREM (linear HDR)
+  uniform float uCurve;          // round 13 (HDR): 1 = legacy demo post curve, 0 = linear HDR out
+                                 // (finish+HDR keeps the dome HDR so the disc/stars bloom).
+                                 // AND-gated with uToneMap so bakePMREM (which zeroes uToneMap)
+                                 // stays unchanged.
   uniform float uNightAmount;    // 0 day .. 1 deep dusk (stars/moon ramp)
   uniform vec3 uMoonDir;
   uniform float uWeatherDesat, uWeatherDarken;
@@ -541,7 +545,7 @@ ${GLSL_COMMON}
     //     classic dome horizon IS the fog color), easing out over ~3.4 deg; post-curve so the
     //     seam matches the FogExp2 ground exactly ---
     float band = exp(-max(worldDir.y, 0.0) / 0.06);
-    if (uToneMap > 0.5) L = vec3(1.0) - exp(-max(L, vec3(0.0)) / uWhitePoint * uExposure);
+    if (uToneMap > 0.5 && uCurve > 0.5) L = vec3(1.0) - exp(-max(L, vec3(0.0)) / uWhitePoint * uExposure);
     L = mix(L, uFogColor, band * mix(uFogBlend, 1.0, band));
 
     if (uOutputSRGB > 0.5) L = linearToSrgb(max(L, vec3(0.0)));
@@ -613,6 +617,7 @@ export function createRealisticSky({ renderer }) {
       uWhitePoint: { value: new THREE.Vector3(...C.SKY_WHITE_POINT) },
       uOutputSRGB: { value: 1 },
       uToneMap: { value: 1 },
+      uCurve: { value: 1 },
       uNightAmount: { value: 0 },
       uMoonDir: { value: new THREE.Vector3(0, -1, 0) },
       uWeatherDesat: { value: 0 },
@@ -769,12 +774,16 @@ export function createRealisticSky({ renderer }) {
   // Cloud param changes rebake the IBL WITHOUT a LUT rebake (research doc §4 PMREM interplay)
   function markPMREMDirty() { pmremPending = true; }
 
-  // per-frame: rebake LUTs when dirty (throttled), refresh IBL debounced, set output mode
-  function update(camera, outputSRGB, scene) {
+  // per-frame: rebake LUTs when dirty (throttled), refresh IBL debounced, set output mode.
+  // linearHDR (round 13, optional): finish+HDR composites ACES downstream — the dome outputs
+  // LINEAR HDR (uCurve = 0, uOutputSRGB = 0) so the sun disc / stars / moon cross the bloom
+  // threshold. Default false = byte-identical legacy behavior (demo curve on the visible dome).
+  function update(camera, outputSRGB, scene, linearHDR = false) {
     if (!enabled) return null;
     setCamera(camera);
     domeMat.uniforms.uOutputSRGB.value = outputSRGB ? 1 : 0;
     domeMat.uniforms.uToneMap.value = 1;
+    domeMat.uniforms.uCurve.value = linearHDR ? 0 : 1;
     const now = performance.now();
     if ((lutDirty || svDirty) && now - lastBakeAt >= REBAKE_MIN_MS) {
       if (lutDirty) bake(); else bakeSkyView();
