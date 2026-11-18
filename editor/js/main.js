@@ -12,7 +12,7 @@ import { ObjectStore, ShowStore, PageStore } from './store.js';
 import { loadScene, saveScene, itemDuration } from './schema.js';
 import {
   showLayout, evalCharacterTrack, yawOf, gazeSplit, approachAngle, stepClamp,
-  evalCameraObject, rigJointsAtTime, evalObjectItems, fovFromFocal, itemsOfTrack, isPersonKind,
+  evalCameraObject, rigJointsAtTime, evalObjectItems, fovFromFocal, itemsOfTrack, isPersonKind, itemAtTime,
   pathStateAt, pathRotation,
 } from './tracks.js';
 import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation, ezHeadRotation, isMajorJoint, sampleBonePose, diffRigPose } from './figures.js';
@@ -58,6 +58,7 @@ import {
   createAutoMeasureScheduler,
 } from './finish.js';
 import { createBloom } from './bloom.js';   // round 13 (HDR): UnrealBloomPass recipe port
+import { shakeOffsets, applyShakePose } from './shake.js';   // r15 shake family (Dzt/cL; rigShake ships dormant — no cameraRig state)
 import { strokeRing } from './stroke.js';
 import { createNavBall } from './navball.js';
 
@@ -290,6 +291,7 @@ export class App {
     this.rigOffsets = new Map();
     this.playbackClips = new Map();   // id → {clip, timeS}
     this.pendingPoses = new Map();    // facade pendingPoses @5793128 — id → pose awaiting skeleton
+    this._shakeT = 0;                 // mqr shake clock (T+=dt, Y @5722298) — advances every frame
     this._restEval = false;           // live performanceSeekS model: seek-posed rest keeps evaluating (pinned)
     this._posedCams = new Set();      // live mqr Q(): camera ids posed by a previous frame (v set)
     this._restSeekPending = false;    // a seek was observed at rest — pose it even when t is unchanged
@@ -1179,6 +1181,20 @@ export class App {
     }
     this.camera.position.copy(pose.position);
     this.camera.quaternion.copy(pose.quaternion);
+    // pe (verbatim @5722716): the preview camera carries obj.shake — eval -> fov -> cL.
+    // Gate ie=z2r @4316695: the ACTIVE item being a cam-manual with shakeBaked (a live
+    // recording replays its baked shake) suppresses the live shake. shakeBaked survives
+    // normalization (normItems spread), so live-recorded rows keep the gate working;
+    // offline-created items never carry it. The pose is re-set from evalPose every
+    // frame, so the shake is self-restoring (live: explicit restoreShake @5722450).
+    const shake = obj.shake ?? 'off';
+    if (shake !== 'off') {
+      // _he @itemAtTime: the containing/last-started camera item governs the gate
+      const items = (this.layout().tracks.find(t => t.characterId === id)?.items ?? []).map(u => u.item);
+      const active = itemAtTime(items, this.page.playheadS);
+      const baked = active?.kind === 'cam-manual' && !!active.shakeBaked;
+      if (!baked) applyShakePose(this.camera, shakeOffsets({ t: this._shakeT, intensity: shake }));
+    }
     this._lensActive = true;
   }
 
@@ -1247,6 +1263,7 @@ export class App {
   _frame() {
     const dt = Math.min(0.1, this.clock.getDelta());
     const now = performance.now();
+    this._shakeT += dt;               // mqr tickShake clock (Y @5722298) — every frame
 
     // --- update ticks (D2.7 order) ---
     // 1. rig tick: restore → mixer → rig offsets (ghost head-look merged: bundle O @5790417 — rigOffsets rebuilt every frame, no accumulation)

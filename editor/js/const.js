@@ -250,18 +250,25 @@ export const C = {
     gimbal:    { speed: 1.8, shake: 'off',    roll: 0 },
     steadicam: { speed: 1.8, shake: 'subtle', roll: 0.06, roll2: 0.04 },
     handheld:  { speed: 1.8, shake: 'medium', roll: 0 },
-    run:       { speed: 5,   shake: 'stride', roll: 0 },
+    run:       { speed: 5,   shake: 'stride', roll: 0.04 },   // gq run turnRoll .04 @5187159 (review P2-3)
     drone:     { speed: 7.5, shake: 'off',    roll: 0.2, roll2: 0.12 },
   },
-  SHAKE_PRESETS: {           // $br (Dzt)
+  SHAKE_PRESETS: {           // d2r (Dzt @3921570)
     subtle: { posUnits: 0.005, rotDeg: 0.15 },
     medium: { posUnits: 0.015, rotDeg: 0.4 },
     heavy:  { posUnits: 0.03,  rotDeg: 0.9 },
   },
-  SHAKE_SINES: [             // Vbr: [freq, amp]
+  SHAKE_SINES: [             // u2r: [freqRatio, weight]
     [1, 0.55], [2.618, 0.3], [6.854, 0.15],
   ],
-  SHAKE_GOLDEN: 2.399,       // golden-angle phase step
+  SHAKE_GOLDEN: 2.399,       // golden-angle phase step (gbe)
+  SHAKE_POS_FREQS: [0.43, 0.53, 0.61],   // h2r
+  SHAKE_ROT_FREQS: [0.47, 0.59, 0.71],   // p2r
+  SHAKE_POS_PHASES: [0, 1.7, 3.4],       // f2r
+  SHAKE_ROT_PHASES: [5.1, 0.9, 2.6],     // m2r
+  STRIDE_SPEED_FULL: 3,      // rEr — amount ramps 0->1 over 0..3 m/s (iEr @5190524)
+  STRIDE_SPEED_MIN: 0.05,    // sEr — below this the phase does not advance
+  STRIDE_SPEED_MAX: 15,      // aEr — above this the amount is 0
 
   // ---------- misc ----------
   HUMANOID_URL: 'assets/humanoid-B4Yewrzp.glb',
