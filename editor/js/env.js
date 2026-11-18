@@ -259,8 +259,8 @@ export function createEnvironment(scene, settings) {
     _lastLight = light;
     const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;      // round 6 (D5)
     const indoor = !!light.indoor;                              // round 6 (D7)
-    const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0)
-      + '|c' + (light.clouds?.enabled ? [light.clouds.mode, light.clouds.coverage, light.clouds.density, light.clouds.altitudeM, light.clouds.thicknessM, light.clouds.cirrus, light.clouds.windSpeed].join(',') : 'off');
+    const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0) + '|s' + skyStyle
+      + '|c' + (light.clouds?.enabled ? [light.clouds.mode, light.clouds.coverage, light.clouds.density, light.clouds.altitudeM, light.clouds.thicknessM, light.clouds.cirrus, light.clouds.windSpeed].join(',') : 'off');   // r13 audit P1: skyStyle in the key
     if (key === _lastKey) return glowAmount();
     _lastKey = key;
     const g = daylightAt(light.elevationDeg);
@@ -319,7 +319,11 @@ export function createEnvironment(scene, settings) {
     realistic.setCloudTwin(wantClouds ? cloudLayer.twinMesh : null);
     if (skyStyle === 'realistic') {
       const l = light ?? _lastLight;
-      if (l) realistic.setParams(buildSkyParams(l, scene.fog.color));
+      if (l) {                                        // r13 audit P1: push clouds on the style switch too
+        const sp = buildSkyParams(l, scene.fog.color);
+        realistic.setParams(sp);
+        if (wantClouds) { cloudLayer.setMode(l.clouds?.mode); cloudLayer.setParams(buildCloudParams(l, sp)); }
+      }
     }
   }
   // P2: after light.clouds mutations (main.js setClouds) — mesh + PMREM twin + renderOrder sync
@@ -328,6 +332,11 @@ export function createEnvironment(scene, settings) {
     cloudLayer.setEnabled(want);
     realistic.setCloudTwin(want ? cloudLayer.twinMesh : null);
   }
+  function setCloudsRuntime(kind) {   // budget-gate tier control: MESH-level only — light.clouds (the schema) keeps the authored intent (r13)
+    if (kind === 'off') { cloudLayer.setEnabled(false); realistic.setCloudTwin(null); }
+    else if (kind === 'layered') { if (cloudLayer.enabled) cloudLayer.setMode('layered'); }
+    else if (kind === 'procedural') { if (cloudLayer.enabled) cloudLayer.setMode('procedural'); }
+  }
   function updateRealisticSky(camera, outputSRGB) {
     if (skyStyle !== 'realistic') return;
     realistic.update(camera, outputSRGB, scene);
@@ -335,7 +344,7 @@ export function createEnvironment(scene, settings) {
   }
   return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx,
     setSkyStyle, updateRealisticSky, realisticSky: () => realistic, getSkyStyle: () => skyStyle,
-    clouds: () => cloudLayer, setClouds };
+    clouds: () => cloudLayer, setClouds, setCloudsRuntime };
 }
 
 // ---------- bounds (vje/OFr) ----------

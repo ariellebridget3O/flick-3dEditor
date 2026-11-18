@@ -649,6 +649,7 @@ export function createRealisticSky({ renderer }) {
   const pmremScene = new THREE.Scene();
   const domeTwin = new THREE.Mesh(dome.geometry, domeMat);
   domeTwin.frustumCulled = false;
+  domeTwin.renderOrder = -1;   // audit P3: explicit dome-before-cloudTwin composite order in pmremScene
   pmremScene.add(domeTwin);
   let pmremGen = null, pmremRT = null;
   let cloudTwin = null;   // P2: cloud-layer twin registered via setCloudTwin (additive)
@@ -756,10 +757,13 @@ export function createRealisticSky({ renderer }) {
   // Cloud twin in the PMREM scene (same pattern as domeTwin) + renderOrder flip:
   // with clouds the dome drops to -2 so the cloud dome (renderOrder -1) composites over it;
   // passing null restores dome.renderOrder = -1 (classic/realistic-when-off byte-identity).
+  // domeTwin.renderOrder = -1 pins the pmremScene composite order explicitly (audit P3:
+  // both twins default to 0 and relied on the painterSortStable material-id tiebreak).
   function setCloudTwin(mesh) {
     if (cloudTwin) pmremScene.remove(cloudTwin);
     cloudTwin = mesh || null;
     if (cloudTwin) pmremScene.add(cloudTwin);
+    domeTwin.renderOrder = -1;
     dome.renderOrder = cloudTwin ? -2 : -1;
   }
   // Cloud param changes rebake the IBL WITHOUT a LUT rebake (research doc §4 PMREM interplay)

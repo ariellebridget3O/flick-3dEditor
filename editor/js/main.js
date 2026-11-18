@@ -154,6 +154,7 @@ export class App {
       if (this.light.clouds?.enabled && !wasEnabled) { this._cloudsGatePending = true; this._cloudsGateFrames = 0; }
       this.markAutosave?.();
     };
+    this._cloudsGateBypassed = new URLSearchParams(location.search).get('cloudsGate') === '0';   // QA: SwiftShader always measures over budget — bypass for captures
     this.setIndoor = indoor => { this.light = { ...this.light, indoor: !!indoor }; this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); };
     this.setAmbient = v => { this.light = { ...this.light, ambientLevel: Math.min(1, Math.max(0, v)) }; this.env.applyDaylight(this.light); this.markAutosave?.(); };
     this.recomputeGeoLight = () => this.setLightGeo({});
@@ -1108,6 +1109,7 @@ export class App {
   }
 
   _measureCloudsBudget() {
+    if (this._cloudsGateBypassed) return;            // ?cloudsGate=0 — QA/pixel-oracle path (SwiftShader always over budget)
     const cloud = this.env.clouds?.();
     if (!cloud || !this.light.clouds?.enabled || !cloud.enabled) return;
     const gl = this.renderer.getContext();
@@ -1115,7 +1117,7 @@ export class App {
     const w = this.renderer.domElement.width, h = this.renderer.domElement.height;
     const pixels = w * h;
     if (!validMeasurementSize(pixels)) { this._cloudsGatePending = true; return; }
-    const mode = this.light.clouds.mode ?? 'procedural';
+    const mode = this.env.clouds()?.mode ?? this.light.clouds.mode ?? 'procedural';   // runtime tier
     const px = new Uint8Array(4);
     const gpu = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
     const aidsHidden = this._hidePlanningAids();
@@ -1142,13 +1144,14 @@ export class App {
       console.info(`[clouds] ${mode} cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) within the ${C.CLOUD_BUDGET_MS} ms budget — kept`);
       return;
     }
-    if (mode === 'procedural') {
-      console.info(`[clouds] procedural cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) exceeds the ${C.CLOUD_BUDGET_MS} ms budget — auto-fallback to layered`);
-      this.setClouds({ mode: 'layered' });
+    const tier = this.env.clouds()?.mode ?? mode;   // runtime tier (may already be downgraded)
+    if (tier !== 'layered') {
+      console.info(`[clouds] procedural cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) exceeds the ${C.CLOUD_BUDGET_MS} ms budget — auto-fallback to layered (runtime)`);
+      this.env.setCloudsRuntime('layered');           // MESH-level only: light.clouds keeps the authored mode (no autosave)
       this._cloudsGatePending = true; this._cloudsGateFrames = 0;   // re-probe the fallback tier
     } else {
-      console.info(`[clouds] layered cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) still exceeds the ${C.CLOUD_BUDGET_MS} ms budget — clouds disabled`);
-      this.setClouds({ enabled: false });
+      console.info(`[clouds] layered cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) still exceeds the ${C.CLOUD_BUDGET_MS} ms budget — clouds disabled (runtime; scene state unchanged)`);
+      this.env.setCloudsRuntime('off');
     }
   }
 

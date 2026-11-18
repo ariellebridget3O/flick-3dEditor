@@ -30,10 +30,11 @@ import { C } from './const.js';
 
 // ---- file-private constants (CL_* = cloud layer) ----
 const CL_SHAPE_RES = 128;        // 3D noise texture edge (RGBA8)
-const CL_SHAPE_TILE_KM = 32.0;   // world km covered by one noise tile (repeat-wrapped)
+const CL_SHAPE_TILE_KM = 12.0;   // r13 fix: 40km made the whole sky sample one ~texel corner patch (12km -> cumulus-scale variety)   // world km covered by one noise tile (repeat-wrapped)
 const CL_SIGMA_K = 0.9;          // cloud extinction per unit density, 1/km (research §3.5)
 const CL_ALBEDO = 0.96;          // scattering albedo (whiteness)
-const CL_TMAX_KM = 30.0;         // march span clamp for grazing rays (horizon over-densification guard)
+const CL_TMAX_KM = 30.0;         // absolute slab clamp for grazing rays
+const CL_MARCH_SPAN_KM = 15.0;    // r13: marched span cap — keeps dt <= ~375m at 40 steps so shallow rays sample the noise field finely enough
 const CL_AERIAL_K = 0.05;        // aerial-perspective strength per km per unit density
 const CL_CIRRUS_KM = 7.0;        // cirrus sheet altitude (6-8 km band)
 const CL_DETAIL_FREQ = 6.0;      // erosion re-sample frequency multiplier
@@ -47,7 +48,10 @@ const CL_STEPS_DEFAULT = 40;
 const CL_WIND_UV_PER_UNIT = 0.02; // windSpeed 0..3 -> uv drift per second
 
 const satJs = x => Math.min(1, Math.max(0, x));
-const remapJs = (v, l0, h0, l1, h1) => l1 + satJs((v - l0) / Math.max(h0 - l0, 1e-5)) * (h1 - l1);
+// R13 §3.4 remap — the denominator keeps its SIGN: inverted ranges like remap(hn, 1.0,
+// 0.30, 0.0, 1.0) (the cumulus "rounded top" profile) are intentional call sites; a
+// max(h0-l0, eps) guard would zero them and with them the whole density field.
+const remapJs = (v, l0, h0, l1, h1) => l1 + satJs((v - l0) / (h0 - l0)) * (h1 - l1);
 
 // =====================================================================================
 // GLSL — tileable noise bake (sebh/TileableVolumeNoise clean-room: wrapped gradient
@@ -68,8 +72,9 @@ const CL_NOISE_FRAG = /* glsl */`
   uniform float uZ;                       // slice depth in [0,1)
 
   float sat(float x) { return clamp(x, 0.0, 1.0); }
+  // R13 §3.4 remap — signed denominator (see remapJs note; inverted ranges are call sites)
   float remap(float v, float l0, float h0, float l1, float h1) {
-    return l1 + sat((v - l0) / max(h0 - l0, 1e-5)) * (h1 - l1);
+    return l1 + sat((v - l0) / (h0 - l0)) * (h1 - l1);
   }
   // deterministic wrapped-lattice hash (TileableVolumeNoise technique: mod on the integer cell)
   vec3 hash33(vec3 p) {
@@ -152,6 +157,7 @@ const CL_ATMOS_CHUNK = /* glsl */`
   #define DETAIL_FREQ ${CL_DETAIL_FREQ.toFixed(1)}
   #define DETAIL_STRENGTH ${CL_DETAIL_STRENGTH.toFixed(3)}
   #define TMAX_KM ${CL_TMAX_KM.toFixed(1)}
+  #define MARCH_SPAN_KM ${CL_MARCH_SPAN_KM.toFixed(1)}
   #define AERIAL_K ${CL_AERIAL_K.toFixed(4)}
   #define CIRRUS_KM ${CL_CIRRUS_KM.toFixed(2)}
 
@@ -162,8 +168,9 @@ const CL_ATMOS_CHUNK = /* glsl */`
   uniform float uTopRadius;              // SHARED
 
   float sat(float x) { return clamp(x, 0.0, 1.0); }
+  // R13 §3.4 remap — signed denominator (see remapJs note; inverted ranges are call sites)
   float remap(float v, float l0, float h0, float l1, float h1) {
-    return l1 + sat((v - l0) / max(h0 - l0, 1e-5)) * (h1 - l1);
+    return l1 + sat((v - l0) / (h0 - l0)) * (h1 - l1);
   }
   float fromUnitToSubUvs(float u, float resolution) { return (u + 0.5 / resolution) * (resolution / (resolution + 1.0)); }
   float fromSubUvsToUnit(float u, float resolution) { return (u - 0.5 / resolution) * (resolution / (resolution - 1.0)); }
@@ -264,7 +271,8 @@ ${CL_ATMOS_CHUNK}
   float sampleDensity(vec3 pKm) {
     float h = length(pKm) - uBottomRadius;
     float hn = sat((h - uBaseKm) / max(uHeightKm, 1e-4));
-    vec3 p = (pKm + vec3(uWindOffset.x, 0.0, uWindOffset.y) * SHAPE_TILE_KM) / SHAPE_TILE_KM;
+    vec3 p = (pKm + vec3(uWindOffset.x, 0.0, uWindOffset.y) * SHAPE_TILE_KM) / SHAPE_TILE_KM
+    + vec3(0.37, 0.0, 0.63);            // r13 fix: deterministic origin offset — avoids the (0,~0.06,0) corner hole (RepeatWrapping makes any offset valid)
     vec4 s = texture(uShapeTex, p);
     float lowFreqFBM = s.g * 0.625 + s.b * 0.25 + s.a * 0.125;         // takram octave weights
     float base = remap(s.r, lowFreqFBM - 1.0, 1.0, 0.0, 1.0);          // Nubis base+fbm
@@ -354,7 +362,7 @@ ${CL_ATMOS_CHUNK}
       // ---- procedural: distance-scaled thin-shell march ----
       vec2 span = shellSpan(camPos, worldDir, uBottomRadius + uBaseKm, topH);
       if (span.x >= 0.0 && span.y > 0.0) {
-        float t0 = span.x, t1 = min(span.y, t0 + TMAX_KM);
+        float t0 = span.x, t1 = min(span.y, t0 + MARCH_SPAN_KM);   // r13 fix: cap the marched span (not 30km) — shallow rays' dt would straddle the ~300m noise features
         float nSteps = float(uSteps);
         float dt = (t1 - t0) / nSteps;
         float t = t0 + hash13(vec3(gl_FragCoord.xy, 0.0)) * dt;   // position-only dither (QA-safe)
@@ -367,8 +375,8 @@ ${CL_ATMOS_CHUNK}
             float sigmaS = ALBEDO * sigmaT;
             float Tlight = lightMarch(p, Ld);
             float powder = 1.0 - uPowderScale * exp(-SIGMA_K * rho * dt * uPowderExponent);
-            vec3 E = Lc * Tlight * phase2(mu) * mix(1.0, powder, sat(mu * 0.5 + 0.5))
-                   + msAmb * (0.35 + 0.65 * hn);
+            vec3 E = Lc * Tlight * (0.55 + 0.45 * phase2(mu)) * mix(1.0, powder, sat(mu * 0.5 + 0.5))   // r13 fix: diffuse base like the cirrus/layered tiers (phase-only was ~30x too dark)
+                   + msAmb * 5.0 * (0.35 + 0.65 * hn);   // r13 fix: MS-LUT values are transfer factors (~0.02) — a deck underside reads ~30/255 without the boost
             vec3 Sint = (E * sigmaS - E * sigmaS * exp(-sigmaT * dt)) / sigmaT;   // Frostbite slide-28
             L += Tview * Sint;
             Tview *= exp(-sigmaT * dt);
@@ -408,7 +416,7 @@ ${CL_ATMOS_CHUNK}
 
     // ---- aerial perspective: blend toward the sky-view LUT sample of the same direction ----
     // weight = 1 - exp(-distance * meanDensity): distant clouds converge into the sky/fog band
-    float aerial = 1.0 - exp(-distMean * densSum * AERIAL_K);
+    float aerial = min(0.82, 1.0 - exp(-min(distMean, 22.0) * densSum * AERIAL_K));   // r13 fix: clamp slant distance + weight — near-horizon rays march 150km+ of slant and the unclamped term erased the whole deck into sky
     if (aerial > 0.001) {
       float viewZenithCosAngle = dot(worldDir, upVector);
       vec3 sideVector = normalize(cross(upVector, worldDir));
@@ -604,6 +612,7 @@ export function createCloudLayer({ renderer, sky }) {
   // ---- state ----
   let enabled = false, staticMode = false, mode = 'procedural';
   let paramKey = '', windClock = null, windSpeed = 0.2 * CL_WIND_UV_PER_UNIT;
+  let sheetsKey = '';                                 // r13 audit P2: atlas bakes coverage/density — rebuild on change
   let stepsRequested = CL_STEPS_DEFAULT;
   let geoAltitudeM = 0;
   const _cam = new THREE.Vector3();
@@ -647,6 +656,12 @@ export function createCloudLayer({ renderer, sky }) {
     if (typeof next.geoAltitudeM === 'number') geoAltitudeM = next.geoAltitudeM;
     if (p.fogColor) u.uFogColor.value.copy(p.fogColor);
     if (p.moonDir) u.uMoonDir.value.copy(p.moonDir);
+    // r13 audit P2: the layered atlas bakes coverage/density at build time — rebuild when they
+    // change in layered mode (CPU-side 256xN, ~2-5 ms; the sliders stay live)
+    if (enabled && mode === 'layered' && noiseCPU) {
+      const sk = next.coverage.toFixed(4) + '|' + next.density.toFixed(4);
+      if (sk !== sheetsKey) { sheetsKey = sk; buildSheets(); }
+    }
     return changed;
   }
 
@@ -672,6 +687,10 @@ export function createCloudLayer({ renderer, sky }) {
   function setMode(m) {
     mode = m === 'layered' ? 'layered' : 'procedural';
     u_stepsApply();
+    if (enabled && mode === 'layered' && noiseCPU) {   // entering layered: atlas must match current params
+      const sk = uniforms.uCoverage.value.toFixed(4) + '|' + uniforms.uDensity.value.toFixed(4);
+      if (sk !== sheetsKey) { sheetsKey = sk; buildSheets(); }
+    }
   }
   function u_stepsApply() {
     uniforms.uSteps.value = mode === 'layered' ? 0 : stepsRequested;

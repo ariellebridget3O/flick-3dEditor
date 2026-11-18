@@ -409,8 +409,9 @@ function buildLightPopover(app) {
     // round 13 (P2): clouds — off by default; realistic-sky feature
     const cl = l.clouds ?? { enabled: false, mode: 'procedural', coverage: C.CLOUD_COVERAGE_DEFAULT, density: 1, cirrus: 0.15, altitudeM: 2500, thicknessM: 1200 };
     const cmode = cl.enabled ? (cl.mode === 'layered' ? 'layered' : 'procedural') : 'off';
-    el.querySelectorAll('#lpClouds button').forEach(b => b.classList.toggle('on', b.dataset.c === cmode));
-    const cloudRows = [['lpCovRow', cl.enabled], ['lpDenRow', cl.enabled], ['lpCirRow', cl.enabled], ['lpCloudDims', cl.enabled]];
+    const cloudsUsable = l.skyStyle === 'realistic';     // clouds are a realistic-sky feature — classic stays byte-identical
+    el.querySelectorAll('#lpClouds button').forEach(b => { b.classList.toggle('on', cloudsUsable && b.dataset.c === cmode); b.disabled = !cloudsUsable && b.dataset.c !== 'off'; });
+    const cloudRows = [['lpCovRow', cl.enabled && cloudsUsable], ['lpDenRow', cl.enabled && cloudsUsable], ['lpCirRow', cl.enabled && cloudsUsable], ['lpCloudDims', cl.enabled && cloudsUsable]];
     for (const [id, vis] of cloudRows) $id(id).style.display = vis ? '' : 'none';
     setVal($id('lpCov'), cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT);
     $id('lpCovVal').textContent = (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT).toFixed(2);
@@ -420,7 +421,8 @@ function buildLightPopover(app) {
     $id('lpCirVal').textContent = (cl.cirrus ?? 0.15).toFixed(2);
     setVal($id('lpCAlt'), cl.altitudeM ?? 2500);
     setVal($id('lpCThk'), cl.thicknessM ?? 1200);
-    $id('lpCloudsHint').textContent = !cl.enabled ? 'Clear sky (default). Realistic sky style only.'
+    $id('lpCloudsHint').textContent = !cloudsUsable ? 'Clouds need the Realistic sky style (classic stays byte-identical).'
+      : !cl.enabled ? 'Clear sky (default).'
       : cmode === 'layered'
         ? 'Fast parallax sheet clouds with sun-facing shading.'
         : 'Ray-marched cloud layer lit by the sun and sky (MIT-technique, ~1-2 ms).';
