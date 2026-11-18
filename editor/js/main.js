@@ -81,6 +81,8 @@ export class App {
       this.finishNeedsMeasuring = false;
     }
     this._finishScheduler = createAutoMeasureScheduler();
+    this._cloudsGatePending = false;     // P2: clouds budget probe (one-shot per enable)
+    this._cloudsGateFrames = 0;
     this._frameCount = 0;
     this._pointerHeld = false;
     this._lastWheel = -Infinity;
@@ -129,6 +131,27 @@ export class App {
       const v = style === 'realistic' ? 'realistic' : 'classic';
       this.light = { ...this.light, skyStyle: v };
       this.env.setSkyStyle(v, this.light);
+      // P2: clouds are a realistic-sky feature — (re)enable through the app's own path + budget probe
+      if (v === 'realistic' && this.light.clouds?.enabled) { this._cloudsGatePending = true; this._cloudsGateFrames = 0; }
+      this.markAutosave?.();
+    };
+    // round 13 (P2): cloud layer mutator — mirrors setSkyStyle (light object owns the state;
+    // absence = off, same parity as schema). patch: {enabled, mode, coverage, density,
+    // altitudeM, thicknessM, cirrus, windSpeed}
+    this.setClouds = patch => {
+      const cur = this.light.clouds ?? { enabled: false };
+      const next = { ...cur, ...patch };
+      const wasEnabled = !!cur.enabled;
+      if (!next.enabled) {
+        if (!wasEnabled) return;                       // no-op off → off
+        const l = { ...this.light }; delete l.clouds;  // canonical off = absent (schema parity)
+        this.light = l;
+      } else {
+        this.light = { ...this.light, clouds: next };
+      }
+      this.env.setClouds(this.light);
+      this.env.applyDaylight(this.light);
+      if (this.light.clouds?.enabled && !wasEnabled) { this._cloudsGatePending = true; this._cloudsGateFrames = 0; }
       this.markAutosave?.();
     };
     this.setIndoor = indoor => { this.light = { ...this.light, indoor: !!indoor }; this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); };
@@ -331,6 +354,8 @@ export class App {
     this.show.setShow(scene.show ?? { name: 'Show', tracks: [] });
     this.light = normalizeLight(scene.light ?? null);
     this.env.setSkyStyle(this.light.skyStyle === 'realistic' ? 'realistic' : 'classic', this.light);
+    // P2: a scene restored with clouds enabled goes through the same budget probe as a manual enable
+    if (this.light.clouds?.enabled && this.light.skyStyle === 'realistic') { this._cloudsGatePending = true; this._cloudsGateFrames = 0; }
     this.page.recordAspect = scene.recordAspect ?? '16:9';
     this._syncObjects();
     this.shadowFit.force();
@@ -1064,12 +1089,67 @@ export class App {
     const size = this.renderer.getDrawingBufferSize(_bufSize);
     if (size.x === 0 || size.y === 0) return;
     const finishOn = this.finishOn();
-    this.env.updateRealisticSky(this.camera, !finishOn);   // round 10: bakes + IBL + sRGB mode
+    this.env.updateRealisticSky(this.camera, !finishOn);   // round 10: bakes + IBL + sRGB mode (P2: clouds ride the same pass)
     if (!finishOn) this.finish.release();
     if (finishOn) this.finish.render(this.scene, this.camera);
     else this.renderer.render(this.scene, this.camera);
     this._autoMeasure();
+    if (this._cloudsGatePending) this._tickCloudsGate();   // P2: one-shot clouds budget probe
     this.drawOverlays();
+  }
+
+  // ================= clouds auto-gate (P2, finish.js measureFinish pattern) =================
+  _tickCloudsGate() {
+    this._cloudsGateFrames++;
+    if (this._cloudsGateFrames < 30) return;               // settle: noise bake + LUT + IBL
+    if (this.page.playing || this._pointerHeld || performance.now() - this._lastWheel < 500) return;
+    this._cloudsGatePending = false;
+    this._measureCloudsBudget();
+  }
+
+  _measureCloudsBudget() {
+    const cloud = this.env.clouds?.();
+    if (!cloud || !this.light.clouds?.enabled || !cloud.enabled) return;
+    const gl = this.renderer.getContext();
+    if (gl.isContextLost()) return;
+    const w = this.renderer.domElement.width, h = this.renderer.domElement.height;
+    const pixels = w * h;
+    if (!validMeasurementSize(pixels)) { this._cloudsGatePending = true; return; }
+    const mode = this.light.clouds.mode ?? 'procedural';
+    const px = new Uint8Array(4);
+    const gpu = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    const aidsHidden = this._hidePlanningAids();
+    let costMs = 0;
+    try {
+      const time = fn => { const t0 = performance.now(); fn(); gpu(); return performance.now() - t0; };
+      const drawWith = on => {                             // PLAIN path only (no finish composer)
+        cloud.mesh.visible = on;
+        this.env.updateRealisticSky(this.camera, true);
+        this.renderer.setRenderTarget(null);
+        this.renderer.render(this.scene, this.camera);
+      };
+      for (let i = 0; i < 2; i++) { time(() => drawWith(false)); time(() => drawWith(true)); }
+      const off = [], on = [];
+      for (let i = 0; i < 5; i++) { off.push(time(() => drawWith(false))); on.push(time(() => drawWith(true))); }
+      const median = a => a.sort((x, y) => x - y)[a.length >> 1];
+      costMs = Math.max(0, median(on) - median(off));
+    } finally {
+      aidsHidden();
+      cloud.mesh.visible = cloud.enabled;
+    }
+    const norm = costMs * Math.max(1, (1920 * 1080) / pixels);   // 1080p reference, like the finish gate
+    if (norm <= C.CLOUD_BUDGET_MS) {
+      console.info(`[clouds] ${mode} cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) within the ${C.CLOUD_BUDGET_MS} ms budget — kept`);
+      return;
+    }
+    if (mode === 'procedural') {
+      console.info(`[clouds] procedural cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) exceeds the ${C.CLOUD_BUDGET_MS} ms budget — auto-fallback to layered`);
+      this.setClouds({ mode: 'layered' });
+      this._cloudsGatePending = true; this._cloudsGateFrames = 0;   // re-probe the fallback tier
+    } else {
+      console.info(`[clouds] layered cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) still exceeds the ${C.CLOUD_BUDGET_MS} ms budget — clouds disabled`);
+      this.setClouds({ enabled: false });
+    }
   }
 
   drawOverlays() {   // ae(): stroke ring THEN planning aids — both depth-test against scene depth

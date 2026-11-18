@@ -330,6 +330,16 @@ function buildLightPopover(app) {
       <div class="lp-cat">Sky</div>
       <div class="seg sky" id="lpSky">${C.SKY_STYLES.map(t => `<button data-s="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>
       <div class="lp-hint" id="lpSkyHint"></div>
+      <div class="seg clouds" id="lpClouds">
+        <button data-c="off">Off</button>
+        <button data-c="procedural">Procedural</button>
+        <button data-c="layered">Layered</button>
+      </div>
+      <label class="lp-row" id="lpCovRow">Coverage<input id="lpCov" type="range" min="0" max="1" step="0.05"><span id="lpCovVal"></span></label>
+      <label class="lp-row" id="lpDenRow">Density<input id="lpDen" type="range" min="0.25" max="4" step="0.25"><span id="lpDenVal"></span></label>
+      <label class="lp-row" id="lpCirRow">Cirrus<input id="lpCir" type="range" min="0" max="1" step="0.05"><span id="lpCirVal"></span></label>
+      <div class="lp-date" id="lpCloudDims">Alt m<input id="lpCAlt" type="number" min="500" max="8000" step="100"> Thick m<input id="lpCThk" type="number" min="200" max="4000" step="100"></div>
+      <div class="lp-hint" id="lpCloudsHint"></div>
     </div>
     <label class="lp-row lp-night"><input id="lpNight" type="checkbox" checked> Night lamps</label>`;
   document.querySelector('.stage-header').appendChild(el);
@@ -396,6 +406,24 @@ function buildLightPopover(app) {
     $id('lpSkyHint').textContent = l.skyStyle === 'realistic'
       ? 'Physically based atmosphere (Hillaire 2020) with stars and moon at night.'
       : 'flick daylight gradient (default).';
+    // round 13 (P2): clouds — off by default; realistic-sky feature
+    const cl = l.clouds ?? { enabled: false, mode: 'procedural', coverage: C.CLOUD_COVERAGE_DEFAULT, density: 1, cirrus: 0.15, altitudeM: 2500, thicknessM: 1200 };
+    const cmode = cl.enabled ? (cl.mode === 'layered' ? 'layered' : 'procedural') : 'off';
+    el.querySelectorAll('#lpClouds button').forEach(b => b.classList.toggle('on', b.dataset.c === cmode));
+    const cloudRows = [['lpCovRow', cl.enabled], ['lpDenRow', cl.enabled], ['lpCirRow', cl.enabled], ['lpCloudDims', cl.enabled]];
+    for (const [id, vis] of cloudRows) $id(id).style.display = vis ? '' : 'none';
+    setVal($id('lpCov'), cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT);
+    $id('lpCovVal').textContent = (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT).toFixed(2);
+    setVal($id('lpDen'), cl.density ?? 1);
+    $id('lpDenVal').textContent = 'x' + (cl.density ?? 1).toFixed(2);
+    setVal($id('lpCir'), cl.cirrus ?? 0.15);
+    $id('lpCirVal').textContent = (cl.cirrus ?? 0.15).toFixed(2);
+    setVal($id('lpCAlt'), cl.altitudeM ?? 2500);
+    setVal($id('lpCThk'), cl.thicknessM ?? 1200);
+    $id('lpCloudsHint').textContent = !cl.enabled ? 'Clear sky (default). Realistic sky style only.'
+      : cmode === 'layered'
+        ? 'Fast parallax sheet clouds with sun-facing shading.'
+        : 'Ray-marched cloud layer lit by the sun and sky (MIT-technique, ~1-2 ms).';
     // presets: elevation-only (aria-pressed when |el - preset| < .5)
     el.querySelectorAll('.presets button').forEach(b => {
       const p = C.LIGHT_PRESETS[+b.dataset.i];
@@ -471,6 +499,36 @@ function buildLightPopover(app) {
   el.querySelectorAll('#lpWeather button').forEach(b => b.onclick = () => { commit(() => app.setWeather(b.dataset.w)); render(); });
   // round 10 (skybox P1): sky style toggle
   el.querySelectorAll('#lpSky button').forEach(b => b.onclick = () => { commit(() => app.setSkyStyle(b.dataset.s)); render(); });
+  // round 13 (P2): clouds — seg = Off/Procedural/Layered; sliders live-drag uniforms, commit on pointerup
+  el.querySelectorAll('#lpClouds button').forEach(b => b.onclick = () => {
+    const c = b.dataset.c;
+    commit(() => {
+      if (c === 'off') app.setClouds({ enabled: false });
+      else app.setClouds({ enabled: true, mode: c });
+    });
+    render();
+  });
+  const cloudSlider = (id, valId, fmt, key) => {
+    const node = $id(id);
+    node.addEventListener('pointerdown', () => app.show.beginEditGesture());
+    node.addEventListener('pointerup', () => app.show.endEditGesture());
+    node.addEventListener('input', () => {
+      app.setClouds({ [key]: +node.value });
+      $id(valId).textContent = fmt(+node.value);
+    });
+  };
+  cloudSlider('lpCov', 'lpCovVal', v => v.toFixed(2), 'coverage');
+  cloudSlider('lpDen', 'lpDenVal', v => 'x' + v.toFixed(2), 'density');
+  cloudSlider('lpCir', 'lpCirVal', v => v.toFixed(2), 'cirrus');
+  const cloudNum = (id, key) => {
+    $id(id).onchange = () => {
+      const min = +$id(id).min, max = +$id(id).max;
+      commit(() => app.setClouds({ [key]: Math.min(max, Math.max(min, +$id(id).value || min)) }));
+      render();
+    };
+  };
+  cloudNum('lpCAlt', 'altitudeM');
+  cloudNum('lpCThk', 'thicknessM');
   $id('lpIndoor').onchange = () => { commit(() => app.setIndoor($id('lpIndoor').checked)); render(); };
   const amb = $id('lpAmb');
   amb.addEventListener('pointerdown', () => app.show.beginEditGesture());
