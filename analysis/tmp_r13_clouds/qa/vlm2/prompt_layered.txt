@@ -1,0 +1,9 @@
+You are a strict visual-QA inspector for a procedural cloud renderer in a 3D stage editor. This capture looks at the sky at ~45 degrees elevation over a hazy stage floor. IMPORTANT: the bottom ~45% of the image is a fog-faded floor plus editor gizmos — IGNORE the floor and all editor UI/gizmos entirely. Judge ONLY the sky/cloud band in the top ~55% of the image (ignore the small viewport shading-sphere icon at the top-right corner).
+
+Expected result for this capture (layered/fallback tier): a soft semi-transparent cloud VEIL — brighter overall than a cumulus sky, but with subtle texture/structure (faint layering, wisps, gradients). It must NOT be a flat clipped white ceiling — there should be no large pure-white (250+) regions and it should not look like blank paper.
+
+Answer concretely and quantitatively:
+1. MATCH: Does the sky band match? Describe what you see: veil with subtle texture, or flat blank wash? Estimate brightness range.
+2. ARTIFACTS: speckle/noise, banding (staircase stripes), hard seams, streaking, chroma noise (cyan/magenta blotches), duplicated/tiling patterns?
+3. TEXTURE: is there any visible variation/structure at all (faint layers, wisps, gradients), or is it uniform? Where is it most/least textured?
+4. CLIPPING: any large flat pure-white clipped regions (>5% of sky band)? Be specific.

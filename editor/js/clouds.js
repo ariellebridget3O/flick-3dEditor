@@ -32,8 +32,11 @@ import { C } from './const.js';
 const CL_SHAPE_RES = 128;        // 3D noise texture edge (RGBA8)
 const CL_SHAPE_TILE_KM = 12.0;   // r13 fix: 40km made the whole sky sample one ~texel corner patch (12km -> cumulus-scale variety)   // world km covered by one noise tile (repeat-wrapped)
 const CL_SIGMA_K = 0.9;          // cloud extinction per unit density, 1/km (research §3.5)
-const CL_LIGHT_EXTINCT_K = 3.0;  // r13 tune: EXTRA extinction for the sun march — real water clouds are tau>>10 optically; at SIGMA_K alone a 1.2km deck transmits ~16% of the sun and the overcast base glows white (measured luma 0.87 vs the 0.35-0.6 mid-gray target). x3 => tau~5, Tlight~0.006 through a full deck, ~0.1-0.3 through cumulus sides = real sun-side/lee-side shading.
-const CL_ALBEDO = 0.96;          // scattering albedo (whiteness)
+const CL_LIGHT_EXTINCT_K = 6.0;  // r14 tune: 3.0 left cov75 shaded lobes at ~198 display (flat bright deck, contrast p95-p10=35); x4 deepens lee-side/interior shading (extra tau ~0.43 on partial-mass paths => Tlight x0.65) while lit tops (nothing sunward, Tlight~1) are unchanged — real water clouds are tau>>10 optically; at SIGMA_K alone a 1.2km deck transmits ~16% of the sun and the overcast base glows white (measured luma 0.87 vs the 0.35-0.6 mid-gray target). x3 => tau~5, Tlight~0.006 through a full deck, ~0.1-0.3 through cumulus sides = real sun-side/lee-side shading.
+const CL_MS_OCTAVE = 0.22;       // r14: second-scatter octave weight (Nubis multi-scatter approximation — see the E term)
+const CL_AMB_OCCLUDE_K = 2.0;    // r14: ambient occlusion by local density (per-unit-rho exponent) — the un-occluded msAmb*5 term painted opaque interiors a uniform ~217 gray (the flat deck); real interiors attenuate sky light by the mass around them. rho~0.5 core -> x0.58, thin veil rho~0.15 -> x0.85.
+const CL_VIEW_EXTINCT_K = 3.0;   // r14: view-march extinction scale — the light march already had LIGHT_EXTINCT_K for sun rays; the VIEW march ran at raw SIGMA_K (0.9/km) so even a full-density 1.2km deck only reached tau~1.7 => Tview>=0.19 at cores, Tview~0.5-0.85 in the inter-billow veil — the composite displayed 20-85% BRIGHT SKY through the "cloud" = the flat bright deck the VLM flagged (lighting knobs moved it -2/255; density floors didn't move it at all). x3 => core tau~5 (Tview~0.007, truly opaque), veil tau~0.8-1.4 (reads as thin cloud, not sky). Real water clouds are tau>>10; the Frostbite integral is self-limiting (per-step <= E*ALBEDO) so cores emit ~E bounded.
+const CL_ALBEDO = 0.96;          // cloud scattering albedo (whiteness)
 const CL_TMAX_KM = 30.0;         // absolute slab clamp for grazing rays
 const CL_MARCH_SPAN_KM = 15.0;    // r13: marched span cap — keeps dt <= ~375m at 40 steps so shallow rays sample the noise field finely enough
 const CL_AERIAL_K = 0.05;        // aerial-perspective strength per km per unit density
@@ -156,6 +159,9 @@ const CL_ATMOS_CHUNK = /* glsl */`
   #define SHAPE_TILE_KM ${CL_SHAPE_TILE_KM.toFixed(1)}
   #define SIGMA_K ${CL_SIGMA_K.toFixed(4)}
   #define LIGHT_EXTINCT_K ${CL_LIGHT_EXTINCT_K.toFixed(2)}
+  #define VIEW_EXTINCT_K ${CL_VIEW_EXTINCT_K.toFixed(2)}
+  #define AMB_OCCLUDE_K ${CL_AMB_OCCLUDE_K.toFixed(2)}
+  #define MS_OCTAVE ${CL_MS_OCTAVE.toFixed(2)}
   #define ALBEDO ${CL_ALBEDO.toFixed(3)}
   #define DETAIL_FREQ ${CL_DETAIL_FREQ.toFixed(1)}
   #define DETAIL_STRENGTH ${CL_DETAIL_STRENGTH.toFixed(3)}
@@ -284,8 +290,8 @@ ${CL_ATMOS_CHUNK}
     vec4 s = texture(uShapeTex, p);
     float lowFreqFBM = s.g * 0.625 + s.b * 0.25 + s.a * 0.125;         // takram octave weights
     float base = remap(s.r, lowFreqFBM - 1.0, 1.0, 0.0, 1.0);          // Nubis base+fbm
-    float covThr = pow(1.0 - uCoverage, 1.15);                         // r13 tune: the raw field skews low — a linear knee yielded ~14% effective coverage at user 0.5
-    base = remap(base, covThr, 1.0, 0.0, 1.0);                         // Schneider coverage remap (pow-knee)                // Schneider coverage remap
+    float covThr = pow(1.0 - uCoverage, 0.85);                         // r14 RE-ANCHOR: the r13 knee 1.15 was tuned under the SEMI-TRANSPARENT renderer (thin veil read as partial sky — user .5 looked 'partly cloudy' with 0% true gaps). With the opaque renderer (VIEW_EXTINCT_K + rho^1.35) the same knee rendered user .5 as a solid deck (VLM r14 FAIL: 0% blue gaps). k .85: eff .2125 -> thr .82 (cov .25 airier discrete cumulus), eff .425 -> .63 (~60/40 partly cloudy), eff .6375 -> .43 (broad deck), eff .72 -> .34 (overcast). The knee stays a single pow on (1-cov).
+    base = remap(base, covThr, 1.0, 0.0, 1.0);                         // Schneider coverage remap (pow-knee)
     // vertical profile: cumulus (rounded top, tapered base) flattened toward stratus for thin decks
     float stratusW = sat(1.0 - uHeightKm / 1.2);                       // thin slab -> flat deck
     float cumulus = sat(remap(hn, 0.0, 0.12, 0.0, 1.0)) * sat(remap(hn, 1.0, 0.30, 0.0, 1.0));
@@ -354,6 +360,7 @@ ${CL_ATMOS_CHUNK}
     float Tview = 1.0;
     float densSum = 0.0;
     float distMean = 0.0;
+    float layeredTier = 0.0;             // r14: set by the sheet fallback — gates the display-space cap
 
     // ---- cirrus: thin high sheet (6-8 km), pure fbm alpha, no march ----
     if (uCirrus > 0.001) {
@@ -389,12 +396,13 @@ ${CL_ATMOS_CHUNK}
           float rho = sampleDensity(p);
           if (rho > 1e-3) {
             float hn = sat((length(p) - uBottomRadius - uBaseKm) / max(uHeightKm, 1e-4));
-            float sigmaT = SIGMA_K * rho;
+            float sigmaT = SIGMA_K * VIEW_EXTINCT_K * pow(rho, 1.35);   // r14 it2: NONLINEAR in rho — the linear form made thin sub-threshold veil (rho .1-.25) read as solid deck: user cov .5 (eff .425) rendered 0% blue gaps (VLM r14 acceptance FAIL on the base arm). pow 1.35: rho .15 -> tau x .52 (gaps show through), rho .5 -> x .78, rho .8 -> x .91 — opaque cores unchanged, cov .25/.75 thresholds untouched (the knee is on base, not sigma)
             float sigmaS = ALBEDO * sigmaT;
             float Tlight = lightMarch(p, Ld);
-            float powder = 1.0 - uPowderScale * exp(-SIGMA_K * rho * dt * uPowderExponent);
-            vec3 E = Lc * Tlight * (0.60 + 0.45 * phase2(mu)) * mix(1.0, powder, sat(mu * 0.5 + 0.5))   // r13 fix: diffuse base like the cirrus/layered tiers (phase-only was ~30x too dark); r13 acceptance: 0.55 left lit tops at 210-225, short of near-white
-                   + msAmb * 5.0 * (0.35 + 0.65 * hn);   // r13 fix: MS-LUT values are transfer factors (~0.02) — a deck underside reads ~30/255 without the boost
+            float powder = 1.0 - uPowderScale * exp(-uPowderExponent * rho);   // r14 FIX: the old form multiplied rho by dt (~0.047km) — the optical-depth scale could never exceed ~0.17, so powder topped out at ~0.15 and mix(1,powder,sunFacing) crushed ALL sun-facing direct light to 15-30% (the r13 0.60 diffuse-base hack was fighting this). Standard Nubis form: the LOCAL density is the depth proxy — thin veil rho~0.2 -> 0.55, dense tops rho~0.7 -> 0.94.
+            vec3 E = Lc * (Tlight + MS_OCTAVE * sqrt(Tlight)) * (0.34 + 0.45 * phase2(mu)) * mix(1.0, powder, sat(mu * 0.5 + 0.5))   // r14 it3: Schneider multi-scatter octave — scatter2 at quarter extinction (pow .25) with weight MS_OCTAVE; the sunlit shell of a real cumulus glows from REPEATED scattering, which a single Tlight term cannot produce (the band integrates only ~25-50% of E — measured tops stuck at 224-231 across 3 base values). Base 0.50->0.38: the octave replaces the raw energy   // r13 fix: diffuse base like the cirrus/layered tiers (phase-only was ~30x too dark). r14: 0.60->0.45 — the r13 0.60 was compensating for the optically-thin deck (tops accumulated only ~66% of E); with VIEW_EXTINCT_K=3 cores are opaque and accumulate ~E — 0.60 would clip every sun-facing top
+                   + msAmb * 5.0 * (0.28 + 0.72 * hn)
+                     * mix(exp(-AMB_OCCLUDE_K * rho), 1.0, smoothstep(0.45, 0.90, hn));   // r14 it2: sky light enters from ABOVE — release the occlusion near the slab top (the sunlit band integrates only ~(1-e^-tau_band) ~25-50% of E, so its ambient must stay full or the tops read gray; depth/mid-slab keeps the full occlusion)   // r13 fix: MS-LUT values are transfer factors (~0.02) — a deck underside reads ~30/255 without the boost. r14: occlude by LOCAL density — v3 proved the un-occluded term IS the flat interior (measured L_lin 0.126 = msAmb*5*0.64 exactly); rho~0.5 cores -> ~160-170 display (the VLM shaded-lobe target), thin veil barely darkened
             vec3 Sint = (E * sigmaS - E * sigmaS * exp(-sigmaT * dt)) / sigmaT;   // Frostbite slide-28
             L += Tview * Sint;
             Tview *= exp(-sigmaT * dt);
@@ -408,6 +416,7 @@ ${CL_ATMOS_CHUNK}
       }
     } else {
       // ---- layered fallback: parallax alpha sheets (atlas rows), Lambert + HG-style glint ----
+      layeredTier = 1.0;
       for (int i = 0; i < ${CL_SHEET_COUNT}; i++) {
         if (i >= uSheetCount) break;
         float fi = (float(i) + 0.5) / float(uSheetCount);
@@ -459,6 +468,18 @@ ${CL_ATMOS_CHUNK}
     L = mix(vec3(lum), L, 1.0 - uWeatherDesat);
     L *= (1.0 - uWeatherDarken);
     if (uToneMap > 0.5 && uCurve > 0.5) L = vec3(1.0) - exp(-max(L, vec3(0.0)) / uWhitePoint * uExposure);
+    // r14: layered-tier display-space shoulder. The 6-sheet zenith stack accumulates
+    // tone-curved radiance to 0.90-0.96 pre-OETF (245-253 display; >50% of a zenith-view
+    // deck clipped). Per-sheet dimming CANNOT fix it — the exposure-10 curve saturates
+    // (any linear sum >=0.35 curves to >=0.96; proven r13: the 0.68 dim gave identical
+    // display). Soft order-preserving shoulder in tone-curved space instead: identity
+    // below the 0.70 knee, asymptote 0.85 (237 display — just above the 235 fog band,
+    // below the procedural tier's lit cores). Linear-HDR out (uCurve=0) and PMREM
+    // (uToneMap=0) are exempt: ACES handles those (clouds_hdr_check.py verified).
+    if (layeredTier > 0.5 && uToneMap > 0.5 && uCurve > 0.5) {
+      vec3 over = max(L - vec3(0.70), vec3(0.0));
+      L = min(L, vec3(0.70)) + vec3(0.15) * over / (over + vec3(0.15));
+    }
     // horizon fog band — same POST-curve linear mix as the dome (the dome mixes uFogColor into
     // its tonemapped L; matching it here removes the tone-order seam: pre-curve, fogColor 0.83
     // went through exp -> 0.9995 = the white blowout band where the deck met the floor line).

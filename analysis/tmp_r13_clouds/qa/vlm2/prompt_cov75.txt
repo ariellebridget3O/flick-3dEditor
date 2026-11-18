@@ -1,0 +1,10 @@
+You are a strict visual-QA inspector for a procedural cloud renderer in a 3D stage editor. This capture looks at the sky at ~45 degrees elevation over a hazy stage floor. IMPORTANT: the bottom ~45% of the image is a fog-faded floor plus editor gizmos — IGNORE the floor and all editor UI/gizmos entirely. Judge ONLY the sky/cloud band in the top ~55% of the image (ignore the small viewport shading-sphere icon at the top-right corner).
+
+Expected result for this capture (coverage preset 0.75): a BROAD cloud deck covering ~95% of the sky, but with INTERNAL CONTRAST — darker shaded lobes (gray ~195-205) against brighter sun-facing rims (~225-230), visible sun-direction shading structure. It must NOT be a flat uniform gray/white wash, and must not clip to pure white.
+
+Answer concretely and quantitatively:
+1. MATCH: Does the sky band match? Estimate % coverage, and describe the internal contrast: are there distinct darker lobes vs brighter rims? Estimate the brightness range you can see (darkest cloud areas vs brightest).
+2. ARTIFACTS: speckle/noise, banding (staircase stripes), hard seams, streaking, chroma noise (cyan/magenta blotches), duplicated/tiling patterns?
+3. SUN SHADING: is there directional shading (sides facing upper-right light brighter, opposite sides darker)? Give a specific example with approximate location.
+4. CLIPPING: any large flat pure-white clipped regions (>5% of sky band)? Where?
+5. FLATNESS: does the deck read as structured (lobes, ripples, gradients) or as a flat uniform wash? Be honest.

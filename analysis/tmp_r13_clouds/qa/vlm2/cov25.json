@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**1. MATCH: Partial pass.**\n- Clouds are discrete billows, not a continuous deck — good. They cluster along the horizon band with individual puffs around x≈150, x≈470, x≈600, x≈700 (all y≈110–170).\n- Blue gap coverage: roughly 45–55% of the sky band is blue sky — consistent with the 0.25 coverage preset's intent.\n- Brightness: billow cores reach ~235–250 (near-white), but there is very little brightness *range*. Undersides are only ~200–220; the clouds read somewhat flat/washed, closer to a layered stratus-cumulus look than strongly puffy cumulus. Borderline rather than clean pass.\n\n**2. ARTIFACTS:**\n- Mild vertical banding/streaking in the blue sky at upper-left (x≈10–120, y≈10–60) — soft vertical smear stripes.\n- Slight horizontal banding in the upper-right blue region (x≈700–940, y≈10–50).\n- No speckle, no chroma (cyan/magenta) blotches, no visible tiling/duplication, no hard seams between billows.\n\n**3. SUN SHADING: FAIL / very weak.**\nLight from upper right is not clearly expressed. Example: the billow cluster at x≈440–520, y≈100–140 shows its upper-right face only marginally brighter (~245) than its lower-left base (~205–215). The cluster at x≈580–660, y≈120–160 is nearly uniform (~230 across). Directional contrast is present but subtle — below what \"visibly darker undersides\" requires.\n\n**4. CLIPPING:**\nNo large flat pure-white clipped regions in the sky band. The only large white area is the fog-faded floor below the horizon line (bottom ~45%), which is excluded per instructions. Cloud cores stay ≤ ~250, so no blowout.\n\n**Verdict:** Conditional pass — geometry and coverage match, but shading contrast is weak and there is mild banding/streaking in the blue sky.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1795000309,
+  "id": "202611181911407d07ab4ac54e4077",
+  "model": "glm-5.3-flash",
+  "object": "chat.completion",
+  "request_id": "202611181911407d07ab4ac54e4077",
+  "usage": {
+    "completion_tokens": 453,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 816,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 1269
+  }
+}
