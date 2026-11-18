@@ -10,6 +10,8 @@ const DEG = Math.PI / 180;
 // Branch-free azimuth = atan2 of the sun vector's East/North components (finite at zenith, correct at poles).
 // round 10 (skybox P1): realistic atmosphere dome (sebh/UnrealEngineSkyAtmosphere port)
 import { createRealisticSky } from './sky.js';
+// round 13 (P2): sky-dome cloud layer — realistic-sky feature (classic stays byte-identical)
+import { createCloudLayer } from './clouds.js';
 
 export function solarPositionDeg(geo) {
   const N = geo.dayOfYear ?? 166, h = geo.timeOfDay ?? 9.5, lat = geo.latitudeDeg ?? 45;
@@ -77,6 +79,20 @@ export function normalizeLight(l) {
   };
   if (l.nightLights === false) out.nightLights = false;
   if (l.skyStyle === 'realistic') out.skyStyle = 'realistic';   // round 10: classic default when absent
+  // round 13 (P2): clouds passthrough — only when enabled (absence = off), same clamps as schema
+  if (l.clouds && typeof l.clouds === 'object' && l.clouds.enabled === true) {
+    const c = l.clouds;
+    out.clouds = {
+      enabled: true,
+      mode: c.mode === 'layered' ? 'layered' : 'procedural',
+      coverage: Number.isFinite(c.coverage) ? Math.min(1, Math.max(0, c.coverage)) : C.CLOUD_COVERAGE_DEFAULT,
+      density: Number.isFinite(c.density) ? Math.min(4, Math.max(0.25, c.density)) : 1,
+      altitudeM: Number.isFinite(c.altitudeM) ? Math.min(8000, Math.max(500, c.altitudeM)) : 2500,
+      thicknessM: Number.isFinite(c.thicknessM) ? Math.min(4000, Math.max(200, c.thicknessM)) : 1200,
+      cirrus: Number.isFinite(c.cirrus) ? Math.min(1, Math.max(0, c.cirrus)) : 0.15,
+      windSpeed: Number.isFinite(c.windSpeed) ? Math.min(3, Math.max(0, c.windSpeed)) : 0.2,
+    };
+  }
   return out;
 }
 
@@ -121,6 +137,33 @@ function buildSkyParams(light, fogColor, g) {
     fogBlend: SKY_FOG_BLEND[light.weather] ?? 0.06,
     sunDiscL: new THREE.Vector3(30, 30, 30),
     exposure: C.SKY_EXPOSURE,
+  };
+}
+
+// ---------- clouds (P2): params from light.clouds + weather coupling (realistic branch only) ----------
+const CLOUD_STEPS = 40;                    // procedural primary march (32-48 per design)
+function buildCloudParams(light, sp) {     // sp = buildSkyParams bundle (shares night/moon/fog)
+  const cl = light.clouds ?? {};
+  const wCov = C.CLOUD_COVERAGE_BY_WEATHER[light.weather] ?? C.CLOUD_COVERAGE_BY_WEATHER.clear;
+  // weather multiplies user coverage (the table values are the anchors at the default)
+  const coverage = Math.min(1, Math.max(0,
+    (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT) * (wCov / C.CLOUD_COVERAGE_DEFAULT)));
+  return {
+    coverage,
+    density: cl.density ?? 1,
+    cirrus: cl.cirrus ?? 0.15,
+    baseKm: (cl.altitudeM ?? 2500) / 1000,
+    heightKm: (cl.thicknessM ?? 1200) / 1000,
+    windSpeed: cl.windSpeed ?? 0.2,
+    steps: CLOUD_STEPS,
+    nightAmt: sp.nightAmt,
+    moonDir: sp.moonDir,
+    weatherDesat: sp.weatherDesat,
+    weatherDarken: sp.weatherDarken,
+    fogColor: sp.fogColor,
+    fogBlend: sp.fogBlend,
+    exposure: sp.exposure,
+    geoAltitudeM: light.geo?.altitudeM ?? 0,
   };
 }
 
@@ -174,6 +217,9 @@ export function createEnvironment(scene, settings) {
   // round 10 (skybox P1): realistic dome — hidden until light.skyStyle === 'realistic'
   const realistic = createRealisticSky({ renderer: settings.renderer });
   scene.add(realistic.mesh);
+  // round 13 (P2): cloud dome — hidden until realistic + light.clouds.enabled (never compiles off)
+  const cloudLayer = createCloudLayer({ renderer: settings.renderer, sky: realistic });
+  scene.add(cloudLayer.mesh);
   let skyStyle = 'classic';
   let _lastLight = null;
   scene.fog = new THREE.FogExp2(0xffffff, 0);
@@ -213,7 +259,8 @@ export function createEnvironment(scene, settings) {
     _lastLight = light;
     const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;      // round 6 (D5)
     const indoor = !!light.indoor;                              // round 6 (D7)
-    const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0);
+    const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0)
+      + '|c' + (light.clouds?.enabled ? [light.clouds.mode, light.clouds.coverage, light.clouds.density, light.clouds.altitudeM, light.clouds.thicknessM, light.clouds.cirrus, light.clouds.windSpeed].join(',') : 'off');
     if (key === _lastKey) return glowAmount();
     _lastKey = key;
     const g = daylightAt(light.elevationDeg);
@@ -235,7 +282,15 @@ export function createEnvironment(scene, settings) {
     u.horizon.value.copy(g.horizon).multiplyScalar(1 - w.darken); desat(u.horizon.value, w.desat);
     scene.fog.color.copy(g.horizon); desat(scene.fog.color, w.desat);   // fog matches the weathered horizon
     u.flare.value.copy(g.sunColor).multiplyScalar(g.flare * w.flare);
-    if (skyStyle === 'realistic') realistic.setParams(buildSkyParams(light, scene.fog.color, g));
+    if (skyStyle === 'realistic') {
+      const sp = buildSkyParams(light, scene.fog.color, g);
+      realistic.setParams(sp);
+      // P2: cloud params ride the same daylight pass; changed params rebake the IBL only
+      cloudLayer.setMode(light.clouds?.mode);            // procedural | layered (idempotent)
+      if (cloudLayer.setParams(buildCloudParams(light, sp))) {
+        realistic.markPMREMDirty();
+      }
+    }
     const az = light.azimuthDeg * DEG, el = Math.max(light.elevationDeg, 0) * DEG;
     u.flareDirection.value.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
     glow = g.glow;
@@ -257,17 +312,30 @@ export function createEnvironment(scene, settings) {
     sky.visible = skyStyle === 'classic';
     if (skyStyle !== 'realistic' && scene.environment) scene.environment = null;  // drop IBL BEFORE the RT dispose
     realistic.setEnabled(skyStyle === 'realistic');
+    // P2: clouds are a realistic-sky feature — classic look stays byte-identical (mesh hidden,
+    // twin removed, dome.renderOrder restored to -1 by setCloudTwin(null))
+    const wantClouds = skyStyle === 'realistic' && (light ?? _lastLight)?.clouds?.enabled === true;
+    cloudLayer.setEnabled(wantClouds);
+    realistic.setCloudTwin(wantClouds ? cloudLayer.twinMesh : null);
     if (skyStyle === 'realistic') {
       const l = light ?? _lastLight;
       if (l) realistic.setParams(buildSkyParams(l, scene.fog.color));
     }
   }
+  // P2: after light.clouds mutations (main.js setClouds) — mesh + PMREM twin + renderOrder sync
+  function setClouds(light) {
+    const want = skyStyle === 'realistic' && light?.clouds?.enabled === true;
+    cloudLayer.setEnabled(want);
+    realistic.setCloudTwin(want ? cloudLayer.twinMesh : null);
+  }
   function updateRealisticSky(camera, outputSRGB) {
     if (skyStyle !== 'realistic') return;
     realistic.update(camera, outputSRGB, scene);
+    if (cloudLayer.enabled) cloudLayer.update(camera, outputSRGB);   // P2: wind drift + camera + sRGB gate
   }
   return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx,
-    setSkyStyle, updateRealisticSky, realisticSky: () => realistic, getSkyStyle: () => skyStyle };
+    setSkyStyle, updateRealisticSky, realisticSky: () => realistic, getSkyStyle: () => skyStyle,
+    clouds: () => cloudLayer, setClouds };
 }
 
 // ---------- bounds (vje/OFr) ----------

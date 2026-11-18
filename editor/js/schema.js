@@ -186,6 +186,20 @@ function normLight(t) { // g6r/N8r/SDe — round 6: geo/weather/indoor/ambient/m
   if (l.nightLights === false) n.nightLights = false;
   // round 10 (skybox P1): realistic sky style — absent = classic (migrated scenes unchanged)
   if (l.skyStyle === 'realistic') n.skyStyle = 'realistic';
+  // round 13 (P2): cloud layer — emitted ONLY when enabled===true (absence = off =
+  // byte-identical scenes); same additive passthrough pattern as skyStyle
+  if (l.clouds && typeof l.clouds === 'object' && l.clouds.enabled === true) {
+    const c = {};
+    c.enabled = true;
+    c.mode = l.clouds.mode === 'layered' ? 'layered' : 'procedural';
+    if (Number.isFinite(l.clouds.coverage)) c.coverage = Math.min(1, Math.max(0, l.clouds.coverage));
+    if (Number.isFinite(l.clouds.density)) c.density = Math.min(4, Math.max(0.25, l.clouds.density));
+    if (Number.isFinite(l.clouds.altitudeM)) c.altitudeM = Math.min(8000, Math.max(500, l.clouds.altitudeM));
+    if (Number.isFinite(l.clouds.thicknessM)) c.thicknessM = Math.min(4000, Math.max(200, l.clouds.thicknessM));
+    if (Number.isFinite(l.clouds.cirrus)) c.cirrus = Math.min(1, Math.max(0, l.clouds.cirrus));
+    if (Number.isFinite(l.clouds.windSpeed)) c.windSpeed = Math.min(3, Math.max(0, l.clouds.windSpeed));
+    n.clouds = c;
+  }
   // round 6 D — extended fields (clamped; unknown → dropped)
   if (l.mode === 'geographic' || l.mode === 'custom') n.mode = l.mode;
   else n.mode = 'custom';                       // audit P0-3: migrated scenes keep their az/el

@@ -81,6 +81,13 @@ export const C = {
   SKY_WHITE_POINT: [1.08241, 0.96756, 0.95003],
   // skyStyle: 'classic' (flick DAYLIGHT_STOPS dome, byte-identical default) | 'realistic'
   SKY_STYLES: ['classic', 'realistic'],
+  // round 13 (P2): cloud layer — realistic-sky feature (classic stays byte-identical).
+  // Weather couples to coverage in env.js's realistic branch ONLY (multiplied against the
+  // schema default 0.45 so the table values are the anchors at default coverage).
+  CLOUD_COVERAGE_BY_WEATHER: { clear: 0.18, cloudy: 0.55, overcast: 0.85, rain: 0.9, fog: 0.95 },
+  CLOUD_COVERAGE_DEFAULT: 0.45,          // schema light.clouds.coverage default
+  CLOUD_MODES: ['procedural', 'layered'],
+  CLOUD_BUDGET_MS: 11,                   // auto-gate: plain+clouds − plain @1080p reference
   // sun presets (TQr/AQr light popover) — ELEVATION ONLY, azimuth preserved (audit P1-13: the
   // azimuthDeg fields here are IGNORED; live _Qr sets elevation only via r({...t, elevationDeg}))
   LIGHT_PRESETS: [
