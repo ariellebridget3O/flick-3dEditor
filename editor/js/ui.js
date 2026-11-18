@@ -923,7 +923,11 @@ function renderActionSection(app, body) {
         if (!o || !mesh) return;
         const key = { tS: Math.max(0, t), position: [mesh.position.x, mesh.position.y, mesh.position.z], rotation: [mesh.rotation.x, mesh.rotation.y, mesh.rotation.z], scale: [mesh.scale.x, mesh.scale.y, mesh.scale.z] };
         if (it.kind === 'cam-transform') key.focalLengthMm = o.focalLengthMm ?? 50;
-        if (it.kind === 'rig-transform') key.joints = {};
+        if (it.kind === 'rig-transform') {   // bundle @5583961: a FULL sampled pose (addSampledRigKeyframe), not an empty key
+          app.show.addSampledRigKeyframe(seg.trackId, seg.itemId, Math.max(0, t));
+          refreshTimeline(app); refreshInspector(app);
+          return;
+        }
         if (it.kind === 'transform') app.show.addTransformKeyframe(seg.trackId, seg.itemId, key);
         else if (it.kind === 'cam-transform') app.show.addCameraKeyframe(seg.trackId, seg.itemId, key);
         else app.show.addRigKeyframe(seg.trackId, seg.itemId, key);

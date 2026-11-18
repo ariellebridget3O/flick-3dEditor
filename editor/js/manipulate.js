@@ -5,6 +5,7 @@ import { TransformControls } from './vendor/controls/TransformControls.js';
 import { applyCustomGizmo } from './gizmo.js';
 import { deleteObjects } from './ui.js';
 import { C, smoothstep } from './const.js';
+import { jointSnapshot, jointOffset, applyHandleDelta, toggleJointSelection, filterAncestorJoints, cloneJoint, IDENTITY_JOINT } from './figures.js';
 import { isPersonKind, camMovePose, unwrapEulerVs, subjectlessItem, CAM_ITEM_KINDS } from './tracks.js';
 import { itemDuration } from './schema.js';
 import { syncToolHighlight } from './ui.js';
@@ -52,14 +53,83 @@ export class Manipulator {
     const helper = this.transform.getHelper();       // r169+ API [A:F10]
     app.scene.add(helper);
     app.planningAids.push(helper);
+    // r14 rig posing: the multi-joint handle group (live `x`) — a bare Group seated at
+    // the selected bones' centroid; TransformControls attaches to it for multi-joint drags
+    this._jointHandle = new THREE.Group();
+    app.scene.add(this._jointHandle);            // bundle: scene.add(x) only (@5641308)
+    this._rigDragSingle = null;      // live `v` — {objectId, joint, clipLocal}
+    this._rigDragMulti = null;       // live `w` — {objectId, start, joints:[{joint,clipLocal,startOffset}]}
     this.transform.addEventListener('dragging-changed', e => {
       this.dragging = e.value;
       app.orbit.enabled = !e.value;
+      const obj = this.transform.object;
+      // ---- rig branches (live order: BEFORE the generic object-drag path; no
+      // beginEditGesture — the capture's addRigKeyframe self-brackets) ----
+      if (e.value && obj === this._jointHandle) {          // multi-joint drag start
+        const id = app.rigPoseObjectId;
+        const pairs = id ? this._rigJointPairs(id, app.rigHandlesSelectedJoints()) : [];
+        if (!id || pairs.length === 0) { this.transform.detach(); return; }
+        this._rigDragMulti = {
+          objectId: id,
+          start: { position: this._jointHandle.position.clone() },
+          joints: pairs.map(({ joint, bone }) => ({
+            joint,
+            clipLocal: app.clipLocalOf(id, joint) ?? jointSnapshot(bone),
+            startOffset: this._rigOffsetOf(id, joint, bone),
+          })),
+        };
+        app.setLiveRigDrag({ objectId: id, offsets: Object.fromEntries(this._rigDragMulti.joints.map(j => [j.joint, j.startOffset])) });
+        return;
+      }
+      if (e.value && obj instanceof THREE.Bone) {          // single-joint drag start
+        const id = app.rigPoseObjectId;
+        const joint = id ? (this._rigJointPairs(id, app.rigHandlesSelectedJoints()).find(p => p.bone === obj)?.joint ?? null) : null;
+        if (!id || !joint) { this.transform.detach(); return; }
+        this._rigDragSingle = { objectId: id, joint, clipLocal: app.clipLocalOf(id, joint) ?? jointSnapshot(obj) };
+        app.setLiveRigDrag({ objectId: id, offsets: { [joint]: this._rigOffsetOf(id, joint, obj) } });
+        return;
+      }
+      if (!e.value && this._rigDragMulti) {                // multi-joint drag end → capture + reseat
+        const off = this._rigMultiOffsets();
+        this._rigDragMulti = null;
+        app.setLiveRigDrag(null);
+        if (off) app.captureFocusedRigPose(off);
+        this.attachToSelection();                          // B()
+        return;
+      }
+      if (!e.value && this._rigDragSingle) {               // single-joint drag end → capture
+        // verbatim order: compute the offset BEFORE nulling v (T() falls back to
+        // v.clipLocal when no frame ran during the drag — clipLocalOf is null then)
+        const v = this._rigDragSingle;
+        const bone = app.boneOf(v.objectId, v.joint);
+        const off = bone ? this._rigOffsetOf(v.objectId, v.joint, bone) : null;
+        const joint = v.joint;
+        this._rigDragSingle = null;
+        app.setLiveRigDrag(null);
+        if (off) app.captureFocusedRigPose({ [joint]: off });
+        return;
+      }
+      // ---- generic object drag (unchanged) ----
       this._dragMesh = e.value ? this._attached : null;
       if (e.value) {
         this._dragStartObj = this._attached ? { ...app.objects.get(this._attached.userData.objectId) } : null;
         app.show.beginEditGesture();
       } else this._commit();
+    });
+    // r14: the two live objectChange handlers (@5647353) — the drag follows the gizmo
+    // by recomputing offsets from the TC-moved pose every change (the per-frame rig tick
+    // restores to clipLocal then applies these — the offset absorbs the TC write)
+    this.transform.addEventListener('objectChange', () => {
+      const obj = this.transform.object;
+      if (this._rigDragSingle && obj instanceof THREE.Bone) {
+        const v = this._rigDragSingle;
+        app.setLiveRigDrag({ objectId: v.objectId, offsets: { [v.joint]: this._rigOffsetOf(v.objectId, v.joint, obj) } });
+        return;
+      }
+      if (this._rigDragMulti && obj === this._jointHandle) {
+        const off = this._rigMultiOffsets();
+        if (off) app.setLiveRigDrag({ objectId: this._rigDragMulti.objectId, offsets: off });
+      }
     });
     this.transform.addEventListener('objectChange', () => this._onObjectChange());
     // mode mapping F(): translate default; camera scale → translate; track-driven → translate
@@ -69,11 +139,57 @@ export class Manipulator {
     applyCustomGizmo(this.transform);
   }
 
+  // ---- r14 rig helpers (live k/S/T/A verbatim) ----
+  // k(): selected joint names → ancestor-filtered {joint, bone} pairs (Rzr: a joint
+  // whose bone-parent chain contains another selected joint is dropped)
+  _rigJointPairs(id, names) {
+    return filterAncestorJoints(names, j => {
+      const p = this.app.boneOf(id, j)?.parent;
+      return p instanceof THREE.Bone ? p.name : null;
+    }).map(j => ({ joint: j, bone: this.app.boneOf(id, j) })).filter(p => !!p.bone);
+  }
+  // S(): seat the multi-joint handle at the bones' centroid, identity rotation
+  _rigSeatHandle(bones) {
+    const c = new THREE.Vector3(), w = new THREE.Vector3();
+    for (const b of bones) c.add(b.getWorldPosition(w));
+    c.divideScalar(bones.length);
+    this._jointHandle.position.copy(c);
+    this._jointHandle.quaternion.identity();
+    this._jointHandle.scale.set(1, 1, 1);
+    this._jointHandle.updateMatrixWorld(true);
+  }
+  // T(): current offset of a joint = mBe(bone, clipLocalOf ?? single-drag snapshot)
+  _rigOffsetOf(id, joint, bone) {
+    const cl = this.app.clipLocalOf(id, joint) ?? this._rigDragSingle?.clipLocal;
+    return cl ? jointOffset(bone, cl) : cloneJoint(IDENTITY_JOINT);
+  }
+  // A(): multi-drag offsets from the handle delta — per joint Dzr(clipLocal + startOffset + delta)
+  _rigMultiOffsets() {
+    const w = this._rigDragMulti;
+    if (!w) return null;
+    const delta = {
+      position: this._jointHandle.position.clone().sub(w.start.position),
+      quaternion: this._jointHandle.quaternion.clone(),
+      scale: this._jointHandle.scale.clone(),
+    };
+    const out = {};
+    for (const { joint, clipLocal, startOffset } of w.joints) {
+      const bone = this.app.boneOf(w.objectId, joint);
+      if (bone) out[joint] = applyHandleDelta(bone, clipLocal, startOffset, delta);
+    }
+    return Object.keys(out).length > 0 ? out : null;
+  }
+
   attachToSelection() {
     const app = this.app;
+    // B() verbatim (@5648276): mid-drag guard → multi-object → RIG →
+    // transformPoseObjectId??selectedId → detach. No empty-ids early return (the
+    // bundle falls through to detach via the ct lookup).
+    if ((this.dragging && this._multiGroup) || this._rigDragMulti) return;   // if (b || w) return
     const ids = app.objects.selectedIds;
-    if (ids.length === 0) { this.transform.detach(); this._attached = null; return; }
-    if (ids.length > 1) {
+    // Ve gate (@5648294): edit + idle + not performing — the rig + pose branches are gated
+    const ve = app.page.mode !== 'play' && app.page.editInteraction === 'idle' && !app.page.playing;
+    if (ve && ids.length > 1) {
       // multi: temporary group at centroid (B())
       const meshes = ids.map(id => app.meshById.get(id)).filter(Boolean);
       if (meshes.length < 2) { this.transform.detach(); return; }
@@ -90,16 +206,37 @@ export class Manipulator {
       this.transform.attach(g);
       return;
     }
-    const mesh = app.meshById.get(ids[0]);
-    this._attached = mesh ?? null;
-    if (mesh) {
+    // ---- B() rig branch (@5648310, AFTER multi-object): the gizmo drives the joints
+    // of the selected rig-transform segment — independent of OBJECT selection ----
+    const rigId = ve ? app.rigPoseObjectId : null;
+    const rigJoints = app.rigHandlesSelectedJoints();
+    if (rigId && rigJoints.length > 0) {
+      const pairs = this._rigJointPairs(rigId, rigJoints);
+      if (pairs.length > 1) {
+        this._rigSeatHandle(pairs.map(p => p.bone));
+        this._attached = this._jointHandle;
+        this.transform.attach(this._jointHandle);
+        return;
+      }
+      if (pairs.length === 1) {
+        this._attached = pairs[0].bone;
+        this.transform.attach(pairs[0].bone);
+        return;
+      }
+    }
+    // ---- B() `ct` (@5803870): the transform/cam-transform segment's object outranks the selection ----
+    const poseId = (ve ? app.transformPoseObjectId : null) ?? ids[0];
+    const mesh = poseId ? app.meshById.get(poseId) : undefined;
+    if (!mesh) { this.transform.detach(); this._attached = null; return; }
+    this._attached = mesh;
+    {
       // mode rules F(): track-driven → forced translate; camera scale → translate
-      const obj = app.objects.get(ids[0]);
+      const obj = app.objects.get(poseId);
       const driven = this._isTrackDriven(ids[0]);
       if (driven && this.transform.mode !== 'translate') this.transform.setMode('translate');
       if (obj?.kind === 'camera' && this.transform.mode === 'scale') this.transform.setMode('translate');
       this.transform.attach(mesh);
-    } else this.transform.detach();
+    }
   }
 
   _isTrackDriven(id) {
@@ -605,6 +742,22 @@ export class Manipulator {
       this._lastClick = now; this._lastClickPos = [x, y];
 
       if (app.page.paint) { app.pathEditor.onFloorClick(pick, e); return; }
+
+      // r14 rig posing: joint spheres pick FIRST (live ua order) — toggle the joint
+      // selection (Fzr: additive with meta/ctrl/shift) and reseat the gizmo
+      if (app.rigJointPickables.length > 0) {
+        const r = app.renderer.domElement.getBoundingClientRect();      // bundle uses the UP event coords (@5661054)
+        this.raycaster.setFromCamera(new THREE.Vector2(
+          ((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), app.camera);
+        const jh = this.raycaster.intersectObjects(app.rigJointPickables, false)[0];
+        if (jh) {
+          const jname = jh.object.userData.rigJoint;
+          app.rigHandlesSetSelectedJoints(
+            toggleJointSelection(app.rigHandlesSelectedJoints(), jname, e.metaKey || e.ctrlKey || e.shiftKey));
+          this.attachToSelection();
+          return;
+        }
+      }
 
       if (isDbl) {
         if (pick?.type === 'object') { const id = altRaw(pick.id, e); app.focusObject(id); }

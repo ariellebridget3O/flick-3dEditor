@@ -15,7 +15,7 @@ import {
   evalCameraObject, rigJointsAtTime, evalObjectItems, fovFromFocal, itemsOfTrack, isPersonKind,
   pathStateAt, pathRotation,
 } from './tracks.js';
-import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation, ezHeadRotation } from './figures.js';
+import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation, ezHeadRotation, isMajorJoint } from './figures.js';
 const _hoeV = new THREE.Vector3(), _hoeE = new THREE.Euler(), _hoeQ = new THREE.Quaternion(), _hoePQ = new THREE.Quaternion(); // hoe scratch (verbatim units, SKILL #46)
 import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
@@ -66,7 +66,13 @@ export class App {
     this.meshById = new Map();
     this.planningAids = [];      // objects rendered on layer-1 overlay pass
     this.pathEditPickables = [];
-    this.rigJointPickables = [];
+    this.rigJointPickables = [];      // xqr pickables (r14 rig posing)
+    this.liveRigDrag = null;          // h — {objectId, offsets} while a joint drag is live (setLiveRigDrag)
+    this._rigSelectedJoints = [];     // xqr closure `l` — selected joint names
+    this._rigSpheres = new Map();     // xqr `c` — joint name → sphere mesh
+    this._rigSpheresFor = null;       // xqr `d` — object id the spheres were built for
+    this._lastRigPoseId = undefined;  // frame watcher: reseat the gizmo when rigPoseObjectId flips
+    this._lastTransformPoseId = undefined;
 
     // ---- Finish composer (hKt) + stroke ring (pGr part) ----
     patchSoftTerminator();      // ShaderChunk patch (module-load equivalent)
@@ -228,6 +234,7 @@ export class App {
     // ---- manipulation + path editor ----
     this.manipulator = new Manipulator(this);
     this.pathEditor = new PathEditor(this);
+    this._setupRigHandles();          // xqr joint-sphere overlay (r14)
 
     // ---- palette store hooks (live BHr ctor wiring: objects.updateObjectTransform as 5th arg;
     // our store split routes segment selection/paint through PageStore + PathEditor) ----
@@ -788,6 +795,107 @@ export class App {
     }
   }
 
+  // ================= rig posing facade (r14 verbatim) =================
+  // rigPoseObjectId (computed @5804170): the character of the SELECTED rig-transform
+  // segment, null while playing — drives the joint spheres + the gizmo rig branches.
+  get rigPoseObjectId() {
+    if (this.page.playing) return null;
+    const seg = this.page.selectedSegment;
+    if (!seg) return null;
+    const track = this.show.show.tracks.find(t => t.id === seg.trackId);
+    return track?.items.find(x => x.id === seg.itemId)?.kind === 'rig-transform'
+      ? track.characterId ?? null : null;
+  }
+  // transformPoseObjectId (computed @5804140): same for transform/cam-transform — the
+  // gizmo prefers this object over the plain selection (B() `ct`).
+  get transformPoseObjectId() {   // computed @5803870
+    if (this.page.playing) return null;
+    const seg = this.page.selectedSegment;
+    if (!seg) return null;
+    const track = this.show.show.tracks.find(t => t.id === seg.trackId);
+    return track?.items.find(x => x.id === seg.itemId)?.kind === 'transform' || track?.items.find(x => x.id === seg.itemId)?.kind === 'cam-transform'
+      ? track.characterId ?? null : null;
+  }
+  // env accessors (verbatim shapes @5673270): boneOf / majorJointsOf / clipLocalOf
+  boneOf(id, name) { return this.objectManager.humanoidRigs.get(id)?.bones.get(name) ?? null; }
+  majorJointsOf(id) {
+    const r = this.objectManager.humanoidRigs.get(id);
+    return r ? [...r.bones.entries()].filter(([n]) => isMajorJoint(n)).map(([, b]) => b) : [];
+  }
+  clipLocalOf(id, name) { return this.objectManager.humanoidRigs.get(id)?.clipLocal.get(name) ?? null; }
+  setLiveRigDrag(state) { this.liveRigDrag = state; }
+  // captureFocusedRigPose (verbatim @5536618): bake the dragged offsets as a rig key at
+  // the playhead inside the SELECTED rig-transform segment.
+  captureFocusedRigPose(offsets) {
+    const seg = this.page.selectedSegment;
+    if (!seg) return;
+    const track = this.show.show.tracks.find(t => t.id === seg.trackId);
+    const item = track?.items.find(x => x.id === seg.itemId);
+    if (!item || item.kind !== 'rig-transform') return;
+    const tS = this.page.playheadS - item.startS;
+    if (tS < 0 || tS > itemDuration(item)) return;
+    this.show.addSampledRigKeyframe(seg.trackId, seg.itemId, tS, offsets);
+  }
+
+  // ---- xqr joint-sphere overlay (verbatim @5731200) ----
+  _setupRigHandles() {
+    const RIG_JOINT_R = 0.028;                       // bqr
+    this.rigJointGroup = new THREE.Group();          // r: renderOrder 1
+    this.rigJointGroup.renderOrder = 1;
+    this.scene.add(this.rigJointGroup);
+    this.planningAids.push(this.rigJointGroup);
+    this._rigSphereGeo = new THREE.SphereGeometry(RIG_JOINT_R, 12, 8);
+    this._rigMatIdle = new THREE.MeshBasicMaterial({ color: 0x44AAFF, depthTest: false });   // yqr 4500223
+    this._rigMatSel = new THREE.MeshBasicMaterial({ color: 0xFFCC44, depthTest: false });    // vqr 16763972
+  }
+  rigHandlesSelectedJoints() { return this._rigSelectedJoints; }
+  rigHandlesSetSelectedJoints(list) { this._rigSelectedJoints = list; }
+  _rigSpheresClear() {                               // u()
+    for (const m of this._rigSpheres.values()) this.rigJointGroup.remove(m);
+    this._rigSpheres.clear();
+    this.rigJointPickables.length = 0;
+    this._rigSpheresFor = null;
+  }
+  _rigSpheresBuild(id) {                             // h(m)
+    this._rigSpheresClear();
+    for (const bone of this.majorJointsOf(id)) {
+      const m = new THREE.Mesh(this._rigSphereGeo, this._rigMatIdle);
+      m.userData.rigJoint = bone.name;
+      m.userData.rigObjectId = id;
+      this.rigJointGroup.add(m);
+      this._rigSpheres.set(bone.name, m);
+      this.rigJointPickables.push(m);
+    }
+    this._rigSpheresFor = this._rigSpheres.size > 0 ? id : null;
+  }
+  _rigWindowActive() {                               // f(): selected segment is rig-transform AND playhead inside its window
+    const seg = this.page.selectedSegment;
+    if (!seg) return false;
+    const track = this.show.show.tracks.find(t => t.id === seg.trackId);
+    const item = track?.items.find(x => x.id === seg.itemId);
+    if (item?.kind !== 'rig-transform') return false;
+    const t = this.page.playheadS - item.startS;
+    return t >= 0 && t <= itemDuration(item);
+  }
+  _rigHandlesTick() {                                // xqr.tick()
+    const id = this.rigPoseObjectId;
+    if (!id || !this._rigWindowActive()) {
+      this.rigJointGroup.visible = false;
+      if (this._rigSpheresFor !== null || this._rigSpheres.size > 0) this._rigSpheresClear();
+      this._rigSelectedJoints = [];
+      return;
+    }
+    this.rigJointGroup.visible = true;
+    if (this._rigSpheresFor !== id) this._rigSpheresBuild(id);
+    for (const [name, m] of this._rigSpheres) {
+      const bone = this.boneOf(id, name);
+      if (bone) {
+        bone.getWorldPosition(m.position);
+        m.material = this._rigSelectedJoints.includes(name) ? this._rigMatSel : this._rigMatIdle;
+      }
+    }
+  }
+
   // ================= camera mesh poser (live mqr Q @5720949) =================
   // Pixel-oracle R11 M2: the live camera PROP sits at its evaluated orbit pose at t=2.51
   // while ours stayed at store TRS — the live poses camera meshes every frame (edit mode,
@@ -1034,6 +1142,9 @@ export class App {
     for (const [id, rig] of this.objectManager.humanoidRigs) {
       let off = this.rigOffsets.get(id);
       if (_ghostLook && id === _ghost.id) off = mergeRigOffsets(off ?? {}, _ghostLook);
+      // f() verbatim: the live drag SPREAD-REPLACES the per-joint entries of the rig-item
+      // offsets (NOT rotation-summed like the ghost head-look IZt merge above)
+      if (this.liveRigDrag && this.liveRigDrag.objectId === id) off = { ...off, ...this.liveRigDrag.offsets };
       rig.tick(dt, off);
     }
     // 2. playback
@@ -1102,6 +1213,18 @@ export class App {
 
     // 12. nav ball roll (lZr.tick) — after selection so camera state is final
     this.navBall?.tick(dt);
+
+    // 12a. r14 rig posing: joint spheres track the posed bones; the gizmo reseats when
+    // rigPoseObjectId flips (segment change / play state / window crossing) — the live
+    // subscribes B() to the same signals incl. performanceTimeS
+    this._rigHandlesTick();
+    const _rpid = this.rigPoseObjectId;
+    const _tpid = this.transformPoseObjectId;      // transform/cam-transform segment flips reseat too (B() dep @5649052)
+    if (this._lastRigPoseId !== _rpid || this._lastTransformPoseId !== _tpid) {
+      this._lastRigPoseId = _rpid;
+      this._lastTransformPoseId = _tpid;
+      this.manipulator?.attachToSelection();
+    }
 
     // --- render passes (re/ae port) ---
     // round 6 (C): plan shown → the 3D render pauses (live NUr gating: updateMatrixWorld only);

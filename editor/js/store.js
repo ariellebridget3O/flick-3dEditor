@@ -4,7 +4,8 @@ import { uuid, packItems, itemDuration } from './schema.js';
 import { arcLength, polylineOf, buildTangents } from './curves.js';
 import { C, CAM_MOVE_PRESETS } from './const.js';   // CAM_MOVES_FOCUSABLE/STILL_* via the second const import below
 import { moveItemToIndex, canDuplicateOnto, dropSelfRefs, moveKey, maxEnd, appendPlace, placeAvoiding, NON_CAMERA_KINDS, remapAction } from './place.js';
-import { CAM_ITEM_KINDS, subjectlessItem, isPersonKind } from './tracks.js';
+import { CAM_ITEM_KINDS, subjectlessItem, isPersonKind, rigJointsAtTime } from './tracks.js';
+import { cloneJoints } from './figures.js';
 import { CAM_MOVES_FOCUSABLE, STILL_DUR, STILL_MIN_DUR } from './const.js';
 import * as THREE from 'three';
 
@@ -696,6 +697,16 @@ export class ShowStore extends StoreBase {
   }
   addRigKeyframe(trackId, itemId, key) {         // rig keys merge joints at the same tS
     this._commit(trackId, this._replaceKeyAt(itemId, key, ['rig-transform'], { mergeJoints: true }));
+  }
+  // addSampledRigKeyframe (verbatim @5536122): sample the rig-transform eval at
+  // item.startS + tS (the LATEST rig item at that time — T2r semantics) and merge the
+  // captured `extra` joints over it, so a partial capture keeps the other joints' state.
+  addSampledRigKeyframe(trackId, itemId, tS, extra = {}) {
+    const track = this.show.tracks.find(t => t.id === trackId);
+    const item = track?.items.find(x => x.id === itemId);
+    if (item?.kind !== 'rig-transform') return;
+    const l = rigJointsAtTime(track.items, item.startS + tS);
+    this.addRigKeyframe(trackId, itemId, { tS, joints: { ...(l ? cloneJoints(l) : {}), ...extra } });
   }
   _removeKeyAt(itemId, tS, kinds) {
     return t => {
