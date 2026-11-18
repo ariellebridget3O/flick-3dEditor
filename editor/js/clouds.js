@@ -43,7 +43,7 @@ const CL_DETAIL_FREQ = 9.0;      // erosion re-sample frequency multiplier (r13 
 const CL_DETAIL_STRENGTH = 0.5; // erosion depth (Nubis) (r13 tune: 0.35 left edges mushy)
 const CL_SHEET_COUNT = 6;        // layered fallback sheets (4-6; atlas rows)
 const CL_SHEET_ATLAS_W = 256;
-const CL_SHEET_RELIEF = 1.4;     // layered normal strength
+const CL_SHEET_RELIEF = 1.8;     // layered normal strength (r13 tune: 1.4 read as a washed sheet — the VLM acceptance pass wanted more veil modulation)
 const CL_STEPS_MIN = 32;         // procedural primary march (32-48)
 const CL_STEPS_MAX = 48;
 const CL_STEPS_DEFAULT = 40;
@@ -393,7 +393,7 @@ ${CL_ATMOS_CHUNK}
             float sigmaS = ALBEDO * sigmaT;
             float Tlight = lightMarch(p, Ld);
             float powder = 1.0 - uPowderScale * exp(-SIGMA_K * rho * dt * uPowderExponent);
-            vec3 E = Lc * Tlight * (0.55 + 0.45 * phase2(mu)) * mix(1.0, powder, sat(mu * 0.5 + 0.5))   // r13 fix: diffuse base like the cirrus/layered tiers (phase-only was ~30x too dark)
+            vec3 E = Lc * Tlight * (0.60 + 0.45 * phase2(mu)) * mix(1.0, powder, sat(mu * 0.5 + 0.5))   // r13 fix: diffuse base like the cirrus/layered tiers (phase-only was ~30x too dark); r13 acceptance: 0.55 left lit tops at 210-225, short of near-white
                    + msAmb * 5.0 * (0.35 + 0.65 * hn);   // r13 fix: MS-LUT values are transfer factors (~0.02) — a deck underside reads ~30/255 without the boost
             vec3 Sint = (E * sigmaS - E * sigmaS * exp(-sigmaT * dt)) / sigmaT;   // Frostbite slide-28
             L += Tview * Sint;
@@ -422,7 +422,7 @@ ${CL_ATMOS_CHUNK}
         vec3 N = normalize(vec3((sh.r * 2.0 - 1.0) * ${CL_SHEET_RELIEF.toFixed(2)}, 1.0, (sh.g * 2.0 - 1.0) * ${CL_SHEET_RELIEF.toFixed(2)}));
         float wrap = sat((dot(N, Ld) + 0.35) / 1.35);
         vec3 Hv = normalize(Ld - worldDir);
-        vec3 sheetL = (Lc * wrap + msAmb * 0.7) * 0.75            // r13 tune: sheets were full-sun white (Lc*wrap ~0.8 linear saturates the exposure-10 curve) — dim to keep deck texture readable
+        vec3 sheetL = (Lc * wrap + msAmb * 0.7) * 0.75            // r13 tune: sheets were full-sun white (Lc*wrap ~0.8 linear saturates the exposure-10 curve) — dim to keep deck texture readable. NOTE: the SKY_EXPOSURE-10 curve saturates at L≈0.35, so the 6-sheet zenith stack clips ~245-253 display regardless of this scale (0.68 tried r13 acceptance — identical display); layered is the FALLBACK tier, zenith clip documented as the known nit
           + Lc * pow(max(mu, 0.0), 8.0) * 0.25           // silver lining
           + Lc * pow(max(dot(N, Hv), 0.0), 24.0) * 0.06; // glint (ice cirrus / wet decks)
         L += Tview * sheetL * aS;

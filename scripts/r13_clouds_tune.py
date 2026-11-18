@@ -6,8 +6,8 @@ Usage: python3 scripts/r13_clouds_tune.py "name=json-params" [...]
 """
 import json, os, sys, time
 
-REPO = "/home/z/flick-3dEditor"
-OUT = "/tmp/r13_clouds"
+REPO = "/home/z/my-project/flick-3dEditor"
+OUT = "/home/z/my-project/flick-3dEditor/analysis/tmp_r13_clouds"
 sys.path.insert(0, os.path.join(REPO, "scripts/pixel_oracle"))
 import ab, bb  # noqa: E402
 
@@ -30,9 +30,17 @@ def ev(sess, code, timeout=120):
     return ab.eval_js(sess, code, timeout=timeout)
 
 
-def capture(sess, path):
-    dims = ab.eval_js(sess, "(()=>{const a=window.__app;a.renderFrame();const gl=a.renderer.getContext();return JSON.stringify([gl.drawingBufferWidth,gl.drawingBufferHeight])})()", timeout=120)
-    w, h = json.loads(dims)
+def capture(sess, path, retries=4):
+    dims = None
+    for i in range(retries):   # SKILL #88: evals silently fail under SwiftShader GPU load
+        try:
+            dims = ab.eval_js(sess, "(()=>{const a=window.__app;a.renderFrame();const gl=a.renderer.getContext();return JSON.stringify([gl.drawingBufferWidth,gl.drawingBufferHeight])})()", timeout=120)
+            w, h = json.loads(str(dims))
+            break
+        except Exception:
+            time.sleep(2 + i)
+    else:
+        raise RuntimeError(f"dims eval failed {retries}x: {dims!r}")
     bb.capture_png(sess, path, w=w, h=h, rows_per_eval=50, timeout=180)
 
 
@@ -44,27 +52,43 @@ def main():
     # aim the camera at the sky (up-tilt) so the upper half is dome+clouds
     ev("tune", "(()=>{const a=window.__app; a.setSkyStyle('realistic');"
                " a.orbit&&a.orbit.setPolarAngle?null:null;"
-               " const c=a.camera; c.position.set(6,5,8); a.orbit.target.set(0,0,0);"
+               " const c=a.camera; c.position.set(0,2,8); a.orbit.target.set(0,60,-50);"
                " if(a.orbit) { a.orbit.update&&a.orbit.update(); }"
                " return 'ok'})()", timeout=90)
     only = sys.argv[1:] or list(VARIANTS.keys())
-    for name in only:
-        if name in VARIANTS:
-            params = VARIANTS[name]
+    for arg in only:
+        if arg in VARIANTS:
+            name = arg
+            params = VARIANTS[arg]
+        elif '=' in arg:                      # "label={\"json\":...}" — override/extend a variant
+            name, _, payload = arg.partition('=')
+            params = dict(VARIANTS.get(name, {}))
+            params.update(json.loads(payload) if payload else {})
         else:
-            params = json.loads(name)
+            name = arg
+            params = json.loads(arg)
         for attempt in (1, 2):
             try:
                 ab.close("tune")
                 ab.open_url("tune", URL.format(int(time.time()) + attempt))
                 time.sleep(4)
                 ev("tune", "(()=>{const a=window.__app; a.setSkyStyle('realistic');"
-                           " const c=a.camera; c.position.set(6,5,8); a.orbit.target.set(0,0,0);"
+                           " const c=a.camera; c.position.set(0,2,8); a.orbit.target.set(0,60,-50);"
                            " if(a.orbit) { a.orbit.update&&a.orbit.update(); }"
                            " return 'ok'})()", timeout=90)
-                ev("tune", "window.__app.setClouds(Object.assign({enabled:true, coverage:.5, density:1,"
-                           " mode:'procedural', cirrus:.15}, " + json.dumps(params) + "))", timeout=90)
-                time.sleep(2.5)  # bake + PMREM settle
+                ev("tune", "(()=>{const a=window.__app;setTimeout(()=>a.setClouds(Object.assign({enabled:true, coverage:.5, density:1,"
+                           " mode:'procedural', cirrus:.15}, " + json.dumps(params) + ")),50);return 'fired'})()", timeout=30)
+                ok = ''
+                for _ in range(20):          # the 128^3 bake blocks the main thread — poll for return
+                    time.sleep(3)
+                    try:
+                        ok = ev("tune", "(()=>{const a=window.__app;return 'p '+JSON.stringify({on:!!a.light.clouds?.enabled})})()", timeout=30)
+                        if '"on":true' in ok: break
+                    except Exception:
+                        continue
+                if '"on":true' not in ok:
+                    raise RuntimeError(f"clouds never enabled: {ok!r}")
+                time.sleep(2.5)  # PMREM settle
                 out = os.path.join(OUT, f"tune_{name}.png")
                 capture("tune", out)
                 print("captured", out)
