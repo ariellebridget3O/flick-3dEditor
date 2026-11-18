@@ -88,6 +88,14 @@ export const C = {
   CLOUD_COVERAGE_DEFAULT: 0.45,          // schema light.clouds.coverage default
   CLOUD_MODES: ['procedural', 'layered'],
   CLOUD_BUDGET_MS: 11,                   // auto-gate: plain+clouds − plain @1080p reference
+  // round 13 (HDR): tone mapping + bloom (editor/js/bloom.js — UnrealBloomPass recipe port).
+  // BLOOM_MIPS: the mip-chain depth (bright pass + 5 h/v blur levels, starting at ½ res).
+  BLOOM_MIPS: 5,
+  HDR_BLOOM_STRENGTH_K: 1.2,             // strength = light.hdr.bloom × 1.2 (design-of-record)
+  HDR_BUDGET_MS: 11,                     // = COST_BUDGET_MS reuse: the finish auto-measure
+                                         // already gates the whole composite — bloom rides
+                                         // inside it (no new scheduler)
+  HDR_DEFAULTS: { exposure: 1.0, bloom: 0.35, bloomThreshold: 1.0, bloomRadius: 0.4 },
   // sun presets (TQr/AQr light popover) — ELEVATION ONLY, azimuth preserved (audit P1-13: the
   // azimuthDeg fields here are IGNORED; live _Qr sets elevation only via r({...t, elevationDeg}))
   LIGHT_PRESETS: [
