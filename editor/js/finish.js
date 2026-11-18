@@ -222,7 +222,11 @@ const COMPOSITE_FRAG = `
   // round 13 (HDR): ACES filmic tone map — Stephen Hill's RRT+ODT fit, constants
   // verbatim from three r182 tonemapping_pars_fragment ACESFilmicToneMapping
   // (MIT, © three.js authors; the vendored build's chunk is the source of record).
-  vec3 RRTAndODTFit(vec3 v) {
+  // NAME: RRTAndODTFit is ALSO the name three injects via tonemapping_pars_fragment
+  // whenever parameters.toneMapping !== NoToneMapping (the plain+hdr fallback sets
+  // ACESFilmic on the renderer) — a rename (acesRRTFit) keeps the composite compileable
+  // under any renderer tone-mapping state. Pure rename; zero output change.
+  vec3 acesRRTFit(vec3 v) {
     vec3 a = v * (v + 0.0245786) - 0.000090537;
     vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
     return a / b;
@@ -233,7 +237,7 @@ const COMPOSITE_FRAG = `
     const mat3 ACESOutputMat = mat3(
       vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
     color = ACESInputMat * color;
-    color = RRTAndODTFit(color);
+    color = acesRRTFit(color);
     color = ACESOutputMat * color;
     return clamp(color, 0.0, 1.0);
   }

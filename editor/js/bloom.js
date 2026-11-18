@@ -28,16 +28,20 @@ const VERT = `
 // luminosityThreshold + smoothWidth, v );` `gl_FragColor = mix( vec4( 0.0 ), texel, alpha );`
 // with smoothWidth 0.01 (UnrealBloomPass constructor). The input is the finish
 // HalfFloat scene RT, so the threshold compares LINEAR luminance.
+// NAME: three r182 injects `float luminance( const in vec3 rgb )` (getLuminanceFunction)
+// UNCONDITIONALLY into every ShaderMaterial fragment prefix — our own `luminance`
+// collides (duplicate body → VALIDATE_STATUS false → the whole pass renders nothing,
+// found r13: the "HDR look" was silently ACES-only). Renamed luminance → hpLum.
 const HIGH_PASS_FRAG = `
   varying vec2 vUv;
   uniform sampler2D tSrc;
   uniform float uThreshold;
-  float luminance(vec3 rgb) {
+  float hpLum(vec3 rgb) {
     return dot(rgb, vec3(0.2126, 0.7152, 0.0722));
   }
   void main() {
     vec4 texel = texture2D(tSrc, vUv);
-    float v = luminance(texel.xyz);
+    float v = hpLum(texel.xyz);
     float alpha = smoothstep(uThreshold, uThreshold + 0.01, v);
     gl_FragColor = mix(vec4(0.0), texel, alpha);
   }`;
