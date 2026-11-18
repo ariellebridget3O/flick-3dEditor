@@ -130,6 +130,9 @@ export class ObjectStore extends StoreBase {
     this.transformMode = 'translate';
     this.clipboard = null;
     this.spawn = null;
+    this.spawnIndex = 0;          // @5258094 — spawn-grid cursor (addObject without pos2)
+    this.draggingComponent = null;
+    this.propCatalog = null;      // main.js boot wires the catalog (addComponent prop gate)
   }
   get(id) { return this.objects[id]; }
   all() { return this.objects; }
@@ -160,7 +163,7 @@ export class ObjectStore extends StoreBase {
       case 'camera': return n('Camera');
       case 'target': return n('Target');
       case 'spotlight': return n('Spotlight');
-      case 'prop': return propKey ? propKey : undefined;
+      case 'prop': return propKey ? (this.propCatalog?.[propKey]?.label ?? propKey) : undefined;   // wU label
       default: return undefined;
     }
   }
@@ -190,6 +193,58 @@ export class ObjectStore extends StoreBase {
     this.changed();
     return id;
   }
+  // ---- component-drop family (r16 verbatim: consts @5257398, addObject @5260119,
+  // addCameraMarker @5259124, addComponent @5260542) ----
+  // Spawn grid: nL=1.5 step, V2e=5 cols × rMr=6 rows; rL=[4,WWt,4] camera-marker base,
+  // sL=[0,1,0] its aim point; UWt: target y=1 (zWt) else 0. NO gesture bracket here —
+  // the facade/UI layer brackets (SKILL #39; the store must stay double-bracket-free).
+  addObject(kind, props = {}, pos2, opts = {}) {
+    const SPAWN_STEP = 1.5, SPAWN_COLS = 5, SPAWN_ROWS = 6;           // nL / V2e / rMr
+    const id = uuid();
+    let x, z;
+    if (pos2) [x, z] = pos2;
+    else {
+      const u = this.spawnIndex++ % (SPAWN_COLS * SPAWN_ROWS);
+      x = (u % SPAWN_COLS) * SPAWN_STEP - 3;
+      z = Math.floor(u / SPAWN_COLS) * SPAWN_STEP;
+    }
+    const placement = kind === 'spotlight'                            // sGt @4907099: y G8r=3.5, z+q8r=3, aim kv
+      ? (() => { const p = [x, 3.5, z + 3]; return { position: p, rotation: lookAtEulerRZ(p, [x, 0, z]) }; })()
+      : { position: [x, kind === 'target' ? 1 : 0, z], rotation: [0, 0, 0] };   // UWt @4902049 (zWt=1)
+    const d = props.name === undefined ? this.defaultName(kind, props.propKey) : undefined;
+    this.objects[id] = { kind, ...placement, scale: [1, 1, 1], ...(d && { name: d }), ...props };
+    if (opts.select !== false) this.select([id]);
+    this.changed();
+    return id;
+  }
+  addCameraMarker(pos2) {
+    const nL = 1.5, WWt = 1.6;                                        // camera-count offset step / marker y
+    const CAMERA_BASE = [4, 1.6, 4], CAMERA_AIM = [0, 1, 0];          // rL / sL @5257398
+    const r = Object.values(this.objects).filter(o => o.kind === 'camera').length * nL;
+    const s = pos2 ? [pos2[0], pos2[1]] : [CAMERA_BASE[0] + r, CAMERA_BASE[2]];
+    const a = pos2 ? [pos2[0] + (CAMERA_AIM[0] - CAMERA_BASE[0]), pos2[1] + (CAMERA_AIM[2] - CAMERA_BASE[2])]
+                   : [CAMERA_AIM[0] + r, CAMERA_AIM[2]];
+    const o = [s[0], WWt, s[1]];
+    const id = uuid();
+    this.objects[id] = { kind: 'camera', position: o, rotation: lookAtEulerRZ(o, [a[0], CAMERA_AIM[1], a[1]]), scale: [1, 1, 1], name: this.defaultName('camera') };
+    this.select([id]);
+    this.changed();
+    return id;
+  }
+  addComponent(spec, pos2) {
+    switch (spec.kind) {
+      case 'cube': case 'sphere': case 'cylinder': return this.addObject(spec.kind, {}, pos2);
+      case 'camera': return this.addCameraMarker(pos2);
+      case 'target': return this.addObject('target', {}, pos2);
+      case 'spotlight': return this.addObject('spotlight', {}, pos2);
+      case 'humanoid': return this.addObject('humanoid', { animation: { clip: 'idle', playing: false } }, pos2);   // ere
+      case 'simple_figure': return this.addObject('simple_figure', { rotation: [0, Math.PI, 0] }, pos2);          // Bst()
+      case 'prop': return spec.propKey in (this.propCatalog ?? {}) ? this.addObject('prop', { propKey: spec.propKey }, pos2) : undefined;
+      default: return undefined;
+    }
+  }
+  setDraggingComponent(c) { this.draggingComponent = c; }               // @5258094
+  clearDraggingComponent() { this.draggingComponent = null; }
   remove(id, force = false) {
     // round 6 live-exact: group delete = RECURSIVE subtree delete (children, nested groups,
     // cameras take their paired targets). Standalone paired-target deletion REFUSES (live Xu).
