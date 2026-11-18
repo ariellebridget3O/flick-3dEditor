@@ -81,6 +81,7 @@ function centerAndGround(root) {
   root.position.x -= c.x; root.position.z -= c.z;
   root.position.y -= box.min.y;
 }
+export { PROC_BUILDERS, applyClay, centerAndGround, propPlaceholder };   // r16: component ghost reuse
 
 // spotlight beam geometries (Mat/Nat): round cone 40-seg, square pyramid 4-seg rotated π/4
 function _spotBeamGeo(segments, yaw) {

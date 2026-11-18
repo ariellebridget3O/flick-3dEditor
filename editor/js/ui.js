@@ -8,10 +8,27 @@ import { itemDuration } from './schema.js';
 import { showLayout, ITEM_LABELS, fovFromFocal } from './tracks.js';
 import { MAGNET_PX, maxEnd, placeAvoiding, repackSequential, planMove, moveItemToIndex, clampKeyTime, canDuplicateOnto, appendPlace } from './place.js';
 import { ACTION_MIME, parseActionPayload, defaultDurationFor, revealActionsFor } from './palette.js';
+import { COMPONENT_MIME, serializeComponent } from './components.js';
 import { createRangeTool, renderTakeRange, wireRangeToolGlobal } from './takerange.js';
 import { stickFromDelta } from './navball.js';
 
 const $ = id => document.getElementById(id);
+
+// r16 m9r @5371849 dragstart shape — payload V6 + effectAllowed copy + draggingComponent
+// signal; dragend clears (the drop targets read the SIGNAL, not dataTransfer — MAP §13.4).
+function wireComponentDrag(app, root, specFor) {
+  for (const b of root.querySelectorAll('button')) {
+    const spec = specFor(b);
+    if (!spec) continue;
+    b.draggable = true;
+    b.addEventListener('dragstart', e => {
+      e.dataTransfer.setData(COMPONENT_MIME, serializeComponent(spec));
+      e.dataTransfer.effectAllowed = 'copy';
+      app.objects.setDraggingComponent(spec);
+    });
+    b.addEventListener('dragend', () => app.objects.clearDraggingComponent());
+  }
+}
 
 export function buildUI(app) {
   // DOM shell is static in index.html — only wire events here.
@@ -156,28 +173,50 @@ export function buildUI(app) {
     }
   });
 
-  // add palette (gesture-bracketed so add is undoable)
-  document.querySelector('.add-grid').addEventListener('click', e => {
+  // add palette (gesture-bracketed so add is undoable — the bracket lives in the facade
+  // addComponent)
+  // r16: click = the verbatim tile-click path (facade addComponent → store addObject/
+  // addCameraMarker: spawn grid nL/V2e/rMr, spotlight sGt placement, camera count-offset +
+  // aim kv + default still track, simple_figure Bst() yaw, humanoid ere). Dragstart writes
+  // the V6 payload + draggingComponent (m9r @5371849); the viewport ghost-drop controller
+  // lives in components.js (installComponentDrop = VUr).
+  const addGrid = document.querySelector('.add-grid');
+  addGrid.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const kind = b.dataset.add;
     if (kind === 'prop') { openPropPicker(app); return; }
-    const a = app;
-    a.show.beginEditGesture();
-    let id;
-    try {
-    id = a.objects.add({
-      kind,
-      // name omitted — ObjectStore.add applies the live addObject default (defaultName,
-      // numbered: 'Human 1'/'Figure 2'…) which the setPersonKind autoNamed rename keys on
-      position: [0, kind === 'humanoid' || kind === 'simple_figure' || kind === 'cube' || kind === 'sphere' || kind === 'cylinder' ? 0 : 1, 0],
-      rotation: [0, 0, 0], scale: [1, 1, 1],
-      ...(kind === 'humanoid' ? { animation: { clip: 'idle', playing: false } } : {}),
-      ...(kind === 'camera' ? { focalLengthMm: 50, shake: 'off' } : {}),
-      ...(kind === 'spotlight' ? { spotlight: { shape: 'round', intensity: 70, diffusion: 30 } } : {}),
-    });
-    } finally { a.show.endEditGesture(); }
-    a.objects.select([id]);
-    a.focusObject(id);
+    const id = app.addComponent({ kind });
+    if (id) app.focusObject(id);
+    app.showComponentList();
+  });
+  // r16 component dragstart (m9r @5371849 verbatim shape: setData(V6, RNr(spec)) +
+  // effectAllowed copy + setDraggingComponent; dragend clears). The live's 64px canvas
+  // drag image (a9r) is a tile-thumbnail artifact — our text buttons keep the default.
+  wireComponentDrag(app, addGrid, b => {
+    const kind = b.dataset.add;
+    return kind === 'prop' ? null : { kind };      // Props… opens the picker, not a drag
+  });
+
+  // r16 dock drop (@5393763 component-window): dropping a component tile anywhere on the
+  // Scene panel (add-grid or hierarchy rows — bubbling) adds it at the spawn grid and
+  // focuses it. The live hierarchy rows guard `types.includes(V6) → skip` (uat @5395951)
+  // so row-level $v/reorder handlers never fire for component drags — our rows have no
+  // drag handlers, the panel catches the bubbled drop, same observable.
+  const scenePanel = document.getElementById('panelScene');
+  scenePanel.addEventListener('dragover', e => {
+    if (!e.dataTransfer?.types?.includes(COMPONENT_MIME)) return;
+    if (!app.objects.draggingComponent) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  scenePanel.addEventListener('drop', e => {
+    if (!e.dataTransfer?.types?.includes(COMPONENT_MIME)) return;
+    const spec = app.objects.draggingComponent;
+    if (!spec) return;
+    e.preventDefault();
+    app.objects.clearDraggingComponent();
+    const id = app.addComponent(spec);
+    if (id) app.focusObject(id);
   });
 
   // selection → toolbar + inspector refresh; show → timeline refresh
@@ -1823,15 +1862,22 @@ function renderPropList(app, cat, search) {
   list.innerHTML = entries.slice(0, 300).map(e =>
     `<button class="prop-item" data-key="${e.key}">${escAttr(e.label)}<span class="prop-cat">${e.category}</span></button>`).join('')
     + (entries.length > 300 ? `<div class="hint">${entries.length - 300} more — refine search</div>` : '');
-  list.querySelectorAll('.prop-item').forEach(b => b.onclick = () => {
+  // r16: picker items are the prop tiles of the live component column — click = addProp
+  // (spawn-grid add via addComponent), drag = the V6 component payload (m9r @5371849).
+  list.querySelectorAll('.prop-item').forEach(b => {
     const key = b.dataset.key;
-    const cat = app.propCatalog[key].category;
-    const id = app.objects.add({
-      kind: 'prop', propKey: key, name: app.propCatalog[key].label,
-      position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+    b.onclick = () => {
+      const id = app.addComponent({ kind: 'prop', propKey: key });
+      if (id) app.focusObject(id);
+      document.getElementById('propPicker').style.display = 'none';
+    };
+    b.draggable = true;
+    b.addEventListener('dragstart', e => {
+      const spec = { kind: 'prop', propKey: key };
+      e.dataTransfer.setData(COMPONENT_MIME, serializeComponent(spec));
+      e.dataTransfer.effectAllowed = 'copy';
+      app.objects.setDraggingComponent(spec);
     });
-    app.objects.select([id]);
-    app.focusObject(id);
-    document.getElementById('propPicker').style.display = 'none';
+    b.addEventListener('dragend', () => app.objects.clearDraggingComponent());
   });
 }

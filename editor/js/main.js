@@ -52,6 +52,7 @@ import { tickGizmoHover } from './gizmo.js';
 import { createGroundGrid, syncSnap, applyRenderMode } from './viewport-modes.js';
 import { PlanStore, PlanCanvas } from './plan.js';
 import { buildUI } from './ui.js';
+import { installComponentDrop, wireComponentCatalog } from './components.js';   // r16 component family
 import {
   patchSoftTerminator, createFinishComposer, finishCapable,
   readFinishPref, writeFinishPref, measureFinish, validMeasurementSize,
@@ -418,6 +419,30 @@ export class App {
         onClick: () => run(true),
       });
     }
+  }
+  // ---- component family (r16): facade addComponent @5790071 (store addComponent +
+  // camera → addDefaultCameraTrack), addDefaultCameraTrack @5526993 (addPerformanceTrack +
+  // appendCameraItem 'still'), showComponentList @5817658. Gesture brackets are ours (the
+  // drop/click UI layer, matching our r8 undo contract for adds — SKILL #39).
+  addComponent(spec, pos2) {
+    this.show.beginEditGesture();
+    let id;
+    try {
+      id = this.objects.addComponent(spec, pos2);
+      if (id && this.objects.get(id)?.kind === 'camera') this.addDefaultCameraTrack(id);
+    } finally { this.show.endEditGesture(); }
+    return id;
+  }
+  addDefaultCameraTrack(id) {                            // @5526993
+    const trackId = this.show.addPerformanceTrack(id);
+    if (trackId) this.show.addCameraItem(trackId, 'still');
+  }
+  showComponentList() {                                  // @5817658 — semantic equivalent: the
+    // live reveals its components panel on the "mine" tab; our scene list is permanent —
+    // flash the Scene panel so the added component is visible.
+    const panel = document.getElementById('panelScene');
+    panel?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    this._ui?.refreshInspector?.();
   }
   tickDrawPreview() {  // z port: pose the mesh to the stroke preview ghost; restore on end (hoe verbatim @5476375)
     const d = this._drawPreview;
@@ -1697,6 +1722,9 @@ export async function boot(container, opts = {}) {
       (await (await fetch(C.PROP_CATALOG_URL)).json()).map(e => [e.key, e]));
     app.objectManager.propCatalog = app.propCatalog;
   } catch (e) { console.warn('prop catalog unavailable', e); }
+  app.objects.propCatalog = app.propCatalog;      // r16: addComponent prop gate + prop defaultName
+  wireComponentCatalog(app.propCatalog);          // r16: Xqt prop ghost builds
+  app._componentDrop = installComponentDrop(app); // r16: VUr viewport drop (ghost preview)
   app.attachWheel();
   app.start();
   return app;
