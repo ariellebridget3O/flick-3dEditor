@@ -28,6 +28,7 @@ import {
   readFinishPref, writeFinishPref, measureFinish, validMeasurementSize,
   createAutoMeasureScheduler,
 } from './finish.js';
+import { createBloom } from './bloom.js';   // round 13 (HDR): UnrealBloomPass recipe port
 import { strokeRing } from './stroke.js';
 import { createNavBall } from './navball.js';
 
@@ -155,6 +156,30 @@ export class App {
       this.markAutosave?.();
     };
     this._cloudsGateBypassed = new URLSearchParams(location.search).get('cloudsGate') === '0';   // QA: SwiftShader always measures over budget — bypass for captures
+    // round 13 (HDR): bloom chain (idle until hdr enables the finish path — no RTs, no cost)
+    this._bloom = createBloom({ renderer: this.renderer });
+    // round 13 (HDR): tone mapping + bloom mutator — mirrors setClouds (light.hdr owns the
+    // state; absence = off, schema parity). patch: {enabled, exposure, bloom, bloomThreshold,
+    // bloomRadius}. HDR ON auto-enables the finish composer (capability-probed) so the
+    // composite path carries ACES + bloom; the plain fallback is renderer-level ACES only.
+    this.setHdr = patch => {
+      const cur = this.light.hdr ?? { enabled: false };
+      const next = { ...C.HDR_DEFAULTS, ...cur, ...patch };
+      const wasEnabled = !!cur.enabled;
+      if (!next.enabled) {
+        if (!wasEnabled) return;                   // no-op off → off
+        const l = { ...this.light }; delete l.hdr; // canonical off = absent (schema parity)
+        this.light = l;
+      } else {
+        this.light = { ...this.light, hdr: next };
+        if (finishCapable(this.renderer) && !this.finishPref?.enabled) {
+          this.finishPref = { enabled: true, source: 'manual' };   // survives reload like ?finish=1
+          writeFinishPref(this.finishPref);
+        }
+      }
+      this.env.applyDaylight(this.light);          // memo-key parity (key includes |h…)
+      this.markAutosave?.();
+    };
     this.setIndoor = indoor => { this.light = { ...this.light, indoor: !!indoor }; this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); };
     this.setAmbient = v => { this.light = { ...this.light, ambientLevel: Math.min(1, Math.max(0, v)) }; this.env.applyDaylight(this.light); this.markAutosave?.(); };
     this.recomputeGeoLight = () => this.setLightGeo({});
@@ -1086,13 +1111,59 @@ export class App {
     return finishCapable(this.renderer) && !!this.finishPref?.enabled;
   }
 
+  // round 13 (HDR): current hdr params for the finish render path — null when off.
+  // strength = light.hdr.bloom × C.HDR_BLOOM_STRENGTH_K (design-of-record).
+  _hdrHook() {
+    const hdr = this.light.hdr;
+    if (!hdr?.enabled) return null;
+    const strength = (hdr.bloom ?? C.HDR_DEFAULTS.bloom) * C.HDR_BLOOM_STRENGTH_K;
+    return {
+      run: (tSrc, bloomTex, dt) => this._bloom.render(tSrc, bloomTex, dt),
+      strength,
+      exposure: hdr.exposure ?? C.HDR_DEFAULTS.exposure,
+    };
+  }
+
+  // round 13 (HDR): the finish draw WITH the bloom pre-pass when hdr is on — shared by
+  // renderFrame AND _autoMeasure so the auto-measure's cost includes the bloom chain
+  // (HDR_BUDGET reuse: the finish gate covers the whole composite, no new scheduler).
+  _renderFinishWithHdr() {
+    const hook = this._hdrHook();
+    if (hook) {
+      const size = this.renderer.getDrawingBufferSize(_bufSize);
+      const hdr = this.light.hdr;
+      this._bloom.setSize(size.x, size.y);
+      this._bloom.setParams({
+        threshold: hdr.bloomThreshold ?? C.HDR_DEFAULTS.bloomThreshold,
+        radius: hdr.bloomRadius ?? C.HDR_DEFAULTS.bloomRadius,
+        strength: (hdr.bloom ?? C.HDR_DEFAULTS.bloom) * C.HDR_BLOOM_STRENGTH_K,
+      });
+    }
+    this.finish.render(this.scene, this.camera, hook);
+  }
+
   renderFrame() {
     const size = this.renderer.getDrawingBufferSize(_bufSize);
     if (size.x === 0 || size.y === 0) return;
     const finishOn = this.finishOn();
-    this.env.updateRealisticSky(this.camera, !finishOn);   // round 10: bakes + IBL + sRGB mode (P2: clouds ride the same pass)
+    // round 13 (HDR): plain fallback — three injects the tone map ONLY when drawing to the
+    // canvas (vendor three.module.js WebGLPrograms.getParameters: toneMapping applies when
+    // `currentRenderTarget === null`), so while hdr is on and finish is off the renderer
+    // itself provides ACES × exposure; RT renders (finish path) stay linear and the finish
+    // composite does its own ACES. Restored to NoToneMapping when hdr is off (default look).
+    const hdrOn = !!this.light.hdr?.enabled;
+    if (hdrOn && !finishOn) {
+      if (this.renderer.toneMapping !== THREE.ACESFilmicToneMapping) this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = this.light.hdr.exposure ?? C.HDR_DEFAULTS.exposure;
+    } else if (this.renderer.toneMapping !== THREE.NoToneMapping) {
+      this.renderer.toneMapping = THREE.NoToneMapping;
+      this.renderer.toneMappingExposure = 1;
+    }
+    // finish+HDR: the realistic dome outputs LINEAR HDR (uCurve=0, uOutputSRGB=0) so the
+    // sun disc / stars cross the bloom threshold; plain+HDR keeps the legacy demo curve.
+    this.env.updateRealisticSky(this.camera, !finishOn, hdrOn && finishOn);   // round 10: bakes + IBL + sRGB mode (P2: clouds ride the same pass)
     if (!finishOn) this.finish.release();
-    if (finishOn) this.finish.render(this.scene, this.camera);
+    if (finishOn) this._renderFinishWithHdr();
     else this.renderer.render(this.scene, this.camera);
     this._autoMeasure();
     if (this._cloudsGatePending) this._tickCloudsGate();   // P2: one-shot clouds budget probe
@@ -1184,7 +1255,7 @@ export class App {
     try {
       m = measureFinish({
         drawPlain: () => { this.env.updateRealisticSky(this.camera, true); this.renderer.setRenderTarget(null); this.renderer.render(this.scene, this.camera); },
-        drawFinished: () => this.finish.render(this.scene, this.camera),
+        drawFinished: () => this._renderFinishWithHdr(),   // HDR: bloom cost rides inside the measured composite
         finishGpu: () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px),
         pixels,
       });

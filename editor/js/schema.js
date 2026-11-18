@@ -200,6 +200,17 @@ function normLight(t) { // g6r/N8r/SDe — round 6: geo/weather/indoor/ambient/m
     if (Number.isFinite(l.clouds.windSpeed)) c.windSpeed = Math.min(3, Math.max(0, l.clouds.windSpeed));
     n.clouds = c;
   }
+  // round 13 (HDR): tone mapping + bloom — emitted ONLY when enabled===true (absence = off =
+  // byte-identical scenes); same additive passthrough pattern as clouds
+  if (l.hdr && typeof l.hdr === 'object' && l.hdr.enabled === true) {
+    const h = {};
+    h.enabled = true;
+    if (Number.isFinite(l.hdr.exposure)) h.exposure = Math.min(2, Math.max(0.5, l.hdr.exposure));
+    if (Number.isFinite(l.hdr.bloom)) h.bloom = Math.min(1, Math.max(0, l.hdr.bloom));
+    if (Number.isFinite(l.hdr.bloomThreshold)) h.bloomThreshold = Math.min(2, Math.max(0.6, l.hdr.bloomThreshold));
+    if (Number.isFinite(l.hdr.bloomRadius)) h.bloomRadius = Math.min(1, Math.max(0, l.hdr.bloomRadius));
+    n.hdr = h;
+  }
   // round 6 D — extended fields (clamped; unknown → dropped)
   if (l.mode === 'geographic' || l.mode === 'custom') n.mode = l.mode;
   else n.mode = 'custom';                       // audit P0-3: migrated scenes keep their az/el
