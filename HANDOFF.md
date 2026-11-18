@@ -1,23 +1,23 @@
 # HANDOFF — next session (immediate seam)
 
 ## State
-Round 14 COMPLETE through 289e3eb (GitHub + GitLab + /home/sync): clouds final nits reworked to acceptance-grade optics (view extinction + powder + knee re-anchor; layered shoulder), HDR research doc reconciled, m3_dusk 3 suspects eliminated (camera/IBL/el-sensitivity — grazing-sheen characterization), rig posing UX shipped verbatim (xqr spheres + drag/capture + review-fixed). Dev server :3000 serves this tree.
+Round 15 COMPLETE through a0feda4 (GitHub + GitLab retry loop + /home/sync): held-pose family (bake/pending/sample verbatim + onSkeletonReady), person-kind switch (confirm toast + strip + rename + defaultName add-path), shake apply (Dzt/cL on the lens feed; stride family dormant). Dev server :3000 serves this tree.
 
 ## First 10 minutes
-1. Restore repo if needed (rsync /home/sync -> /home/z/my-project/flick-3dEditor; git log -1 = 289e3eb or later; status clean).
+1. Restore repo if needed (rsync /home/sync -> /home/z/my-project/flick-3dEditor; git log -1 = a0feda4 or later; status clean).
 2. `bash /home/z/my-project/scripts/sync-editor.sh`; server at :3000 (`cd /home/z/my-project && (nohup bun run dev > dev.log 2>&1 &)` if dead).
-3. Read PLAN.md round-14 + backlog (scope derives from PLAN, not this file).
+3. Read PLAN.md round-15 + backlog (scope derives from PLAN, not this file).
 4. Boot: `agent-browser close` + open `http://localhost:3000/editor/index.html?scene=samples/synthetic_tracks.json&noAutosave=1&v=<bump>` (fresh ?v= every session — ES module cache).
 
 ## Env gotchas (still standing + new)
-- Evals silently fail/hang under SwiftShader GPU load (SKILL #88): the clouds 128^3 bake BLOCKS the main thread — fire-and-forget + poll (scripts/r13_clouds_tune.py). THE AGENT-BROWSER DAEMON ITSELF WEDGES sometimes (evals "time out" at ~150ms with 'page may still be loading' on a healthy page, or returns os-error-11): `pkill -9 -f agent-browser` + reopen fixes it — budget a restart in any long QA session.
-- Page screenshots are STALE under SwiftShader (SKILL #83) — all WebGL QA via bb.py backbuffer capture.
-- FRAME-TIMING in E2E: anything the frame loop does (sphere build, pose restore after undo, rigOffsets rebuild) needs a frame — split mutate and read into separate evals with a sleep. Same-eval reads see stale state (SKILL #45 pattern, hit 5x this round).
-- THREE TransformControls detach() sets object = UNDEFINED, not null — assert falsy, never === null. Also window.THREE is undefined (ES-module scope) — E2E math must use plain arrays or app accessors.
-- Clouds QA: `?cloudsGate=0` bypass; captures via scripts/r13_clouds_tune.py (45deg camera); metrics scripts/r14_cloud_metrics.py; interplay scripts/clouds_hdr_check.py (recreated r14 — was referenced but never committed).
-- Rig posing E2E: scripts/r14_rig_e2e.py + r14_rig_e2e2.py (both green; joint names are 'DEF-upper_armL' style — the GLB node names from HUMANOID.md §7 are NOT the bone-map keys).
+- Node can now resolve `three` from the REPO ROOT (node_modules/three shim — vendored three.module.js + three.core.js copies; scripts/oracle imports editor modules directly). If it goes missing after a sandbox reset: copy editor/js/vendor/three.{module,core}.js into flick-3dEditor/node_modules/three/ + a minimal package.json (main: three.module.js).
+- Evals silently fail under SwiftShader load; the agent-browser daemon wedges (~150ms timeouts on a healthy page) — `pkill -9 -f agent-browser` + reopen (budget a restart per long QA session).
+- Backbuffer capture dims VARY per session (805×452 vs 805×570 vs 1016×313 seen) — read `renderer.domElement.width/height` before bb.capture_png, don't hardcode.
+- Full-frame forced renders at rest are usually byte-deterministic, but an INTERMITTENT ≤0.2% single-pixel transient was observed in the lens view (no time-keyed shader term; localization pass found 0 diffs on rerun) — pixel-equality gates for same-state probes need a small tolerance + a magnitude-based cross-condition comparison (r15_shake_e2e.py diff_stats pattern).
+- Backbuffer probes must POSE+RENDER+READ in ONE eval task (renderFrame() does not re-pose the lens camera; the rAF loop re-poses between evals).
+- THREE TransformControls detach() sets object = UNDEFINED; window.THREE undefined (ES-module scope). Frame-timing: split mutate/read evals with sleeps (SKILL #45).
 
 ## Seam notes (small, do not shrink the round — PLAN backlog outranks these)
-- Held-pose baking is the TOP backlog item — the bundle extraction is done (offsets + flow shape in the PLAN backlog entry); our port lacks setObjectPose + the pose-picker UI.
-- Reading bundle text with [m sequences: plain python prints through Bash EAT the brackets in DISPLAY (SKILL #9) — write to a file and Read it, or base64 (the r14 reviewer's method).
-- Rig posing remaining verbatim seams (P3-tier, from the review): the GA rotation-snap objectChange listener (@5641135) is still an empty stub; comment offset drift in a few r14 headers (harmless).
+- Dormant shake stride path: oEr/iEr/g2r in editor/js/shake.js are oracle-covered but unused — the cameraRig store field + rig picker (PLAN "camera-panel remainder") unlock them; wire via rigShake({rig: C.CAMERA_RIGS[rig], ...}) with the ground-speed stride integrator.
+- pendingPoses leak parity: live never clears entries for deleted objects — do NOT add cleanup (would diverge).
+- GA rotation-snap objectChange listener (@5641135) still an empty stub (r14 P3 seam); comment-offset drift in some r14/r15 headers (harmless).
