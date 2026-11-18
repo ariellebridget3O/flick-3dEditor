@@ -327,3 +327,40 @@ export function filterAncestorJoints(list, parentOf) {
 export function isMajorJoint(name) {
   return name === 'root' ? false : !/^DEF-(f_|thumb)/.test(name);
 }
+
+// ================= held-pose sampling family (r15 verbatim port) =================
+// Cye (verbatim @5667050): sample one track `${bone}.${prop}` from a clip — null if absent
+export function clipTrackSample(clip, boneName, prop, t) {
+  const tr = clip.tracks.find(x => x.name === `${boneName}.${prop}`);
+  return tr ? tr.createInterpolant().evaluate(t) : null;
+}
+
+// Aot (verbatim @5667128): pose of one bone from a clip at time t — per-channel fallback
+// to the bone's CURRENT locals (Uie @5635998 = jointSnapshot) for missing tracks
+export function sampleBonePose(clip, boneName, bone, t) {
+  const bind = jointSnapshot(bone);
+  const p = clipTrackSample(clip, boneName, 'position', t),
+        q = clipTrackSample(clip, boneName, 'quaternion', t),
+        s = clipTrackSample(clip, boneName, 'scale', t);
+  return {
+    position: p ? new THREE.Vector3(p[0], p[1], p[2]) : bind.position,
+    quaternion: q ? new THREE.Quaternion(q[0], q[1], q[2], q[3]) : bind.quaternion,
+    scale: s ? new THREE.Vector3(s[0], s[1], s[2]) : bind.scale,
+  };
+}
+
+// fWr (verbatim @5665638): joints diff — offset of each pose-channel transform vs the
+// idle reference (oQ scratch Object3D @5665635), via mBe
+const _fwrObj = new THREE.Object3D();
+export function diffRigPose(idle, pose) {
+  const out = {};
+  for (const [name, p] of Object.entries(pose)) {
+    const ref = idle[name];
+    if (!ref) continue;
+    _fwrObj.position.copy(p.position);
+    _fwrObj.quaternion.copy(p.quaternion);
+    _fwrObj.scale.copy(p.scale);
+    out[name] = jointOffset(_fwrObj, ref);
+  }
+  return out;
+}

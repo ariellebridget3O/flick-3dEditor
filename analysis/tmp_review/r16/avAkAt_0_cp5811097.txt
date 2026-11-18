@@ -1,0 +1,2 @@
+// sig='id:"avAkAt"' cp_offset=5811097 u16_offset=5811140 span_cp=400
+sonKind(e,n,{source:r,removeHumanOnly:o})}finally{this.endEditGesture()}},a=s(!1);a&&ot.error(zNr(this.objects.peek()[e]?.name,a),{action:{label:_._({id:"avAkAt"}),onClick:()=>s(!0)}})};deleteFocused=()=>{const e=this.performanceStore.selectedSegment.peek();if(e?.tS!=null){this.performanceStore.deleteSelectedKeyframe();return}if(e){this.removePerformanceItem(e.trackId,e.itemId);return}const n=this

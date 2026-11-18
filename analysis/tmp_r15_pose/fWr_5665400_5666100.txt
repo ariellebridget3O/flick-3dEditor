@@ -1,0 +1,3 @@
+n,r.quaternion,o.target)}return{applyMode:$e,detachGizmo:()=>c.detach(),gizmoHot:()=>c.dragging||c.axis!==null,isDraggingMesh:Ve=>c.dragging&&NOr(Ve,c.object??null),tick:Ma,disposeControls:()=>{c.dispose(),z.dispose()}}}const oQ=new di;function fWr(t,e){const n={};for(const[r,s]of Object.entries(e)){const a=t[r];a&&(oQ.position.copy(s.position),oQ.quaternion.copy(s.quaternion),oQ.scale.copy(s.scale),n[r]=mBe(oQ,a))}return n}const Fje="float dotNL = saturate( dot( geometryNormal, directLight.direction ) );";na.lights_physical_pars_fragment.includes(Fje);na.lights_physical_pars_fragment=na.lights_physical_pars_fragment.replace(Fje,`${Fje}
+    #ifdef SOFT_TERMINATOR
+      dotNL = ( dotNL < 0.3 

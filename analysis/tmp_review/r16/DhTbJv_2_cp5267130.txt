@@ -1,0 +1,2 @@
+// sig='id:"DhTbJv"' cp_offset=5267130 u16_offset=5267173 span_cp=400
+etPersonKind=(e,n)=>{const r=this.objects.peek()[e];if(!r||!el(r.kind)||r.kind===n)return;const{animation:s,name:a,...o}=r,l=r.kind==="humanoid"?_._({id:"DhTbJv"}):_._({id:"YUAoyO"}),c=a?.startsWith(`${l} `)&&/^\d+$/.test(a.slice(l.length+1));this.objects[e].set({...o,kind:n,...n==="humanoid"&&ere,...a!==void 0&&{name:c?this.defaultName(n):a}})};rotateAvailable=Ne(!0);setRotateAvailable=e=>{this.r

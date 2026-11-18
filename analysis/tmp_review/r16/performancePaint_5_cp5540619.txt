@@ -1,0 +1,2 @@
+// sig='performancePaint' cp_offset=5540619 u16_offset=5540662 span_cp=400
+==n)?.kind!=="cam-path"||!Kzt(r)?!1:(this.updateTrackItems(e,a=>a.map(o=>o.id===n?{...o,heightCurve:r}:o)),!0);currentEditPathOwner=()=>{const e=this.performancePaint.peek(),n=e?this.show.peek().tracks.find(r=>r.id===e.trackId):void 0;return n?this.objects.peek()[n.characterId]??null:null};editingFlownPath=()=>{const e=this.currentEditPathOwner();return!!e&&!el(e.kind)};anchorPosFor=(e,n)=>{if(!th

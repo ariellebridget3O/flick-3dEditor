@@ -1,0 +1,1 @@
+, then two or more add_keyframe calls at different positions.",Qst="pose is refused: a simple_figure has no rig. Sit or kneel it with scale and position, and turn its head with head_rotation.",hNr="A 

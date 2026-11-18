@@ -1,0 +1,2 @@
+// sig='performancePaint' cp_offset=5539782 u16_offset=5539825 span_cp=400
+this.objects.peek(),r=n[e];r&&this.appendPathAnchor([...Zo(r,n).position])};enterPathEdit=(e,n)=>{this.selectedSegment.set({trackId:e,itemId:n}),this.performancePaint.set({trackId:e,itemId:n,selectedAnchor:null}),this.editInteraction.set("editingPath")};currentEditPathItem=()=>{const e=this.performancePaint.peek();if(!e)return null;const n=this.show.peek().tracks.find(r=>r.id===e.trackId)?.items.f

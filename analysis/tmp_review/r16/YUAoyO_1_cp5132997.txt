@@ -1,0 +1,2 @@
+// sig='id:"YUAoyO"' cp_offset=5132997 u16_offset=5133040 span_cp=400
+(t.panelsVisible),l=he(t.selectedId),c=he(()=>{const d=t.selectedId.get(),u=d?t.objects[d].get():void 0;return u?.kind==="simple_figure"?u.name||_._({id:"YUAoyO"}):null});return i.jsx(M5r,{show:o,onClose:t.toggleCollapsed,widthPx:he(t.widthPx),onWidthChange:t.setWidthPx,drawTile:e.drawPose,startTilePreview:e.startLoop,stopTilePreview:e.stopLoop,drawObjectTile:n.drawPose,startObjectPreview:n.startL

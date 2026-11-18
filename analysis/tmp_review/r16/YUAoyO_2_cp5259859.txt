@@ -1,0 +1,2 @@
+// sig='id:"YUAoyO"' cp_offset=5259859 u16_offset=5259902 span_cp=400
+eturn r(_._({id:"01Lw5H"}));case"cylinder":return r(_._({id:"eawZbq"}));case"humanoid":return r(_._({id:"DhTbJv"}));case"simple_figure":return r(_._({id:"YUAoyO"}));case"camera":return r(_._({id:"rT2cV+"}));case"target":return r(_._({id:"Yrrg+y"}));case"spotlight":return r(_._({id:"k04a2t"}));case"prop":return n&&zh[n]?wU(n,_):void 0;default:return}};createObject=(e,n={},r={})=>this.addObject(e,n,

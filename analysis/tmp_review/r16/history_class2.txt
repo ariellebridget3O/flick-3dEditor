@@ -1,0 +1,2 @@
+// 5255250..5255710
+Mr=50,gqt=300,tL=t=>"command"in t;class nMr{constructor(e){this.a=e,this.stopObserving=qt(()=>{if(this.a.track(),this.restoring)return;const n=structuredClone(this.a.snapshot());if(this.current===null){this.current=n;return}const r=Date.now();let s;this.hold!=="none"?(s=this.hold==="open",this.hold="recorded"):(s=this.gesture==="none"?r-this.lastChangeAtMs>=gqt:this.gesture==="open",this.gesture==="open"&&(this.gesture="recorded")),s&&this.pushPast({snapsh

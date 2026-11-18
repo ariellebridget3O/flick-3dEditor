@@ -107,6 +107,7 @@ export class ObjectManager {
     this.cameraGlbPromise = null;
     this.spotGlbPromise = null;
     this.onRigReady = opts.onRigReady ?? (() => {});
+    this.onSkeletonReady = opts.onSkeletonReady ?? (() => {});   // l() @5667900 pending-pose hook
     // spotlight tick (oOr): scene-level beam group + shadow-slot budget from GPU caps
     this.gpu = opts.gpu ?? null;                         // renderer.capabilities
     this.spotBeamGroup = new THREE.Group();
@@ -282,6 +283,9 @@ export class ObjectManager {
       this.humanoidClips = gltf.animations;
       const rig = new HumanoidRig(model, gltf.animations);
       this.humanoidRigs.set(id, rig);
+      // l() @5667900: fire onSkeletonReady AFTER the record registers (pending-pose
+      // resolver) and BEFORE any clip application — sampled values see the bind pose
+      this.onSkeletonReady?.(id);
       this.onRigReady(id, rig, gltf.animations);
     } catch (e) { console.error('humanoid load failed', e); }
   }

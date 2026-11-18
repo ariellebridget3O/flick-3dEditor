@@ -1,0 +1,2 @@
+// sig='id:"DhTbJv"' cp_offset=5420726 u16_offset=5420769 span_cp=400
+)}),i.jsx(Hr,{content:DU("humanoid"),children:i.jsx("button",{type:"button","aria-pressed":r==="humanoid",onClick:()=>l("humanoid"),children:i.jsx(M,{id:"DhTbJv"})})})]})]}),d]})}function FRr({state:t,qrShown:e,onClick:n}){const r=t==="linked"||t==="lost";return i.jsxs("button",{type:"button",className:Eh.pill,"aria-expanded":e,"data-phone-pill":!0,onClick:n,children:[r?i.jsx("i",{className:Ze(Eh.

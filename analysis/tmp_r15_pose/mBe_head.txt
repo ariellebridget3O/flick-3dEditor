@@ -1,0 +1,1 @@
+t uot=new qn,hot=new qn,sQ=new va;function mBe(t,e){return uot.copy(e.quaternion).invert(),hot.copy(uot).multiply(t.quaternion),sQ.setFromQuaternion(hot),{position:[t.position.x-e.position.x,t.position.y-e.position.y,t.position.z-e.position

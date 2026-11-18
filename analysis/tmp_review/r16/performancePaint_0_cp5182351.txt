@@ -1,0 +1,2 @@
+// sig='performancePaint' cp_offset=5182351 u16_offset=5182394 span_cp=400
+filter(([y,v])=>Xzt(v.kind)&&!Xu(u,y)).map(([y,v])=>{const x=h[v.kind]=(h[v.kind]??0)+1,w=DDe(v,x,d);return{id:y,name:w,isWalker:el(v.kind)}}),m=he(t.performancePaint),g=he(t.selectedSegment),b=he(t.selectedTrack);return i.jsx(_Cr,{hidden:!he(t.panelsVisible),collapsed:he(t.editorAside),heightPx:he(t.heightPx),onHeightChange:t.setHeightPx,performance:i.jsx(KAr,{show:he(t.show),paintingItemId:m?.it

@@ -1,0 +1,2 @@
+// sig='performancePaint' cp_offset=5549208 u16_offset=5549251 span_cp=400
+th.max(0,e)))};loadShow=(e,n)=>{if(this.isPerformancePlaying.set(!1),this.playSession.set(null),n?.keepGesture||(this.performanceSeekS.set(null),this.performancePaint.set(null),this.selectedSegment.set(null),this.selectedTrack.set(null),this.editInteraction.peek()==="editingPath"&&this.editInteraction.set("idle")),this.show.set({...e,tracks:e.tracks.map(r=>({...r,items:lje(r.items)}))}),n?.keepGes

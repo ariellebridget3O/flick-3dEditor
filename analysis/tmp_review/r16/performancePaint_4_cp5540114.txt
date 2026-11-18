@@ -1,0 +1,2 @@
+// sig='performancePaint' cp_offset=5540114 u16_offset=5540157 span_cp=400
+l;const n=this.show.peek().tracks.find(r=>r.id===e.trackId)?.items.find(r=>r.id===e.itemId);return n&&g2(n)?n:null};patchPathAnchors=e=>{const n=this.performancePaint.peek();n&&this.updateTrackItems(n.trackId,r=>r.map(s=>{if(s.id!==n.itemId||!g2(s))return s;const a=e(s.anchors);if(s.kind==="cam-path"&&s.heightCurve&&!HHr(s.anchors,a)){const{heightCurve:o,...l}=s;return{...l,anchors:a}}return{...s,

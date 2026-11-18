@@ -1,0 +1,2 @@
+// sig='performancePaint' cp_offset=5525297 u16_offset=5525340 span_cp=400
+aying.peek()&&this.stopPerformance()}))}show=Ne({name:"Show",tracks:[]});isPerformancePlaying=Ne(!1);performanceSeekS=Ne(null);performanceTimeS=Ne(0);performancePaint=Ne(null);selectedSegment=Ne(null);selectedTrack=Ne(null);playPointerLocked=Ne(!1);playSession=Ne(null);playKeymap=Ne(()=>{const e=this.playSession.get();if(!e)return[];const n=this.findPlayItem(e);return n?qzt.flatMap(r=>{const s=n.k

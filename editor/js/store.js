@@ -139,9 +139,54 @@ export class ObjectStore extends StoreBase {
     this.objects[id] = { ...this.objects[id], ...patch };
     this.changed();
   }
+  // setObjectPose (verbatim @5266864 — the held-pose representation: a PAUSED clip ref;
+  // the un-baked form the AI-ops fall back to when baking is unavailable)
+  setObjectPose(id, pose) {
+    const r = this.objects[id];
+    if (r) this.update(id, { animation: { clip: pose, playing: false } });
+  }
+  // defaultName (verbatim @5259538) — `${label} ${countOf(kind)+1}`; labels are i18n
+  // catalog ids → semantic English equivalents (SKILL #34). propKey branch: the live
+  // derives the display name from the catalog entry (wU) — our prop add path names
+  // explicitly, so only the catalog dims-name is used as a fallback.
+  defaultName(kind, propKey) {
+    const n = label => `${label} ${Object.values(this.objects).filter(o => o.kind === kind).length + 1}`;
+    switch (kind) {
+      case 'cube': return n('Cube');
+      case 'sphere': return n('Sphere');
+      case 'cylinder': return n('Cylinder');
+      case 'humanoid': return n('Human');
+      case 'simple_figure': return n('Figure');
+      case 'camera': return n('Camera');
+      case 'target': return n('Target');
+      case 'spotlight': return n('Spotlight');
+      case 'prop': return propKey ? propKey : undefined;
+      default: return undefined;
+    }
+  }
+  // setPersonKind (verbatim @5266962): strip animation + name (auto-named
+  // `${oldLabel} N` renames to defaultName(newKind), custom names keep), set kind,
+  // re-seed humanoid defaults (ere = {animation:{clip:'idle',playing:false}})
+  setPersonKind(id, kind) {
+    const r = this.objects[id];
+    if (!r || !isPersonKind(r.kind) || r.kind === kind) return;
+    const { animation, name, ...o } = r;
+    const label = r.kind === 'humanoid' ? 'Human' : 'Figure';
+    const autoNamed = name?.startsWith(`${label} `) && /^\d+$/.test(name.slice(label.length + 1));
+    this.objects[id] = {
+      ...o,
+      kind,
+      ...(kind === 'humanoid' ? { animation: { clip: 'idle', playing: false } } : {}),
+      ...(name !== undefined ? { name: autoNamed ? this.defaultName(kind) : name } : {}),
+    };
+    this.changed();
+  }
   add(obj) {
     const id = obj.id ?? uuid();
-    this.objects[id] = { ...obj, id };
+    // addObject default (verbatim @5260119): name omitted -> defaultName(kind, propKey)
+    // (numbered 'Human 1'/'Figure 2'...); explicit names (prop picker, scene load) keep
+    const d = obj.name === undefined ? this.defaultName(obj.kind, obj.propKey) : undefined;
+    this.objects[id] = { ...obj, id, ...d && { name: d } };
     this.changed();
     return id;
   }
@@ -402,6 +447,13 @@ export class ShowStore extends StoreBase {
       const i = t.items.findIndex(x => x.id === itemId);
       if (i >= 0) t.items[i] = { ...t.items[i], ...patch };
     });
+  }
+  // removePerformanceItem (verbatim @5546806): filter the item + finish-paint gate
+  // (the live checks performancePaint; ours routes through the page.paint + hook)
+  removePerformanceItem(trackId, itemId) {
+    this._commit(trackId, t => { t.items = t.items.filter(x => x.id !== itemId); });
+    const page = this._hooks?.page;
+    if (page?.paint?.itemId === itemId && this._hooks?.finishPerformancePaint) this._hooks.finishPerformancePaint();
   }
   removeItem(trackId, itemId) {
     this._commit(trackId, t => { t.items = t.items.filter(x => x.id !== itemId); });

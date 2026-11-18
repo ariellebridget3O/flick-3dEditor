@@ -1,0 +1,2 @@
+// sig='performancePaint' cp_offset=5539924 u16_offset=5539967 span_cp=400
+}),this.performancePaint.set({trackId:e,itemId:n,selectedAnchor:null}),this.editInteraction.set("editingPath")};currentEditPathItem=()=>{const e=this.performancePaint.peek();if(!e)return null;const n=this.show.peek().tracks.find(r=>r.id===e.trackId)?.items.find(r=>r.id===e.itemId);return n&&g2(n)?n:null};patchPathAnchors=e=>{const n=this.performancePaint.peek();n&&this.updateTrackItems(n.trackId,r

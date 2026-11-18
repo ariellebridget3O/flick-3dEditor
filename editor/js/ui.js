@@ -15,11 +15,23 @@ const $ = id => document.getElementById(id);
 
 export function buildUI(app) {
   // DOM shell is static in index.html — only wire events here.
-  app.toast = msg => {
+  // toast(msg, action?) — action = {label, onClick} renders a snackbar action button
+  // (live ot.error(msg, {action}) semantic equivalent; i18n catalog unavailable SKILL #34)
+  app.toast = (msg, action) => {
     const t = $('toast');
-    t.textContent = msg; t.style.display = 'block';
+    t.textContent = msg;
+    const oldBtn = t.querySelector('.toast-action');
+    if (oldBtn) oldBtn.remove();
+    if (action) {
+      const b = document.createElement('button');
+      b.className = 'toast-action';
+      b.textContent = action.label;
+      b.onclick = e => { e.stopPropagation(); t.style.display = 'none'; action.onClick(); };
+      t.appendChild(b);
+    }
+    t.style.display = 'block';
     clearTimeout(app._toastT);
-    app._toastT = setTimeout(() => t.style.display = 'none', 2600);
+    app._toastT = setTimeout(() => t.style.display = 'none', action ? 6000 : 2600);
   };
 
   // Light popover (sun puck) — built lazily
@@ -155,7 +167,8 @@ export function buildUI(app) {
     try {
     id = a.objects.add({
       kind,
-      name: kind === 'humanoid' ? 'Human' : kind === 'simple_figure' ? 'Figure' : kind.charAt(0).toUpperCase() + kind.slice(1),
+      // name omitted — ObjectStore.add applies the live addObject default (defaultName,
+      // numbered: 'Human 1'/'Figure 2'…) which the setPersonKind autoNamed rename keys on
       position: [0, kind === 'humanoid' || kind === 'simple_figure' || kind === 'cube' || kind === 'sphere' || kind === 'cylinder' ? 0 : 1, 0],
       rotation: [0, 0, 0], scale: [1, 1, 1],
       ...(kind === 'humanoid' ? { animation: { clip: 'idle', playing: false } } : {}),

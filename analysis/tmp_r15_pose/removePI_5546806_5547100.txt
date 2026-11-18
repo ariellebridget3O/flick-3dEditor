@@ -1,0 +1,1 @@
+removePerformanceItem=(e,n)=>{this.updateTrackItems(e,s=>s.filter(a=>a.id!==n)),this.performancePaint.peek()?.itemId===n&&this.finishPerformancePaint()};moveItem=(e,n,r)=>{if(Number.isNaN(r))return;const s=Math.max(0,r);this.updateTrackItems(e,a=>a.map(o=>o.id===n?{...o,startS:s}:o))};dragging

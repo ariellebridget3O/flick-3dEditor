@@ -1,0 +1,2 @@
+// sig='performancePaint' cp_offset=5541131 u16_offset=5541174 span_cp=400
+th-1)],a=this.currentEditPathOwner(),o=s?s.pos[1]:a?Zo(a,this.objects.peek()).position[1]:e[1];return[e[0],o,e[2]]};selectPathAnchor=e=>{const n=this.performancePaint.peek();n&&this.performancePaint.set({...n,selectedAnchor:e})};appendPathAnchor=(e,n)=>{const r=n?.exactHeight?e:this.anchorPosFor(e,(this.currentEditPathItem()?.anchors.length??1)-1);this.patchPathAnchors(a=>mT([...a.map(o=>o.pos),r]

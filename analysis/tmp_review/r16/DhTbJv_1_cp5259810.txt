@@ -1,0 +1,2 @@
+// sig='id:"DhTbJv"' cp_offset=5259810 u16_offset=5259853 span_cp=400
+cube":return r(_._({id:"/DQKHb"}));case"sphere":return r(_._({id:"01Lw5H"}));case"cylinder":return r(_._({id:"eawZbq"}));case"humanoid":return r(_._({id:"DhTbJv"}));case"simple_figure":return r(_._({id:"YUAoyO"}));case"camera":return r(_._({id:"rT2cV+"}));case"target":return r(_._({id:"Yrrg+y"}));case"spotlight":return r(_._({id:"k04a2t"}));case"prop":return n&&zh[n]?wU(n,_):void 0;default:return}

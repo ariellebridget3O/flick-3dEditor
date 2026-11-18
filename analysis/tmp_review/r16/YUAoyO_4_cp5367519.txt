@@ -1,0 +1,2 @@
+// sig='id:"YUAoyO"' cp_offset=5367519 u16_offset=5367562 span_cp=400
+te(null),[A,C]=p.useState(!1),[E,j]=p.useState(!1),[I,N]=p.useState(null),P=p.useMemo(()=>[{key:"simple_figure",spec:{kind:"simple_figure"},name:_._({id:"YUAoyO"}),label:i.jsx(M,{id:"YUAoyO"}),title:DU("simple_figure"),section:"cast",onClick:u},{key:"humanoid",spec:{kind:"humanoid"},name:_._({id:"DhTbJv"}),label:i.jsx(M,{id:"DhTbJv"}),title:DU("humanoid"),section:"cast",onClick:d},{key:"camera",sp

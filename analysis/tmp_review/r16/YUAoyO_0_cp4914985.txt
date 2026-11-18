@@ -1,0 +1,2 @@
+// sig='id:"YUAoyO"' cp_offset=4914985 u16_offset=4915028 span_cp=400
+cene_id,name:s.name,createdAt:s.created_at}))};create=async(e,n,r)=>{const a=r?.empty?aGt({show:_._({id:"EWj0mP",values:{n:1}})}):r6r({figure:`${_._({id:"YUAoyO"})} 1`,camera:`${_._({id:"rT2cV+"})} 1`,show:_._({id:"EWj0mP",values:{n:1}})}),{data:o,error:l}=await this.client.from(vb).insert({project_id:e,name:n,scene:a}).select("scene_id").single();if(l||!o)throw ot.error(_._({id:"TQq0iP"})),l??new

@@ -1,0 +1,2 @@
+// sig='ere={animation:{clip:"idle",playing:!1}}' cp_offset=5257404 u16_offset=5257447 span_cp=400
+ure.filter(tL),this.current=structuredClone(this.a.snapshot()),this.lastChangeAtMs=0,this.gesture="none",this.hold="none"};dispose=()=>{this.hold="none",this.stopObserving()}}const nL=1.5,rMr=6,V2e=5,ere={animation:{clip:"idle",playing:!1}},Bst=()=>({rotation:[0,Math.PI,0]}),rL=[4,WWt,4],sL=[0,1,0],sMr=gqt;function aMr(t,e){const n=new Set(t);return t.filter(r=>{const s=e[r]?.parentId;return!s||!n

@@ -58,12 +58,17 @@ export class PathEditor {
     this.rebuild();
     this.app.page.changed();
   }
+  // finishPerformancePaint (verbatim @5542185): clear paint FIRST, reset editInteraction,
+  // re-find the item, kind-guard (g2) + anchors<2 -> remove (via removePerformanceItem —
+  // its paint gate is inert here since paint is already null)
   finishPaint() {
-    const item = this._item();
-    const p = this.paint;
-    if (item && item.anchors.length < 2 && p) this.app.show.removeItem(p.trackId, p.itemId);
+    const p = this.app.page.paint;
+    if (!p) return;
     this.app.page.paint = null;
-    this.app.page.setEditInteraction('idle');
+    if (this.app.page.editInteraction === 'editingPath') this.app.page.setEditInteraction('idle');
+    const item = this.app.show.show.tracks.find(t => t.id === p.trackId)?.items.find(x => x.id === p.itemId);
+    if (item && (item.kind === 'path' || item.kind === 'cam-path') && item.anchors.length < 2)
+      this.app.show.removePerformanceItem(p.trackId, p.itemId);
     this.group.visible = false;
     this._clearPickables();
     this.app.page.changed();

@@ -1,0 +1,2 @@
+// sig='const Yqt=' cp_offset=5364962 u16_offset=5365005 span_cp=400
+ackId:a.id,itemId:o.id,kind:o.kind});const s=e.animation?.clip;return{items:r,pose:!!s&&s!=="idle"}}const Yqt=t=>t.items.length+(t.pose?1:0);function zNr(t,e){const n=d=>e.items.filter(u=>u.kind===d).length,r=n("clip"),s=n("play"),a=n("rig-transform"),o=[r>0&&_._({id:"N73Lj1",values:{clips:r}}),s>0&&_._({id:"ZTF+vO",values:{plays:s}}),a>0&&_._({id:"8I6Hpz",values:{rigs:a}}),e.pose&&_._({id:"6q5awk

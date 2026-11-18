@@ -15,8 +15,37 @@ import {
   evalCameraObject, rigJointsAtTime, evalObjectItems, fovFromFocal, itemsOfTrack, isPersonKind,
   pathStateAt, pathRotation,
 } from './tracks.js';
-import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation, ezHeadRotation, isMajorJoint } from './figures.js';
+import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation, ezHeadRotation, isMajorJoint, sampleBonePose, diffRigPose } from './figures.js';
 const _hoeV = new THREE.Vector3(), _hoeE = new THREE.Euler(), _hoeQ = new THREE.Quaternion(), _hoePQ = new THREE.Quaternion(); // hoe scratch (verbatim units, SKILL #46)
+
+// ---- person-kind switch helpers (verbatim: UNr @5364733 / Yqt @5364968 / zNr @5365000) ----
+// UNr: a person's removable performance actions (clip/play/rig-transform items) + whether
+// a HELD pose exists (animation.clip set and not 'idle')
+function collectPersonActions(id, tracks, obj) {
+  const items = [];
+  for (const tr of tracks) {
+    if (tr.characterId !== id) continue;
+    for (const it of tr.items) {
+      if (it.kind === 'clip' || it.kind === 'play' || it.kind === 'rig-transform') items.push({ trackId: tr.id, itemId: it.id, kind: it.kind });
+    }
+  }
+  const clip = obj.animation?.clip;
+  return { items, pose: !!clip && clip !== 'idle' };
+}
+const countRemovedActions = info => info.items.length + (info.pose ? 1 : 0);   // Yqt
+// zNr — the confirmation message; i18n catalog unavailable (SKILL #34) → semantic English
+function personSwitchMessage(name, info, kind) {
+  const n = k => info.items.filter(i => i.kind === k).length;
+  const parts = [
+    n('clip') > 0 && `${n('clip')} clip${n('clip') === 1 ? '' : 's'}`,
+    n('play') > 0 && `${n('play')} play segment${n('play') === 1 ? '' : 's'}`,
+    n('rig-transform') > 0 && `${n('rig-transform')} pose segment${n('rig-transform') === 1 ? '' : 's'}`,
+    info.pose && 'a held pose',
+  ].filter(Boolean);
+  const list = new Intl.ListFormat('en', { type: 'conjunction' }).format(parts);
+  return `Switching ${name ?? 'this person'} to ${kind === 'simple_figure' ? 'Figure' : 'Human'} removes ${list}.`;
+}
+
 import { PathEditor } from './paths.js';
 import { Manipulator } from './manipulate.js';
 import { tickGizmoHover } from './gizmo.js';
@@ -221,6 +250,9 @@ export class App {
         rig.applyClip(this.playbackClips.get(id) ?? null, obj?.animation ?? { clip: 'idle', playing: false }); // $Nr: idle@0 at rest
         this.shadowFit.force();
       },
+      // onSkeletonReady (shell @5862067): resolve any pose marked pending while the
+      // skeleton was loading — solver = sampleClipRigOffsets ?? null
+      onSkeletonReady: id => this.bakePendingPose(id, (oid, pose) => this.sampleClipRigOffsets(oid, pose) ?? null),
     });
     // share its map
     this._wireMeshMap();
@@ -242,6 +274,7 @@ export class App {
       page: this.page,
       updateObjectTransform: (id, patch) => this.objects.update(id, patch),
       enterPathEdit: (trackId, itemId) => this.pathEditor.enterPaint(trackId, itemId),
+      finishPerformancePaint: () => this.pathEditor.finishPaint(),   // removePerformanceItem paint gate (@5546806)
       seedAnchorY: (trackId, itemId, pos, idx) => this.pathEditor._anchorPosFor({ x: pos[0], y: pos[1], z: pos[2] }, idx),
       propDims: key => this.objectManager?.propCatalog?.[key]?.dims,
       playheadS: () => this.page.playheadS,                     // performanceTimeS for the focus family
@@ -256,6 +289,7 @@ export class App {
     this.headLooks = new Map();
     this.rigOffsets = new Map();
     this.playbackClips = new Map();   // id → {clip, timeS}
+    this.pendingPoses = new Map();    // facade pendingPoses @5793128 — id → pose awaiting skeleton
     this._restEval = false;           // live performanceSeekS model: seek-posed rest keeps evaluating (pinned)
     this._posedCams = new Set();      // live mqr Q(): camera ids posed by a previous frame (v set)
     this._restSeekPending = false;    // a seek was observed at rest — pose it even when t is unchanged
@@ -345,12 +379,43 @@ export class App {
     if (kind === 'simple_figure') out.headRotation = getHeadRotation(mesh);
     return out;
   }
-  pickPersonKind(id, kind) {   // live pickPersonKind — gesture-bracketed (undoable), mesh rebuilds via syncOne
-    if (this.objects.get(id)?.kind === kind) return;
-    this.show.beginEditGesture();
-    try { this.objects.update(id, { kind }); }                    // update() already fires changed()
-    finally { this.show.endEditGesture(); }
-    this.palette?.render?.();   // r8: the animate tab (switch notice + add-button states) reflects the kind change
+  // switchPersonKind (verbatim @5810535) — person-kind switch: collecting the person's
+  // performance actions + held pose (UNr) gates a CONFIRMATION (first call returns the
+  // info, caller shows the action toast); the confirmed run (removeHumanOnly) strips
+  // the items, clears any pending pose, and setPersonKind (strip animation/rename).
+  // analytics omitted (offline port). UNr @5364733 / Yqt @5364968 / zNr @5365000.
+  switchPersonKind(id, kind, opts = {}) {
+    const s = this.objects.get(id);
+    if (!s || !isPersonKind(s.kind) || s.kind === kind) return null;
+    const info = kind === 'simple_figure' ? collectPersonActions(id, this.show.show.tracks, s) : null;
+    const removed = info ? countRemovedActions(info) : 0;
+    if (removed > 0 && !opts.removeHumanOnly) return info;
+    for (const it of info?.items ?? []) this.show.removePerformanceItem(it.trackId, it.itemId);
+    this.pendingPoses.delete(id);
+    this.objects.setPersonKind(id, kind);
+    return null;
+  }
+  // pickPersonKind (verbatim @5810696) — gesture-bracketed; a first-run info result
+  // shows the confirm toast with the "remove & switch" action (label = i18n-equivalent).
+  // The live re-renders the palette via its store subscription (selected-object change);
+  // ours renders on selectedId only, so the confirmed switch re-renders explicitly (r8).
+  pickPersonKind(id, kind, source) {
+    const run = removeHumanOnly => {
+      this.show.beginEditGesture();
+      try {
+        const res = this.switchPersonKind(id, kind, { source, removeHumanOnly });
+        if (res === null) this.palette?.render?.();
+        return res;
+      } finally { this.show.endEditGesture(); }
+    };
+    const info = run(false);
+    if (info) {
+      const name = this.objects.get(id)?.name;
+      this.toast(personSwitchMessage(name, info, kind), {
+        label: 'Remove & switch',
+        onClick: () => run(true),
+      });
+    }
   }
   tickDrawPreview() {  // z port: pose the mesh to the stroke preview ghost; restore on end (hoe verbatim @5476375)
     const d = this._drawPreview;
@@ -824,6 +889,54 @@ export class App {
   }
   clipLocalOf(id, name) { return this.objectManager.humanoidRigs.get(id)?.clipLocal.get(name) ?? null; }
   setLiveRigDrag(state) { this.liveRigDrag = state; }
+
+  // ---- held-pose family (r15 verbatim port) ----
+  // facade setObjectPose wrapper @5793108 — clears any pending pose, then the store's
+  // un-baked representation (animation {clip, playing:false})
+  setObjectPose(id, pose) {
+    this.pendingPoses.delete(id);
+    this.objects.setObjectPose(id, pose);
+  }
+  // markPosePending @5793217
+  markPosePending(id, pose) { this.pendingPoses.set(id, pose); }
+  // bakeRigPoseSegment @5793269 — fresh performance track + unselected rig-transform
+  // item + a joints key at tS:0. false propagates to the caller's setObjectPose fallback.
+  bakeRigPoseSegment(id, joints) {
+    const trackId = this.show.addPerformanceTrack(id);
+    if (!trackId) return false;
+    const itemId = this.show.addRigTransformItem(trackId, undefined, false);
+    return itemId ? (this.show.addRigKeyframe(trackId, itemId, { tS: 0, joints }), true) : false;
+  }
+  // bakePendingPose @5793452 — onSkeletonReady resolver: re-run the solver; a truthy
+  // joints map bakes (fallback setObjectPose on failure), null leaves the pose pending
+  bakePendingPose(id, solver) {
+    const pose = this.pendingPoses.get(id);
+    if (!pose) return;
+    const joints = solver(id, pose);
+    if (joints) {
+      this.pendingPoses.delete(id);
+      if (!this.bakeRigPoseSegment(id, joints)) this.setObjectPose(id, pose);
+    }
+  }
+  // sampleClipRigOffsets (verbatim @5673437): sample pose + idle clips at t=0 over the
+  // major joints (cot), diff vs idle (fWr) — null when the rig/clip is missing or the
+  // pose is idle-identical
+  sampleClipRigOffsets(id, poseName) {
+    const rig = this.objectManager.humanoidRigs.get(id);
+    if (!rig) return null;
+    const poseClip = rig.actions.get(poseName)?.getClip();
+    const idleClip = rig.actions.get('idle')?.getClip();
+    if (!poseClip || !idleClip) return null;
+    const idle = {}, pose = {};
+    for (const [name, bone] of rig.bones) {
+      if (!isMajorJoint(name)) continue;
+      idle[name] = sampleBonePose(idleClip, name, bone, 0);
+      pose[name] = sampleBonePose(poseClip, name, bone, 0);
+    }
+    const joints = diffRigPose(idle, pose);
+    return Object.keys(joints).length > 0 ? joints : null;
+  }
+
   // captureFocusedRigPose (verbatim @5536618): bake the dragged offsets as a rig key at
   // the playhead inside the SELECTED rig-transform segment.
   captureFocusedRigPose(offsets) {

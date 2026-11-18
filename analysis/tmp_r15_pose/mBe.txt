@@ -1,0 +1,1 @@
+n.y-e.position.y,t.position.z-e.position.z],rotation:[sQ.x,sQ.y,sQ.z],scale:[e.scale.x===0?1:t.scale.x/e.scale.x,e.scale.y===0?1:t.scale.y/e.scale.y,e.scale.z===0?1:t.scale.z/e.scale.z]}}const yk=new di,aQ=new qn,xye=new qn,pot=new qn,Lzr=new Ge;function Dzr(t,e,n,r){return yk.position.copy(e.positi

@@ -1,0 +1,2 @@
+// sig='id:"DhTbJv"' cp_offset=5170592 u16_offset=5170635 span_cp=400
+cted),onClick:s,onDoubleClick:a,children:i.jsxs("div",{className:mr.trackHeaderTop,children:[i.jsx("span",{className:mr.charName,children:e||i.jsx(M,{id:"DhTbJv"})}),i.jsx("button",{className:mr.trackRemove,title:_._({id:"10BaWm"}),onClick:c=>{c.stopPropagation(),o(t.id)},children:i.jsx(K,{name:"close",size:"xs"})})]})})}function nCr({track:t,isWalker:e,blocks:n,allBlocks:r,magnetEnabled:s,draggin

@@ -172,6 +172,10 @@ button.small { padding: 2px 8px; font-size: 12px; }
   background: var(--hud); border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 16px; backdrop-filter: blur(6px);
 }
+.toast .toast-action {
+  margin-left: 12px; background: none; border: none; cursor: pointer;
+  color: var(--accent); font: inherit; padding: 0;
+}
 
 /* camera pills + footer */
 .cam-pills { position: absolute; z-index: 5; left: 10px; bottom: 10px; display: flex; gap: 6px; }
