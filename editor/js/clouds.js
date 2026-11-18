@@ -280,13 +280,14 @@ ${CL_ATMOS_CHUNK}
     vec4 s = texture(uShapeTex, p);
     float lowFreqFBM = s.g * 0.625 + s.b * 0.25 + s.a * 0.125;         // takram octave weights
     float base = remap(s.r, lowFreqFBM - 1.0, 1.0, 0.0, 1.0);          // Nubis base+fbm
-    base = remap(base, 1.0 - uCoverage, 1.0, 0.0, 1.0);                // Schneider coverage remap
+    float covThr = pow(1.0 - uCoverage, 1.15);                         // r13 tune: the raw field skews low — a linear knee yielded ~14% effective coverage at user 0.5
+    base = remap(base, covThr, 1.0, 0.0, 1.0);                         // Schneider coverage remap (pow-knee)                // Schneider coverage remap
     // vertical profile: cumulus (rounded top, tapered base) flattened toward stratus for thin decks
     float stratusW = sat(1.0 - uHeightKm / 1.2);                       // thin slab -> flat deck
     float cumulus = sat(remap(hn, 0.0, 0.12, 0.0, 1.0)) * sat(remap(hn, 1.0, 0.30, 0.0, 1.0));
     float stratus = sat(remap(hn, 0.0, 0.05, 0.0, 1.0)) * sat(remap(hn, 1.0, 0.10, 0.0, 1.0));
     float prof = mix(cumulus, stratus, stratusW);
-    vec3 dp = p * DETAIL_FREQ;
+    vec3 dp = p * vec3(DETAIL_FREQ, DETAIL_FREQ * 3.5, DETAIL_FREQ);   // r13 tune: vertical anisotropy — a 1.2km slab sampled at one frequency reads as horizontal strata
     vec4 d = texture(uShapeTex, dp);
     float detailFBM = d.g * 0.625 + d.b * 0.25 + d.a * 0.125;
     base = remap(base, detailFBM * DETAIL_STRENGTH, 1.0, 0.0, 1.0);    // billow erosion
@@ -374,7 +375,8 @@ ${CL_ATMOS_CHUNK}
       // ---- procedural: distance-scaled thin-shell march ----
       vec2 span = shellSpan(camPos, worldDir, uBottomRadius + uBaseKm, topH);
       if (span.x >= 0.0 && span.y > 0.0) {
-        float t0 = span.x, t1 = min(span.y, t0 + MARCH_SPAN_KM);   // r13 fix: cap the marched span (not 30km) — shallow rays' dt would straddle the ~300m noise features
+        float spanCap = mix(2.0, MARCH_SPAN_KM, sat(worldDir.y * 6.6));            // r13 tune: near-horizontal rays march 2km (fog band + aerial carry the far field)
+        float t0 = span.x, t1 = min(span.y, t0 + spanCap);   // r13 fix: cap the marched span (not 30km) — shallow rays' dt would straddle the ~300m noise features
         float nSteps = float(uSteps);
         float dt = (t1 - t0) / nSteps;
         float t = t0 + hash13(vec3(gl_FragCoord.xy, 0.0)) * dt;   // position-only dither (QA-safe)
