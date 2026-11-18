@@ -1,0 +1,9 @@
+You are QA-judging a 3D editor's procedural sky clouds (three.js offline editor). Three backbuffer captures from the SAME scene (a white stage floor at the bottom of frames 1-2; frame 3 is the default editor camera looking down at the stage):
+
+IMG1 = clear weather, user cloud coverage 0.5, camera aimed up at the sky. EXPECTED: broken/scattered cumulus clouds covering roughly 35-65% of the sky, bright WHITE sunlit tops (clearly white, not gray), visibly darker cloud bases, crisp-but-natural edges, maybe faint high cirrus streaks, blue sky visible between clouds, NO white blowout band hugging the horizon, NO hard seam where clouds stop near the horizon, NO radial streaking artifacts.
+
+IMG2 = overcast weather, coverage 0.9, camera aimed up. EXPECTED: a cloud deck covering nearly the whole sky, MID-GRAY overall (like a typical overcast day, not white, not black), soft texture variation, no white band at the horizon, no hard seam.
+
+IMG3 = clear, coverage 0.5, default camera looking down at the stage. EXPECTED: the thin sky band above the horizon shows some cloud texture; the transition from sky to the white floor should be clean (no hard line, no glow band, no artifacts).
+
+For EACH image, list what you actually SEE (be concrete: colors, coverage estimate in %, where clouds are bright/dark, any artifacts with their location). Then give a verdict per image: SHIP / NEEDS-TUNING (with the top 1-3 specific fixes) / FAIL. Also answer: (a) in IMG1 are the cloud tops WHITE or GRAY? (b) do IMG1 clouds show sun-direction shading (brighter on one side)? (c) is there a white band or hard horizontal seam near the horizon in IMG1/IMG2? (d) in IMG3 does the sky band show visible cloud texture?

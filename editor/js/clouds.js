@@ -32,6 +32,7 @@ import { C } from './const.js';
 const CL_SHAPE_RES = 128;        // 3D noise texture edge (RGBA8)
 const CL_SHAPE_TILE_KM = 12.0;   // r13 fix: 40km made the whole sky sample one ~texel corner patch (12km -> cumulus-scale variety)   // world km covered by one noise tile (repeat-wrapped)
 const CL_SIGMA_K = 0.9;          // cloud extinction per unit density, 1/km (research §3.5)
+const CL_LIGHT_EXTINCT_K = 3.0;  // r13 tune: EXTRA extinction for the sun march — real water clouds are tau>>10 optically; at SIGMA_K alone a 1.2km deck transmits ~16% of the sun and the overcast base glows white (measured luma 0.87 vs the 0.35-0.6 mid-gray target). x3 => tau~5, Tlight~0.006 through a full deck, ~0.1-0.3 through cumulus sides = real sun-side/lee-side shading.
 const CL_ALBEDO = 0.96;          // scattering albedo (whiteness)
 const CL_TMAX_KM = 30.0;         // absolute slab clamp for grazing rays
 const CL_MARCH_SPAN_KM = 15.0;    // r13: marched span cap — keeps dt <= ~375m at 40 steps so shallow rays sample the noise field finely enough
@@ -154,6 +155,7 @@ const CL_ATMOS_CHUNK = /* glsl */`
   #define MS_RES_F 32.0
   #define SHAPE_TILE_KM ${CL_SHAPE_TILE_KM.toFixed(1)}
   #define SIGMA_K ${CL_SIGMA_K.toFixed(4)}
+  #define LIGHT_EXTINCT_K ${CL_LIGHT_EXTINCT_K.toFixed(2)}
   #define ALBEDO ${CL_ALBEDO.toFixed(3)}
   #define DETAIL_FREQ ${CL_DETAIL_FREQ.toFixed(1)}
   #define DETAIL_STRENGTH ${CL_DETAIL_STRENGTH.toFixed(3)}
@@ -299,7 +301,7 @@ ${CL_ATMOS_CHUNK}
     float s = max(uHeightKm, 1.0) / 1.2;
     float d1 = sampleDensity(p + Ld * (0.4 * s));
     float d2 = sampleDensity(p + Ld * (1.6 * s));
-    return exp(-SIGMA_K * (d1 * 0.4 + d2 * 1.2) * s);
+    return exp(-SIGMA_K * LIGHT_EXTINCT_K * (d1 * 0.4 + d2 * 1.2) * s);
   }
 
   // shell [rBot, rTop] above the planet center — entry/exit along the ray;
@@ -414,7 +416,7 @@ ${CL_ATMOS_CHUNK}
         vec3 N = normalize(vec3((sh.r * 2.0 - 1.0) * ${CL_SHEET_RELIEF.toFixed(2)}, 1.0, (sh.g * 2.0 - 1.0) * ${CL_SHEET_RELIEF.toFixed(2)}));
         float wrap = sat((dot(N, Ld) + 0.35) / 1.35);
         vec3 Hv = normalize(Ld - worldDir);
-        vec3 sheetL = Lc * wrap + msAmb * 0.7
+        vec3 sheetL = (Lc * wrap + msAmb * 0.7) * 0.75            // r13 tune: sheets were full-sun white (Lc*wrap ~0.8 linear saturates the exposure-10 curve) — dim to keep deck texture readable
           + Lc * pow(max(mu, 0.0), 8.0) * 0.25           // silver lining
           + Lc * pow(max(dot(N, Hv), 0.0), 24.0) * 0.06; // glint (ice cirrus / wet decks)
         L += Tview * sheetL * aS;
@@ -617,7 +619,7 @@ export function createCloudLayer({ renderer, sky }) {
         const smp = f => f[y0 * R + x0] * (1 - tx) * (1 - ty) + f[y0 * R + x1] * tx * (1 - ty)
                        + f[y1 * R + x0] * (1 - tx) * ty + f[y1 * R + x1] * tx * ty;
         let b = remapJs(smp(base), smp(worFbm) - 1.0, 1.0, 0.0, 1.0);
-        b = remapJs(b, 1.0 - Math.min(1, cov * (1 + i * 0.04)), 1.0, 0.0, 1.0);
+        b = remapJs(b, 1.0 - Math.pow(Math.min(1, cov), 1.6), 1.0, 0.0, 1.0);   // r13 tune: cov^1.6 — 6 sheets compound their coverage ((1-c)^6), so per-sheet coverage must be sparse at mid user coverage or the fallback reads as a solid white lid (was: 96% sky coverage + h-std 0 at user 0.5)
         alpha[y * W + x] = Math.min(1, dens) * b * prof;
       }
       // Sobel of alpha -> normal (tangent-plane x/z, packed *0.5+0.5), RGBA8 into the atlas row
