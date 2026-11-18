@@ -275,28 +275,39 @@ export function createEnvironment(scene, settings) {
     const indoor = !!light.indoor;                              // round 6 (D7)
     const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0) + '|s' + skyStyle
       + '|c' + (light.clouds?.enabled ? [light.clouds.mode, light.clouds.coverage, light.clouds.density, light.clouds.altitudeM, light.clouds.thicknessM, light.clouds.cirrus, light.clouds.windSpeed].join(',') : 'off')   // r13 audit P1: skyStyle in the key
-      + '|h' + (light.hdr?.enabled ? [light.hdr.exposure, light.hdr.bloom, light.hdr.bloomThreshold, light.hdr.bloomRadius].join(',') : 'off');   // r13 HDR: memo-key parity with setHdr
+      + '|h' + (light.hdr?.enabled ? [light.hdr.exposure, light.hdr.bloom, light.hdr.bloomThreshold, light.hdr.bloomRadius, light.hdr.shadowBoost].join(',') : 'off');   // r13 HDR: memo-key parity with setHdr (shadowBoost r13 review)
     if (key === _lastKey) return glowAmount();
     _lastKey = key;
     const g = daylightAt(light.elevationDeg);
     const alt = light.geo?.altitudeM ?? 0;
     const altK = 1 + Math.min(alt, 4000) / 4000 * 0.06;         // air-mass thinning (audit P1-7)
-    // sun (key light): table × weather × altitude × indoor (indoor kills it + hides the shadow pass)
+    // round 13 (§4.5, review P2-4): HDR-only contrast rebalance — the "more obvious light and
+    // shadow" ask. shadowBoost ∈ [0,1] (default .5); multipliers are ZERO when hdr is off, so
+    // the byte-exact daylight stack is untouched (matrix 7/7 gate).
+    const sb = light.hdr?.enabled ? (light.hdr.shadowBoost ?? C.HDR_DEFAULTS.shadowBoost) : 0;
+    const sunBoostK = 1 + C.HDR_SHADOW_BOOST_SUN_K * sb;
+    const fillK = 1 - C.HDR_SHADOW_BOOST_FILL_K * sb;
+    // sun (key light): table × weather × altitude × indoor (indoor kills it + hides the shadow pass) × hdr sunBoost
     sun.color.copy(g.sunColor);
-    sun.intensity = g.sun * w.sun * altK * (indoor ? 0 : 1);
+    sun.intensity = g.sun * w.sun * altK * (indoor ? 0 : 1) * sunBoostK;
     sun.visible = sun.intensity > 0;
-    // hemi = sky-light GI (sky dome above, ground bounce below): table × weather, indoor ×1.2
-    hemi.intensity = g.fill * w.hemi * (indoor ? 1.2 : 1);
+    sun.shadow.radius = C.SUN_RADIUS * (1 + C.HDR_SHADOW_BOOST_RADIUS_K * sb);   // softer penumbra under hdr
+    // hemi = sky-light GI (sky dome above, ground bounce below): table × weather, indoor ×1.2 × hdr fillK
+    hemi.intensity = g.fill * w.hemi * (indoor ? 1.2 : 1) * fillK;
     // ambient (D7): SINGLE scale — intensity = ambientLevel; warm neutral (window light is the hemi's job)
-    ambient.intensity = indoor ? (light.ambientLevel ?? 0.35) : 0;
+    ambient.intensity = indoor ? (light.ambientLevel ?? 0.35) * fillK : 0;
     // weather color ops: desat fillSky/fillGround/zenith/horizon/fog; darken the sky dome
+    // (§4.6 classic lift ×1.10 under hdr: sRGB-derived dome values ≤1.15 would otherwise sit
+    // BELOW the bloom threshold and read darker through ACES — the lift keeps the sky scale)
+    const lift = light.hdr?.enabled && skyStyle === 'classic' ? C.HDR_CLASSIC_SKY_LIFT : 1;
     hemi.color.copy(g.fillSky); desat(hemi.color, w.desat);
     hemi.groundColor.copy(g.fillGround); desat(hemi.groundColor, w.desat);
     const u = sky.material.uniforms;
-    u.zenith.value.copy(g.zenith).multiplyScalar(1 - w.darken); desat(u.zenith.value, w.desat);
-    u.horizon.value.copy(g.horizon).multiplyScalar(1 - w.darken); desat(u.horizon.value, w.desat);
+    u.zenith.value.copy(g.zenith).multiplyScalar((1 - w.darken) * lift); desat(u.zenith.value, w.desat);
+    u.horizon.value.copy(g.horizon).multiplyScalar((1 - w.darken) * lift); desat(u.horizon.value, w.desat);
     scene.fog.color.copy(g.horizon); desat(scene.fog.color, w.desat);   // fog matches the weathered horizon
-    u.flare.value.copy(g.sunColor).multiplyScalar(g.flare * w.flare);
+    scene.fog.color.multiplyScalar(lift);
+    u.flare.value.copy(g.sunColor).multiplyScalar(g.flare * w.flare * lift);
     if (skyStyle === 'realistic') {
       const sp = buildSkyParams(light, scene.fog.color, g);
       realistic.setParams(sp);
@@ -308,7 +319,7 @@ export function createEnvironment(scene, settings) {
     }
     const az = light.azimuthDeg * DEG, el = Math.max(light.elevationDeg, 0) * DEG;
     u.flareDirection.value.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
-    glow = g.glow;
+    glow = g.glow * (light.hdr?.enabled ? C.HDR_EMISSIVE_BOOST : 1);   // §4.5: night lamps cross the bloom threshold
     return glowAmount();
   }
 
@@ -352,13 +363,14 @@ export function createEnvironment(scene, settings) {
     else if (kind === 'layered') { if (cloudLayer.enabled) cloudLayer.setMode('layered'); }
     else if (kind === 'procedural') { if (cloudLayer.enabled) cloudLayer.setMode('procedural'); }
   }
-  // linearHDR (round 13, optional): finish+HDR — the dome outputs LINEAR HDR so the sun
+  // linearHDR (round 13): finish+HDR — the dome outputs LINEAR HDR so the sun
   // disc / stars / moon cross the bloom threshold (sky.js update uCurve=0 + uOutputSRGB=0);
-  // the cloud twin keeps its own output gate (clouds.js is not hdr-aware by design).
+  // the cloud deck rides the SAME split (review r13 P1: the premultiplied over-composite
+  // crossfades deck and dome — they must share the output space or the deck blows out).
   function updateRealisticSky(camera, outputSRGB, linearHDR = false) {
     if (skyStyle !== 'realistic') return;
     realistic.update(camera, outputSRGB, scene, linearHDR);
-    if (cloudLayer.enabled) cloudLayer.update(camera, outputSRGB);   // P2: wind drift + camera + sRGB gate
+    if (cloudLayer.enabled) cloudLayer.update(camera, outputSRGB, linearHDR);   // P2: wind drift + camera + sRGB gate
   }
   return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx,
     setSkyStyle, updateRealisticSky, realisticSky: () => realistic, getSkyStyle: () => skyStyle,

@@ -247,6 +247,10 @@ ${CL_ATMOS_CHUNK}
   uniform vec3 uWhitePoint;
   uniform float uOutputSRGB;             // 1 plain render (OETF), 0 finish RT / PMREM (linear)
   uniform float uToneMap;                // 1 visible dome (demo curve), 0 PMREM (linear HDR)
+  uniform float uCurve;                  // round 13 (HDR): 1 = legacy demo post curve, 0 = linear HDR out
+                                         // (mirrors the dome's uCurve split — under finish+HDR the deck
+                                         // must live in the SAME linear space as the dome it occludes;
+                                         // the premultiplied over-composite crossfades the two)
   uniform float uWeatherDesat, uWeatherDarken;
   uniform vec3 uFogColor;                // linear working space (=== scene.fog.color)
   uniform float uFogBlend;
@@ -454,7 +458,7 @@ ${CL_ATMOS_CHUNK}
     float lum = dot(L, vec3(0.299, 0.587, 0.114));
     L = mix(vec3(lum), L, 1.0 - uWeatherDesat);
     L *= (1.0 - uWeatherDarken);
-    if (uToneMap > 0.5) L = vec3(1.0) - exp(-max(L, vec3(0.0)) / uWhitePoint * uExposure);
+    if (uToneMap > 0.5 && uCurve > 0.5) L = vec3(1.0) - exp(-max(L, vec3(0.0)) / uWhitePoint * uExposure);
     // horizon fog band — same POST-curve linear mix as the dome (the dome mixes uFogColor into
     // its tonemapped L; matching it here removes the tone-order seam: pre-curve, fogColor 0.83
     // went through exp -> 0.9995 = the white blowout band where the deck met the floor line).
@@ -507,6 +511,7 @@ export function createCloudLayer({ renderer, sky }) {
     uWhitePoint: { value: new THREE.Vector3(...C.SKY_WHITE_POINT) },
     uOutputSRGB: { value: 1 },
     uToneMap: { value: 1 },
+    uCurve: { value: 1 },
     uWeatherDesat: { value: 0 },
     uWeatherDarken: { value: 0 },
     uFogColor: { value: new THREE.Color(0xffffff) },
@@ -734,11 +739,12 @@ export function createCloudLayer({ renderer, sky }) {
     uniforms.uSteps.value = mode === 'layered' ? 0 : stepsRequested;
   }
 
-  function update(camera, outputSRGB) {
+  function update(camera, outputSRGB, linearHDR = false) {
     if (!enabled) return;
     setCamera(camera);
     uniforms.uOutputSRGB.value = outputSRGB ? 1 : 0;
     uniforms.uToneMap.value = 1;
+    uniforms.uCurve.value = linearHDR ? 0 : 1;   // finish+HDR: linear deck in the linear dome (review r13 P1)
     if (!staticMode && windClock !== null) {
       const now = performance.now();
       const dt = Math.min(0.5, (now - windClock) / 1000);

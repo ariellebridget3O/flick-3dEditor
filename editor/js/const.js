@@ -95,7 +95,15 @@ export const C = {
   HDR_BUDGET_MS: 11,                     // = COST_BUDGET_MS reuse: the finish auto-measure
                                          // already gates the whole composite — bloom rides
                                          // inside it (no new scheduler)
-  HDR_DEFAULTS: { exposure: 1.0, bloom: 0.35, bloomThreshold: 1.0, bloomRadius: 0.4 },
+  // R13_HDR_RESEARCH §4.5/§4.6 (HDR-only contrast multipliers — the "more obvious
+  // light/shadow" ask; applied in env.applyDaylight, never touching DAYLIGHT_STOPS):
+  HDR_DEFAULTS: { exposure: 1.0, bloom: 0.35, bloomThreshold: 1.0, bloomRadius: 0.4, shadowBoost: 0.5 },
+  HDR_SHADOW_BOOST_SUN_K: 1.6,           // sunBoostK = 1 + 1.6·shadowBoost  (0.5 → ×1.8)
+  HDR_SHADOW_BOOST_FILL_K: 0.30,         // fillK     = 1 − 0.30·shadowBoost (0.5 → ×0.85, hemi + ambient)
+  HDR_SHADOW_BOOST_RADIUS_K: 0.75,       // sun.shadow.radius = C.SUN_RADIUS × (1 + 0.75·shadowBoost)
+  HDR_EMISSIVE_BOOST: 4,                 // lantern glow ×4 — night lamps cross the bloom threshold
+  HDR_CLASSIC_SKY_LIFT: 1.10,            // classic dome zenith/horizon/fog/flare lift so the sRGB
+                                         // sky (≤1.15 linear) survives ACES at exposure 1 (§4.6)
   // sun presets (TQr/AQr light popover) — ELEVATION ONLY, azimuth preserved (audit P1-13: the
   // azimuthDeg fields here are IGNORED; live _Qr sets elevation only via r({...t, elevationDeg}))
   LIGHT_PRESETS: [

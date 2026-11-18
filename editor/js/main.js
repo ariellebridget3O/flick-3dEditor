@@ -382,6 +382,14 @@ export class App {
     this.env.setSkyStyle(this.light.skyStyle === 'realistic' ? 'realistic' : 'classic', this.light);
     // P2: a scene restored with clouds enabled goes through the same budget probe as a manual enable
     if (this.light.clouds?.enabled && this.light.skyStyle === 'realistic') { this._cloudsGatePending = true; this._cloudsGateFrames = 0; }
+    // review r13 P2: a scene restored with hdr enabled needs the SAME finish force-on as the
+    // setHdr mutator — otherwise hdr loads into the plain+hdr fallback (no bloom + the ACES
+    // wrapper scale), a materially different look than the authoring session.
+    if (this.light.hdr?.enabled && finishCapable(this.renderer) && !this.finishPref?.enabled) {
+      this.finishPref = { enabled: true, source: 'manual' };
+      writeFinishPref(this.finishPref);
+    }
+    if (!this.light.hdr?.enabled) this._bloom.dispose?.();   // review r13 P3: no mip RTs resident while hdr is off
     this.page.recordAspect = scene.recordAspect ?? '16:9';
     this._syncObjects();
     this.shadowFit.force();
@@ -1154,7 +1162,12 @@ export class App {
     const hdrOn = !!this.light.hdr?.enabled;
     if (hdrOn && !finishOn) {
       if (this.renderer.toneMapping !== THREE.ACESFilmicToneMapping) this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = this.light.hdr.exposure ?? C.HDR_DEFAULTS.exposure;
+      // review r13 P2 parity: three's ACESFilmicToneMapping chunk applies
+      // `color *= toneMappingExposure / 0.6` (three.module.js tonemapping_pars_fragment) —
+      // pre-scaling by 0.6 makes the fallback's effective exposure IDENTICAL to the finish
+      // composite's pure Hill fit (acesHill(color * uExposure)); the exposure slider then
+      // means the same thing in both paths.
+      this.renderer.toneMappingExposure = (this.light.hdr.exposure ?? C.HDR_DEFAULTS.exposure) * 0.6;
     } else if (this.renderer.toneMapping !== THREE.NoToneMapping) {
       this.renderer.toneMapping = THREE.NoToneMapping;
       this.renderer.toneMappingExposure = 1;

@@ -209,6 +209,7 @@ function normLight(t) { // g6r/N8r/SDe — round 6: geo/weather/indoor/ambient/m
     if (Number.isFinite(l.hdr.bloom)) h.bloom = Math.min(1, Math.max(0, l.hdr.bloom));
     if (Number.isFinite(l.hdr.bloomThreshold)) h.bloomThreshold = Math.min(2, Math.max(0.6, l.hdr.bloomThreshold));
     if (Number.isFinite(l.hdr.bloomRadius)) h.bloomRadius = Math.min(1, Math.max(0, l.hdr.bloomRadius));
+    if (Number.isFinite(l.hdr.shadowBoost)) h.shadowBoost = Math.min(1, Math.max(0, l.hdr.shadowBoost));   // review r13 P2-4 (§4.5 rebalance amount)
     n.hdr = h;
   }
   // round 6 D — extended fields (clamped; unknown → dropped)
