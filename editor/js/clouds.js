@@ -33,7 +33,7 @@ import { C } from './const.js';
 // ---- file-private constants (CL_* = cloud layer) ----
 const CL_SHAPE_RES = 128;        // 3D noise texture edge (RGBA8)
 const CL_SHAPE_TILE_KM = 12.0;   // r13 fix: 40km made the whole sky sample one ~texel corner patch (12km -> cumulus-scale variety)   // world km covered by one noise tile (repeat-wrapped)
-const CL_HORIZON_FADE = 0.09;   // r13 tune: cloud-alpha fade over the lowest ~5° of elevation (grazing rays: 15km of slab march saturates L and the alpha seam at the floor line reads as a blowout band)
+const CL_HORIZON_FADE = 0.10;   // r18: cloud-alpha fade over the lowest ~5.7° — melts the deck into the dome's fog band at the horizon itself. (0.09 was the r13 value; a 0.16 trial ate the whole low-sky sliver a previz camera actually sees when looking down — measured invisible at default pose.)
 const CL_CIRRUS_KM = 7.0;        // cirrus sheet altitude (6-8 km band)
 const CL_SHEET_COUNT = 6;        // layered fallback sheets (4-6; atlas rows)
 const CL_SHEET_ATLAS_W = 256;
@@ -41,6 +41,12 @@ const CL_SHEET_RELIEF = 1.8;     // layered normal strength (r13 tune: 1.4 read 
 const CL_WIND_UV_PER_UNIT = 0.02; // windSpeed 0..3 -> uv drift per second
 
 const satJs = x => Math.min(1, Math.max(0, x));
+// r18: seed -> offsets over the tileable fields (irrational multipliers keep successive seeds
+// decorrelated; any translate of the stationary field is an equally-valid new pattern draw).
+function seedOffset(seed) {
+  const s = Math.min(999, Math.max(0, Math.round(seed)));
+  return [s * 37.7192 % 128, s * 61.8384 % 128, s * 29.5504 % 128];
+}
 // R13 §3.4 remap — the denominator keeps its SIGN: inverted ranges like remap(hn, 1.0,
 // 0.30, 0.0, 1.0) (the cumulus "rounded top" profile) are intentional call sites; a
 // max(h0-l0, eps) guard would zero them and with them the whole density field.
@@ -218,6 +224,10 @@ ${CL_ATMOS_CHUNK}
   uniform float uBaseKm;                 // slab base altitude above the planet surface
   uniform float uHeightKm;               // slab thickness
   uniform vec2 uWindOffset;              // wind uv offset (CPU-animated; frozen when static)
+  uniform vec2 uSeedOffset;              // r18 seed: cirrus pattern translate (tile units)
+  uniform float uWeatherSun;             // r18: cloud direct light follows the scene weather sun
+  uniform float uWeatherHemi;            // r18: cloud ambient follows the scene weather hemi
+  uniform float uCloudDarken;            // r18: residual per-weather cloud darken (gray-lid look)
   uniform float uNightAmount;            // 0 day .. 1 night (sun -> moon)
   uniform vec3 uMoonDir;
   uniform int uSheetCount;               // layered sheets
@@ -277,7 +287,10 @@ ${CL_ATMOS_CHUNK}
 
     // shared lighting frame: sun -> moon at night (uNightAmount gates the mix + show-through)
     vec3 Ld = normalize(mix(uSunDir, uMoonDir, uNightAmount));
-    vec3 Lc = uSunIlluminance * mix(vec3(1.0), vec3(0.42, 0.52, 0.75) * 0.05, uNightAmount);
+    // r18 (audit P1-10): cloud direct light follows the scene weather attenuation — the scene
+    // sun drops to 0.25/0.15 under overcast/rain; the clouds must dim with it or they read as
+    // a bright lid over a dark rainy scene.
+    vec3 Lc = uSunIlluminance * uWeatherSun * mix(vec3(1.0), vec3(0.42, 0.52, 0.75) * 0.05, uNightAmount);
     float mu = dot(worldDir, Ld);
 
     // sun transmittance at the cloud-top height (1 LUT fetch — warm low-sun clouds for free)
@@ -292,7 +305,7 @@ ${CL_ATMOS_CHUNK}
     {
       vec2 muv = vec2(dot(Ld, upVector) * 0.5 + 0.5, (topH - uBottomRadius) / max(uTopRadius - uBottomRadius, 1e-4));
       muv = vec2(fromUnitToSubUvs(muv.x, MS_RES_F), fromUnitToSubUvs(muv.y, MS_RES_F));
-      msAmb = texture(uMultiScatTex, muv).rgb * uSunIlluminance;
+      msAmb = texture(uMultiScatTex, muv).rgb * uSunIlluminance * uWeatherHemi;
     }
 
     vec3 L = vec3(0.0);
@@ -303,7 +316,7 @@ ${CL_ATMOS_CHUNK}
       vec2 span = shellSpan(camPos, worldDir, uBottomRadius + CIRRUS_KM - 0.35, uBottomRadius + CIRRUS_KM + 0.35);
       if (span.x >= 0.0 && span.y > 0.0) {
         vec3 pC = camPos + worldDir * max(span.x, 0.0);
-        vec2 cuv = pC.xz / SHAPE_TILE_KM * 0.5 + uWindOffset * vec2(1.0, 0.35);
+        vec2 cuv = pC.xz / SHAPE_TILE_KM * 0.5 + uWindOffset * vec2(1.0, 0.35) + uSeedOffset;
         float streak = texture(uShapeTex, vec3(cuv * 2.0, 0.5)).g * 0.625
                      + texture(uShapeTex, vec3(cuv * 4.0, 0.25)).b * 0.375;
         // r13 tune: contrast-normalized streak — the raw worley-fbm sits in ~[0.15,0.8], so the
@@ -319,22 +332,50 @@ ${CL_ATMOS_CHUNK}
     }
 
     {
-      // ---- layered sheets: parallax alpha sheets (atlas rows), Lambert + HG-style glint ----
+      // ---- layered sheets on the DOME (r18): direction-based UV — the pattern wraps the full
+      // sky at constant angular texel density instead of smearing on a planar XZ projection
+      // (the old mapping sampled thousands of km of slant at grazing angles -> textureless lid,
+      // 'the world is flat'). Per-sheet INTEGER azimuth repeats (seam-safe under RepeatWrapping:
+      // the atan2 wrap jumps u by exactly the repeat) + per-sheet phase offsets (no aligned seam
+      // columns) + differing repeats (parallax/depth illusion). Camera-translation parallax is
+      // intentionally dropped: negligible at 2.5 km for a stage-scale editor camera.
+      float uAz = atan(worldDir.x, worldDir.z) / 6.2831853;    // -0.5..0.5, wrap at azimuth seam
+      float vEl = pow(1.0 - max(worldDir.y, 0.0), 0.6);        // 0 zenith .. 1 horizon (dome curve)
       for (int i = 0; i < ${CL_SHEET_COUNT}; i++) {
         if (i >= uSheetCount) break;
         float fi = (float(i) + 0.5) / float(uSheetCount);
-        float altKm = uBaseKm + uHeightKm * fi;
-        vec2 span = shellSpan(camPos, worldDir, uBottomRadius + altKm, uBottomRadius + altKm + 0.01);
-        if (span.x < 0.0 || span.y <= 0.0) continue;
-        vec3 p = camPos + worldDir * span.y;
-        vec2 uv = p.xz / SHAPE_TILE_KM + uWindOffset * (1.0 + fi);
-        vec4 sh = texture(uSheetAtlas, vec2(uv.x, (float(i) + fract(uv.y)) / ${CL_SHEET_COUNT.toFixed(1)}));
+        float ru = 4.0 + float(i);                             // integer repeats: 4..9
+        float ph = fract(float(i) * 0.318);                    // per-sheet phase (seam stagger)
+        vec2 uv = vec2((uAz + ph) * ru + uWindOffset.x * (1.0 + 0.3 * fi),
+                       vEl * (2.0 + 0.4 * fi) + uWindOffset.y * (0.2 + 0.1 * fi));
+        // r18: textureGrad with CLAMPED gradients — the dome mapping compresses v near the
+        // horizon (and u converges at the zenith), so the automatic LOD picks coarse mips where
+        // the sparse near-binary blobs average to NOTHING (measured: effective 18% rendered
+        // invisible; 40% rendered). Capping the per-pixel uv delta at 1/16 tile limits the mip
+        // chain to ~level 4 (16px/row) where the ~40px blobs still exist; mild minification
+        // aliasing beats vanishing clouds (the soft smoothstep edge keeps it clean).
+        // v inset: sampling exactly at the row boundary cross-bleeds the adjacent atlas row
+        // through the mip chain (thin dark horizontal streaks + razor-straight cloud bottoms —
+        // VLM r18 QA). Keep 2% inside the row on both ends.
+        float fv = 0.02 + 0.96 * fract(uv.y);
+        vec2 suv = vec2(uv.x, (float(i) + fv) / ${CL_SHEET_COUNT.toFixed(1)});
+        // cap in TEXEL space per axis: the atlas is 256 x (256*6), so the v axis has 6x the
+        // texel density of u — a symmetric uv cap let the v axis select mip ~6.6 (rows crushed
+        // to ~2.6px; the 40px blobs averaged back into the invisible veil — the r18 it3 bug).
+        // 16 texels/px on both axes caps the chain at level 4 (16px rows) where blobs live.
+        vec2 gcap = vec2(16.0 / ${CL_SHEET_ATLAS_W.toFixed(1)}, 16.0 / (${CL_SHEET_ATLAS_W.toFixed(1)} * ${CL_SHEET_COUNT.toFixed(1)}));
+        vec2 gdx = clamp(dFdx(uv), -gcap, gcap);
+        vec2 gdy = clamp(dFdy(uv), -gcap, gcap);
+        vec4 sh = textureGrad(uSheetAtlas, suv, gdx, gdy);
         float aS = sh.a;
         if (aS < 0.004) continue;
         vec3 N = normalize(vec3((sh.r * 2.0 - 1.0) * ${CL_SHEET_RELIEF.toFixed(2)}, 1.0, (sh.g * 2.0 - 1.0) * ${CL_SHEET_RELIEF.toFixed(2)}));
         float wrap = sat((dot(N, Ld) + 0.35) / 1.35);
         vec3 Hv = normalize(Ld - worldDir);
-        vec3 sheetL = (Lc * wrap + msAmb * 0.7) * 0.75            // r13 tune: sheets were full-sun white (Lc*wrap ~0.8 linear saturates the exposure-10 curve) — dim to keep deck texture readable. NOTE: the SKY_EXPOSURE-10 curve saturates at L≈0.35, so the 6-sheet zenith stack clips ~245-253 display regardless of this scale (0.68 tried r13 acceptance — identical display); layered is the FALLBACK tier, zenith clip documented as the known nit
+        // r18 QA it2: WIDER directional dynamic — the old Lc*wrap kept every sun-facing face
+        // above the exposure-curve knee (~231 display plateau = flat cumulus). Dim the
+        // ambient floor + square the wrap so undersides drop below the knee.
+        vec3 sheetL = (Lc * (0.32 + 0.85 * wrap * wrap) + msAmb * 0.55) * 0.75            // r13 tune: sheets were full-sun white (Lc*wrap ~0.8 linear saturates the exposure-10 curve) — dim to keep deck texture readable. NOTE: the SKY_EXPOSURE-10 curve saturates at L≈0.35, so the 6-sheet zenith stack clips ~245-253 display regardless of this scale (0.68 tried r13 acceptance — identical display); layered is the FALLBACK tier, zenith clip documented as the known nit
           + Lc * pow(max(mu, 0.0), 8.0) * 0.25           // silver lining
           + Lc * pow(max(dot(N, Hv), 0.0), 24.0) * 0.06; // glint (ice cirrus / wet decks)
         L += Tview * sheetL * aS;
@@ -343,17 +384,18 @@ ${CL_ATMOS_CHUNK}
       }
     }
 
-    // r13 tune: horizon alpha fade — the lowest ~5° of the deck melts into the dome's fog band
-    // instead of ending in a saturated white slab + hard seam where the floor line cuts it.
+    // r18: horizon fade (~5.7°) — the deck CONVERGES into the dome's fog band like a
+    // receding dome instead of ending in a hard ceiling edge (the 'world is flat' tell).
     // L scales by the same fade so hf=0 is exactly the dome (L=0, alpha=1).
     float hf = smoothstep(0.0, HORIZON_FADE, worldDir.y);
     L *= hf;
     Tview = mix(1.0, Tview, hf);
 
-    // mood ops (same Rec.601 desat + darken as the domes)
+    // mood ops (same Rec.601 desat + darken as the domes) + the r18 residual cloud darken
+    // (overcast/rain gray-lid on top of the Lc×w.sun weather dimming)
     float lum = dot(L, vec3(0.299, 0.587, 0.114));
     L = mix(vec3(lum), L, 1.0 - uWeatherDesat);
-    L *= (1.0 - uWeatherDarken);
+    L *= (1.0 - uWeatherDarken) * (1.0 - uCloudDarken);
     if (uToneMap > 0.5 && uCurve > 0.5) L = vec3(1.0) - exp(-max(L, vec3(0.0)) / uWhitePoint * uExposure);
     // r14: layered-tier display-space shoulder. The 6-sheet zenith stack accumulates
     // tone-curved radiance to 0.90-0.96 pre-OETF (245-253 display; >50% of a zenith-view
@@ -364,8 +406,8 @@ ${CL_ATMOS_CHUNK}
     // below the procedural tier's lit cores). Linear-HDR out (uCurve=0) and PMREM
     // (uToneMap=0) are exempt: ACES handles those (clouds_hdr_check.py verified).
     if (uToneMap > 0.5 && uCurve > 0.5) {
-      vec3 over = max(L - vec3(0.70), vec3(0.0));
-      L = min(L, vec3(0.70)) + vec3(0.15) * over / (over + vec3(0.15));
+      vec3 over = max(L - vec3(0.78), vec3(0.0));
+      L = min(L, vec3(0.78)) + vec3(0.18) * over / (over + vec3(0.18));
     }
     // horizon fog band — same POST-curve linear mix as the dome (the dome mixes uFogColor into
     // its tonemapped L; matching it here removes the tone-order seam: pre-curve, fogColor 0.83
@@ -408,6 +450,10 @@ export function createCloudLayer({ renderer, sky }) {
     uBaseKm: { value: 2.5 },
     uHeightKm: { value: 1.2 },
     uWindOffset: { value: new THREE.Vector2(0, 0) },
+    uSeedOffset: { value: new THREE.Vector2(0, 0) },
+    uWeatherSun: { value: 1 },
+    uWeatherHemi: { value: 1 },
+    uCloudDarken: { value: 0 },
     uNightAmount: { value: 0 },
     uMoonDir: { value: new THREE.Vector3(0, -1, 0) },
     uSheetCount: { value: CL_SHEET_COUNT },
@@ -502,7 +548,15 @@ export function createCloudLayer({ renderer, sky }) {
     uniforms.uShapeTex.value = tex;
   }
 
-  // ---- layered sheets: coverage-remapped alpha + Sobel normal-from-alpha, from the SAME noise ----
+  // ---- r18 buildSheets: coverage EXACT BY CONSTRUCTION (audit P0-4) ----
+  // The r13/r14 knee-tuning iterations could not fix the solid-lid (6 sheets compound (1-c)^6
+  // and soft veils are amplified to near-white by the exposure curve + premultiplied composite).
+  // Now: (1) per-sheet MEAN coverage target c_s = 1-(1-C)^(1/6) so the composite 1-prod(1-a_i)
+  // equals the weather-anchored C by construction; (2) the threshold comes from the ACTUAL
+  // field histogram (quantile), not a hand-tuned constant; (3) near-binary masks with a soft
+  // edge (soft veils were the amplifier); (4) mean normalized to exactly c_s after build.
+  // Instrumented: lastSheetsStats records per-sheet mean + composite for the E2E gate.
+  let lastSheetsStats = null;
   function buildSheets() {
     const R = CL_SHAPE_RES, N = CL_SHEET_COUNT, W = CL_SHEET_ATLAS_W;
     const canvas = document.createElement('canvas');
@@ -511,31 +565,103 @@ export function createCloudLayer({ renderer, sky }) {
     const img = ctx.createImageData(W, W * N);
     const src = noiseCPU;
     const dens = uniforms.uDensity.value, cov = uniforms.uCoverage.value;
+    const so = seedOffset(currentSeed);
+    const cSheet = 1 - Math.pow(1 - Math.min(0.98, cov), 1 / N);   // per-sheet mean target
+    const stats = { coverage: cov, cSheet, sheets: [], composite: 1 };
     for (let i = 0; i < N; i++) {
-      const z = Math.min(R - 1, Math.round((i + 0.5) * R / N));
+      const z = Math.min(R - 1, Math.round(((i + 0.5) * R / N + so[2]) % R));
       const base = new Float32Array(R * R), worFbm = new Float32Array(R * R);
       for (let y = 0; y < R; y++) for (let x = 0; x < R; x++) {
         const k = (z * R * R + y * R + x) * 4;
         base[y * R + x] = src[k] / 255;
         worFbm[y * R + x] = (src[k + 1] * 0.625 + src[k + 2] * 0.25 + src[k + 3] * 0.125) / 255;
       }
-      const hn = (i + 0.5) / N;
-      const prof = satJs(remapJs(hn, 0.0, 0.12, 0.0, 1.0)) * satJs(remapJs(hn, 1.0, 0.30, 0.0, 1.0));
-      const alpha = new Float32Array(W * W);
+      // coverage field on the W-res grid (seed-translated coords, bilinear from the 128^3 tile)
+      const field = new Float32Array(W * W);
       for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
-        const fx = x / (W - 1) * (R - 1), fy = y / (W - 1) * (R - 1);
-        const x0 = fx | 0, y0 = fy | 0, x1 = Math.min(R - 1, x0 + 1), y1 = Math.min(R - 1, y0 + 1);
+        const fx = (x / (W - 1) * (R - 1) + so[0]) % R, fy = (y / (W - 1) * (R - 1) + so[1]) % R;
+        const x0 = fx | 0, y0 = fy | 0, x1 = (x0 + 1) % R, y1 = (y0 + 1) % R;
         const tx = fx - x0, ty = fy - y0;
         const smp = f => f[y0 * R + x0] * (1 - tx) * (1 - ty) + f[y0 * R + x1] * tx * (1 - ty)
                        + f[y1 * R + x0] * (1 - tx) * ty + f[y1 * R + x1] * tx * ty;
-        let b = remapJs(smp(base), smp(worFbm) - 1.0, 1.0, 0.0, 1.0);
-        b = remapJs(b, 1.0 - Math.pow(Math.min(1, cov), 1.6), 1.0, 0.0, 1.0);   // r13 tune: cov^1.6 — 6 sheets compound their coverage ((1-c)^6), so per-sheet coverage must be sparse at mid user coverage or the fallback reads as a solid white lid (was: 96% sky coverage + h-std 0 at user 0.5)
-        alpha[y * W + x] = Math.min(1, dens) * b * prof;
+        field[y * W + x] = remapJs(smp(base), smp(worFbm) - 1.0, 1.0, 0.0, 1.0);
       }
-      // Sobel of alpha -> normal (tangent-plane x/z, packed *0.5+0.5), RGBA8 into the atlas row
+      // LOW-PASS the field first (r18 it2): thresholding the raw perlin-worley at the 97%
+      // quantile yields the field's TIPS — a dust of 4-12px specks that no mip level holds
+      // (measured: effective 18% rendered as an invisible ~5/255 veil even with the textureGrad
+      // clamp). Real scattered cumulus = FEW BIG solid blobs: blur, then threshold -> a few
+      // large islands whose size survives the mip chain. Two wrapped box passes ~= triangular.
+      const RB = 10;
+      let blurred = field;
+      for (let pass = 0; pass < 2; pass++) {
+        const out = new Float32Array(W * W);
+        for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+          let acc = 0;
+          for (let k = -RB; k <= RB; k++) {
+            acc += blurred[y * W + ((x + k + W) % W)];
+          }
+          out[y * W + x] = acc / (2 * RB + 1);
+        }
+        const out2 = new Float32Array(W * W);
+        for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+          let acc = 0;
+          for (let k = -RB; k <= RB; k++) {
+            acc += out[((y + k + W) % W) * W + x];
+          }
+          out2[y * W + x] = acc / (2 * RB + 1);
+        }
+        blurred = out2;
+      }
+      // histogram threshold at the (1-c_s) quantile of the ACTUAL (blurred) field
+      const sorted = Float32Array.from(blurred).sort();
+      const thr = sorted[Math.min(sorted.length - 1, Math.max(0, Math.round((1 - cSheet) * (sorted.length - 1))))];
+      const edge = Math.max(0.015, 0.045 * (1 - cSheet));            // soft edge widens with sparsity (r18 QA: crisper masses)
+      // near-binary mask; scale solved by BISECTION so the CLAMPED mean is exactly the target
+      // (a plain normalize-then-clamp loses mass when the sparse field's scale overshoots 1.0 —
+      // measured 0.021 vs the 0.0325 target on the first r18 build)
+      const target = Math.min(0.98, cSheet * Math.min(1.5, Math.max(0.25, dens)));
+      let alpha = new Float32Array(W * W);
+      for (let k = 0; k < alpha.length; k++) alpha[k] = satJs((blurred[k] - thr) / edge);
+      // morphological OPEN (erode+dilate 3x3) — kills the 1-6px speck fragments the VLM QA
+      // flagged; wrapped so the tile stays seamless
+      {
+        const er = new Float32Array(W * W);
+        for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+          let m = 1;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++)
+            m = Math.min(m, alpha[((y + dy + W) % W) * W + ((x + dx + W) % W)]);
+          er[y * W + x] = m;
+        }
+        const di = new Float32Array(W * W);
+        for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+          let m = 0;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++)
+            m = Math.max(m, er[((y + dy + W) % W) * W + ((x + dx + W) % W)]);
+          di[y * W + x] = m;
+        }
+        alpha = di;
+      }
+      let lo = 0, hi = 16;
+      for (let it = 0; it < 28; it++) {
+        const mid = (lo + hi) / 2;
+        let m = 0;
+        for (let k = 0; k < alpha.length; k++) m += Math.min(1, alpha[k] * mid);
+        m /= alpha.length;
+        if (m < target) lo = mid; else hi = mid;
+      }
+      const scale = (lo + hi) / 2;
+      for (let k = 0; k < alpha.length; k++) alpha[k] = Math.min(1, alpha[k] * scale);
+      const got = alpha.reduce((a, b) => a + b, 0) / alpha.length;
+      stats.sheets.push(+got.toFixed(4));
+      stats.composite *= (1 - got);
+      // normals from the SHARP field mask (pre-blur): the blurred alpha's Sobel is too smooth —
+      // the sheets rendered as flat un-shaded blobs (VLM r18 QA). Coverage stays blurred; the
+      // relief detail comes from the sharp field edges.
+      const detail = new Float32Array(W * W);
+      for (let k = 0; k < detail.length; k++) detail[k] = satJs((field[k] - thr) / edge);
       const row = img.data.subarray(i * W * W * 4, (i + 1) * W * W * 4);
       for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
-        const a = (dy, dx) => alpha[((y + dy + W) % W) * W + ((x + dx + W) % W)];
+        const a = (dy, dx) => detail[((y + dy + W) % W) * W + ((x + dx + W) % W)];
         const gx = a(-1, -1) + 2 * a(0, -1) + a(1, -1) - a(-1, 1) - 2 * a(0, 1) - a(1, 1);
         const gy = a(-1, -1) + 2 * a(-1, 0) + a(-1, 1) - a(1, -1) - 2 * a(1, 0) - a(1, 1);
         const k = (y * W + x) * 4;
@@ -545,11 +671,14 @@ export function createCloudLayer({ renderer, sky }) {
         row[k + 3] = Math.round(255 * alpha[y * W + x]);
       }
     }
+    stats.composite = 1 - stats.composite;
+    lastSheetsStats = stats;
     ctx.putImageData(img, 0, 0);
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.minFilter = tex.magFilter = THREE.LinearFilter;
-    tex.generateMipmaps = false;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;   // r18: mipmaps + the textureGrad texel clamp
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = true;
     tex.colorSpace = THREE.NoColorSpace;
     sheetAtlas = tex;
     uniforms.uSheetAtlas.value = tex;
@@ -560,6 +689,7 @@ export function createCloudLayer({ renderer, sky }) {
   let paramKey = '', windClock = null, windSpeed = 0.2 * CL_WIND_UV_PER_UNIT;
   let sheetsKey = '';                                 // r13 audit P2: atlas bakes coverage/density — rebuild on change
   let geoAltitudeM = 0;
+  let currentSeed = 0;
   const _cam = new THREE.Vector3();
 
   function setParams(p = {}) {
@@ -573,6 +703,10 @@ export function createCloudLayer({ renderer, sky }) {
       nightAmt: p.nightAmt ?? u.uNightAmount.value,
       desat: p.weatherDesat ?? u.uWeatherDesat.value,
       darken: p.weatherDarken ?? u.uWeatherDarken.value,
+      seed: p.seed ?? 0,
+      weatherSun: p.weatherSun ?? 1,
+      weatherHemi: p.weatherHemi ?? 1,
+      cloudDarken: p.cloudDarken ?? 0,
       fogBlend: p.fogBlend ?? u.uFogBlend.value,
       exposure: p.exposure ?? u.uExposure.value,
       windSpeed: p.windSpeed ?? null,
@@ -581,7 +715,8 @@ export function createCloudLayer({ renderer, sky }) {
     const key = [next.coverage.toFixed(4), next.density.toFixed(4), next.cirrus.toFixed(4),
       next.baseKm.toFixed(3), next.heightKm.toFixed(3), next.nightAmt.toFixed(4),
       next.desat.toFixed(4), next.darken.toFixed(4), next.fogBlend.toFixed(4),
-      next.exposure.toFixed(3)].join('|');
+      next.exposure.toFixed(3), next.seed, next.weatherSun.toFixed(3),
+      next.weatherHemi.toFixed(3), next.cloudDarken.toFixed(3)].join('|');
     const changed = key !== paramKey;
     paramKey = key;
     u.uCoverage.value = next.coverage;
@@ -595,13 +730,21 @@ export function createCloudLayer({ renderer, sky }) {
     u.uFogBlend.value = next.fogBlend;
     u.uExposure.value = next.exposure;
     if (typeof next.windSpeed === 'number') windSpeed = Math.max(0, next.windSpeed) * CL_WIND_UV_PER_UNIT;
+    // r18 seed: translate the tileable pattern family (statistically equivalent new draw).
+    // Sheets bake it into the atlas coordinates (CPU); cirrus samples it directly (GPU).
+    const so = seedOffset(next.seed);
+    u.uSeedOffset.value.set(so[0], so[1]);
+    u.uWeatherSun.value = next.weatherSun;
+    u.uWeatherHemi.value = next.weatherHemi;
+    u.uCloudDarken.value = next.cloudDarken;
     if (typeof next.geoAltitudeM === 'number') geoAltitudeM = next.geoAltitudeM;
     if (p.fogColor) u.uFogColor.value.copy(p.fogColor);
     if (p.moonDir) u.uMoonDir.value.copy(p.moonDir);
     // r13 audit P2: the layered atlas bakes coverage/density at build time — rebuild when they
     // change in layered mode (CPU-side 256xN, ~2-5 ms; the sliders stay live)
+    currentSeed = next.seed;
     if (enabled && noiseCPU) {
-      const sk = next.coverage.toFixed(4) + '|' + next.density.toFixed(4);
+      const sk = next.coverage.toFixed(4) + '|' + next.density.toFixed(4) + '|' + next.seed;
       if (sk !== sheetsKey) { sheetsKey = sk; buildSheets(); }
     }
     return changed;
@@ -663,6 +806,7 @@ export function createCloudLayer({ renderer, sky }) {
     dispose, dumpWeather,
     get enabled() { return enabled; },
     materials: { cloud: material },
-    _debug: { get shapeTex() { return shapeTex; }, get noiseCPU() { return noiseCPU; }, uniforms },
+    _debug: { get shapeTex() { return shapeTex; }, get noiseCPU() { return noiseCPU; }, uniforms,
+      get lastSheetsStats() { return lastSheetsStats; }, get seed() { return currentSeed; } },
   };
 }

@@ -197,6 +197,7 @@ function normLight(t) { // g6r/N8r/SDe — round 6: geo/weather/indoor/ambient/m
     if (Number.isFinite(l.clouds.thicknessM)) c.thicknessM = Math.min(4000, Math.max(200, l.clouds.thicknessM));
     if (Number.isFinite(l.clouds.cirrus)) c.cirrus = Math.min(1, Math.max(0, l.clouds.cirrus));
     if (Number.isFinite(l.clouds.windSpeed)) c.windSpeed = Math.min(3, Math.max(0, l.clouds.windSpeed));
+    if (Number.isFinite(l.clouds.seed)) c.seed = Math.min(999, Math.max(0, Math.round(l.clouds.seed)));   // r18: coverage-pattern seed
     n.clouds = c;
   }
   // round 13 (HDR): tone mapping + bloom — emitted ONLY when enabled===true (absence = off =

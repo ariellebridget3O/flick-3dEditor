@@ -122,6 +122,7 @@ export function sunDirection(light) {
 const _tint = new THREE.Color(), _white = new THREE.Color(1, 1, 1);
 const _moonRight = new THREE.Vector3();
 const SKY_FOG_BLEND = { clear: 0.06, cloudy: 0.2, overcast: 0.32, rain: 0.45, fog: 0.85 };
+const SKY_FOG_WEATHER_DIM = { clear: 0, cloudy: 0.01, overcast: 0.03, rain: 0.05, fog: 0.04 };   // r18: realistic-dome horizon band only (sub-notice: a larger dim showed a hard seam vs the un-dimmed floor fog at the horizon line — the floor fog must stay classic-exact)
 function buildSkyParams(light, fogColor, g) {
   const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;
   const gg = g ?? daylightAt(light.elevationDeg);
@@ -144,7 +145,10 @@ function buildSkyParams(light, fogColor, g) {
     weather: light.weather,
     nightAmt, moonDir,
     weatherDesat: w.desat, weatherDarken: w.darken,
-    fogColor: fogColor ? fogColor.clone() : new THREE.Color(0xffffff),
+    // r18 (VLM QA): the realistic dome's horizon band dims with the weather (the shared
+    // scene.fog.color stays byte-exact for the classic oracle path — this is dome-only)
+    fogColor: (fogColor ? fogColor.clone() : new THREE.Color(0xffffff))
+      .multiplyScalar(1 - (SKY_FOG_WEATHER_DIM[light.weather] ?? 0)),
     fogBlend: SKY_FOG_BLEND[light.weather] ?? 0.06,
     sunDiscL: new THREE.Vector3(30, 30, 30),
     exposure: C.SKY_EXPOSURE,
@@ -152,14 +156,18 @@ function buildSkyParams(light, fogColor, g) {
 }
 
 // ---------- clouds (P2): params from light.clouds + weather coupling (realistic branch only) ----------
-// r13 tune: the USER coverage is authoritative; weather modulates ±30% max. The old anchoring
-// (userCov × weatherCov/0.45) crushed clear weather to ×0.4 — user 0.5 rendered as 0.2 and the
-// deck dissolved into wisps. Overcast/rain factors still reach 1.0 at high user coverage.
-const CLOUD_COV_FACTOR = { clear: 0.85, cloudy: 1.15, overcast: 1.3, rain: 1.35, fog: 1.2 };
+// r18 rework: WEATHER is the primary coverage driver (user feedback: 'from clear to overcast
+// to rain / fog (100% coverage) with color changes'). effective = anchor[weather] x userFactor
+// (user slider / schema default = a RELATIVE control now), clamped to the rain/fog floors.
+// Cloud lighting follows the scene weather (Lc x w.sun, msAmb x w.hemi — audit P1-10) plus a
+// residual per-weather cloud darken for the overcast/rain gray-lid look.
 function buildCloudParams(light, sp) {     // sp = buildSkyParams bundle (shares night/moon/fog)
   const cl = light.clouds ?? {};
-  const wFac = CLOUD_COV_FACTOR[light.weather] ?? 1;
-  const coverage = Math.min(1, Math.max(0, (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT) * wFac));
+  const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;
+  const anchor = C.CLOUD_COVERAGE_BY_WEATHER[light.weather] ?? 0.45;
+  const floor = C.CLOUD_COVERAGE_FLOOR[light.weather] ?? 0;
+  const userFactor = (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT) / C.CLOUD_COVERAGE_DEFAULT;
+  const coverage = Math.min(1, Math.max(floor, anchor * userFactor));
   return {
     coverage,
     density: cl.density ?? 1,
@@ -167,10 +175,14 @@ function buildCloudParams(light, sp) {     // sp = buildSkyParams bundle (shares
     baseKm: (cl.altitudeM ?? 2500) / 1000,
     heightKm: (cl.thicknessM ?? 1200) / 1000,
     windSpeed: cl.windSpeed ?? 0.2,
+    seed: cl.seed ?? 0,
     nightAmt: sp.nightAmt,
     moonDir: sp.moonDir,
     weatherDesat: sp.weatherDesat,
     weatherDarken: sp.weatherDarken,
+    weatherSun: w.sun,
+    weatherHemi: w.hemi,
+    cloudDarken: C.CLOUD_WEATHER_DARKEN[light.weather] ?? 0,
     fogColor: sp.fogColor,
     fogBlend: sp.fogBlend,
     exposure: sp.exposure,
@@ -271,7 +283,7 @@ export function createEnvironment(scene, settings) {
     const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;      // round 6 (D5)
     const indoor = !!light.indoor;                              // round 6 (D7)
     const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0) + '|s' + skyStyle
-      + '|c' + (light.clouds?.enabled ? [light.clouds.mode, light.clouds.coverage, light.clouds.density, light.clouds.altitudeM, light.clouds.thicknessM, light.clouds.cirrus, light.clouds.windSpeed].join(',') : 'off')   // r13 audit P1: skyStyle in the key
+      + '|c' + (light.clouds?.enabled ? [light.clouds.coverage, light.clouds.density, light.clouds.altitudeM, light.clouds.thicknessM, light.clouds.cirrus, light.clouds.windSpeed, light.clouds.seed ?? 0].join(',') : 'off')   // r13 audit P1: skyStyle in the key (r18: +seed)
       + '|h' + (light.hdr?.enabled ? [light.hdr.exposure, light.hdr.bloom, light.hdr.bloomThreshold, light.hdr.bloomRadius, light.hdr.shadowBoost].join(',') : 'off');   // r13 HDR: memo-key parity with setHdr (shadowBoost r13 review)
     if (key === _lastKey) return glowAmount();
     _lastKey = key;

@@ -82,7 +82,12 @@ export const C = {
   // round 13 (P2): cloud layer — realistic-sky feature (classic stays byte-identical).
   // Weather couples to coverage in env.js's realistic branch ONLY (multiplied against the
   // schema default 0.45 so the table values are the anchors at default coverage).
-  CLOUD_COVERAGE_BY_WEATHER: { clear: 0.18, cloudy: 0.55, overcast: 0.85, rain: 0.9, fog: 0.95 },
+  // r18: weather DRIVES the effective coverage (anchor x user factor coverage/0.45),
+  // with rain/fog floors regardless of the slider (the deck must read coherent with the
+  // rain/fog lighting — audit P1-7 'floors, not force').
+  CLOUD_COVERAGE_BY_WEATHER: { clear: 0.18, cloudy: 0.55, overcast: 0.85, rain: 0.90, fog: 0.95 },
+  CLOUD_COVERAGE_FLOOR: { rain: 0.88, fog: 0.93 },
+  CLOUD_WEATHER_DARKEN: { clear: 0.0, cloudy: 0.0, overcast: 0.16, rain: 0.50, fog: 0.40 },
   CLOUD_COVERAGE_DEFAULT: 0.45,          // schema light.clouds.coverage default
   CLOUD_MODES: ['layered'],              // r18: procedural removed (unusably slow)
   CLOUD_BUDGET_MS: 11,                   // auto-gate: plain+clouds − plain @1080p reference

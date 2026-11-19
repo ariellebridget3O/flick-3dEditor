@@ -392,6 +392,7 @@ function buildLightPopover(app) {
       <label class="lp-row" id="lpDenRow">Density<input id="lpDen" type="range" min="0.25" max="4" step="0.25"><span id="lpDenVal"></span></label>
       <label class="lp-row" id="lpCirRow">Cirrus<input id="lpCir" type="range" min="0" max="1" step="0.05"><span id="lpCirVal"></span></label>
       <div class="lp-date" id="lpCloudDims">Alt m<input id="lpCAlt" type="number" min="500" max="8000" step="100"> Thick m<input id="lpCThk" type="number" min="200" max="4000" step="100"></div>
+      <label class="lp-row" id="lpSeedRow">Seed<input id="lpCSeed" type="number" min="0" max="999" step="1" style="width:4em"><span></span></label>
       <div class="lp-hint" id="lpCloudsHint"></div>
     </div>
     <div class="lp-sec">
@@ -476,8 +477,15 @@ function buildLightPopover(app) {
     const cl = l.clouds ?? { enabled: false, coverage: C.CLOUD_COVERAGE_DEFAULT, density: 1, cirrus: 0.15, altitudeM: 2500, thicknessM: 1200 };
     const cmode = cl.enabled ? 'layered' : 'off';
     const cloudsUsable = l.skyStyle === 'realistic';     // clouds are a realistic-sky feature — classic stays byte-identical
+    // r18: the effective coverage the engine will use (weather anchor x user factor, floored)
+    const effCoverage = ll => {
+      const anchor = C.CLOUD_COVERAGE_BY_WEATHER[ll.weather ?? 'clear'] ?? 0.45;
+      const floor = C.CLOUD_COVERAGE_FLOOR[ll.weather ?? 'clear'] ?? 0;
+      const factor = (ll.clouds?.coverage ?? C.CLOUD_COVERAGE_DEFAULT) / C.CLOUD_COVERAGE_DEFAULT;
+      return Math.min(1, Math.max(floor, anchor * factor));
+    };
     el.querySelectorAll('#lpClouds button').forEach(b => { b.classList.toggle('on', cloudsUsable && b.dataset.c === cmode); b.disabled = !cloudsUsable && b.dataset.c !== 'off'; });
-    const cloudRows = [['lpCovRow', cl.enabled && cloudsUsable], ['lpDenRow', cl.enabled && cloudsUsable], ['lpCirRow', cl.enabled && cloudsUsable], ['lpCloudDims', cl.enabled && cloudsUsable]];
+    const cloudRows = [['lpCovRow', cl.enabled && cloudsUsable], ['lpDenRow', cl.enabled && cloudsUsable], ['lpCirRow', cl.enabled && cloudsUsable], ['lpCloudDims', cl.enabled && cloudsUsable], ['lpSeedRow', cl.enabled && cloudsUsable]];
     for (const [id, vis] of cloudRows) $id(id).style.display = vis ? '' : 'none';
     setVal($id('lpCov'), cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT);
     $id('lpCovVal').textContent = (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT).toFixed(2);
@@ -487,9 +495,10 @@ function buildLightPopover(app) {
     $id('lpCirVal').textContent = (cl.cirrus ?? 0.15).toFixed(2);
     setVal($id('lpCAlt'), cl.altitudeM ?? 2500);
     setVal($id('lpCThk'), cl.thicknessM ?? 1200);
+    setVal($id('lpCSeed'), cl.seed ?? 0);
     $id('lpCloudsHint').textContent = !cloudsUsable ? 'Clouds need the Realistic sky style (classic stays byte-identical).'
       : !cl.enabled ? 'Clear sky (default).'
-      : 'Parallax sheet clouds, weather-coupled (r18).';
+      : 'Sheets on the dome; weather drives coverage: now ' + Math.round(100 * effCoverage(l)) + '% (' + (l.weather ?? 'clear') + ').';
     // round 13 (HDR): tone mapping + bloom — off by default (absence = classic look)
     const hdr = l.hdr ?? { enabled: false, ...C.HDR_DEFAULTS };
     el.querySelectorAll('#lpHdr button').forEach(b => b.classList.toggle('on', b.dataset.h === (hdr.enabled ? 'on' : 'off')));
@@ -582,7 +591,7 @@ function buildLightPopover(app) {
   el.querySelectorAll('#lpWeather button').forEach(b => b.onclick = () => { commit(() => app.setWeather(b.dataset.w)); render(); });
   // round 10 (skybox P1): sky style toggle
   el.querySelectorAll('#lpSky button').forEach(b => b.onclick = () => { commit(() => app.setSkyStyle(b.dataset.s)); render(); });
-  // round 13 (P2): clouds — seg = Off/Procedural/Layered; sliders live-drag uniforms, commit on pointerup
+  // clouds — seg = Off/Layered (r18: procedural removed); sliders live-drag uniforms, commit on pointerup
   el.querySelectorAll('#lpClouds button').forEach(b => b.onclick = () => {
     const c = b.dataset.c;
     commit(() => {
@@ -612,6 +621,7 @@ function buildLightPopover(app) {
   };
   cloudNum('lpCAlt', 'altitudeM');
   cloudNum('lpCThk', 'thicknessM');
+  cloudNum('lpCSeed', 'seed');   // r18: coverage-pattern seed
   // round 13 (HDR): seg = Off/On; sliders live-drag the render params, commit on pointerup
   el.querySelectorAll('#lpHdr button').forEach(b => b.onclick = () => {
     commit(() => app.setHdr({ enabled: b.dataset.h === 'on' }));
