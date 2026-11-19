@@ -1339,13 +1339,13 @@ function wireTimelineInteractions(app, lanes, pps, magnet, layout) {
   lanes.querySelectorAll('.lane-head').forEach(h => {
     h.addEventListener('click', e => {
       if (e.target.closest('.lane-del')) return;
-      const tr = app.show.tracks.find(t => t.id === h.parentElement.dataset.track);
+      const tr = app.show.show.tracks.find(t => t.id === h.parentElement.dataset.track);
       if (!tr) return;
       app.show.selectTrack(tr.id);
       refreshTimeline(app);
     });
     h.addEventListener('dblclick', e => {
-      const tr = app.show.tracks.find(t => t.id === h.parentElement.dataset.track);
+      const tr = app.show.show.tracks.find(t => t.id === h.parentElement.dataset.track);
       if (tr) app.focusObject(tr.characterId);
     });
   });

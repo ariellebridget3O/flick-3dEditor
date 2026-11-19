@@ -40,9 +40,9 @@ export function createMonitor(app) {
       <div class="mon-field" title="Timecode">TC <span class="mon-tc">00:00:00:00</span></div>
       <button class="mon-field mon-rig" aria-label="Camera rig (Tab)"></button>
       <button class="mon-field mon-speed" aria-label="Speed (Z/X)"></button>
-      <div class="mon-menufield">
+      <div class="mon-menufield mon-weight-field">
         <button class="mon-field mon-weight" aria-label="Weight ([ / ])" aria-expanded="false"></button>
-        <div class="mon-menu mon-menu-down" style="display:none">
+        <div class="mon-menu mon-menu-down mon-weight-menu" style="display:none">
           <div class="mon-weight-panel">
             <div class="mon-weight-row"><span>Weight <span class="mon-weight-rig"></span></span><span class="mon-weight-value"></span></div>
             <input class="mon-weight-range" type="range">
@@ -53,9 +53,9 @@ export function createMonitor(app) {
       <div class="mon-field mon-height" title="Height (Q/E)"></div>
       <div class="mon-field mon-focal" title="Focal (O/P + wheel)"></div>
       <div class="mon-spacer"></div>
-      <div class="mon-menufield">
+      <div class="mon-menufield mon-aspect-field">
         <button class="mon-field mon-aspect" aria-expanded="false"></button>
-        <div class="mon-menu" style="display:none"></div>
+        <div class="mon-menu mon-aspect-menu" style="display:none"></div>
       </div>
     </div>
     <div class="mon-bar mon-bottom">
@@ -71,10 +71,10 @@ export function createMonitor(app) {
   const q = sel => mon.querySelector(sel);
   const els = {
     state: q('.mon-state'), tc: q('.mon-tc'), rig: q('.mon-rig'), speed: q('.mon-speed'),
-    weight: q('.mon-weight'), weightMenu: q('.mon-menu-down'), weightRig: q('.mon-weight-rig'),
+    weight: q('.mon-weight'), weightMenu: q('.mon-weight-menu'), weightRig: q('.mon-weight-rig'),
     weightValue: q('.mon-weight-value'), weightRange: q('.mon-weight-range'),
     height: q('.mon-height'), focal: q('.mon-focal'), aspect: q('.mon-aspect'),
-    aspectMenu: q('.mon-menufield .mon-menu'), grid: q('.mon-grid'), level: q('.mon-level'),
+    aspectMenu: q('.mon-aspect-menu'), grid: q('.mon-grid'), level: q('.mon-level'),
     levelLine: q('.mon-level-line'), record: q('.mon-record'), back: q('.mon-back'),
     gridToggle: q('.mon-grid-toggle'), levelToggle: q('.mon-level-toggle'),
   };
@@ -138,11 +138,15 @@ export function createMonitor(app) {
     window.addEventListener('pointerup', () => a.blur(), { once: true });
   });
 
-  // ---- Je @5655723: click the viewport → pointer lock (mouse look) ----
+  // ---- Je @5655723: click the CANVAS → pointer lock (the live wires s.domElement — monitor
+  // buttons never trigger it). requestPointerLock throws without a user gesture (synthetic
+  // events, headless) — guard (SKILL #53 pattern). ----
+  const canvas = app.renderer.domElement;
   const onClickLock = () => {
-    if (app.page.mode === 'camera' && !app._look?.isLocked) app._look?.lock();
+    if (app.page.mode !== 'camera' || app._look?.isLocked) return;
+    try { app._look?.lock(); } catch { /* no gesture / not allowed — ignore */ }
   };
-  mon.addEventListener('click', onClickLock);
+  canvas.addEventListener('click', onClickLock);
 
   // ---- per-frame update (the React render path — polled fields only, SKILL #63 discipline) ----
   let lastRig = null, lastSpeed = null, lastWeight = null, lastFocal = null, lastAspect = null;
@@ -191,5 +195,5 @@ export function createMonitor(app) {
 
   app._monitorRender = render;
   app._monitorToggleMenu = toggleMenu;
-  return { render, dispose: () => { mon.remove(); mon.removeEventListener('click', onClickLock); } };
+  return { render, dispose: () => { mon.remove(); canvas.removeEventListener('click', onClickLock); } };
 }
