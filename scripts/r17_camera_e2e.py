@@ -84,55 +84,58 @@ r = parse(ev_file("t1b", r"""
   monitorVisible: getComputedStyle(document.querySelector('.monitor')).display,
   guideVisible: document.getElementById('frameGuide').style.display,
 }))()""", wait=0.4))
-check("T1 monitor+guide visible", r.get("monitorVisible") == "block" and r.get("guideVisible") == "block", json.dumps(r))
+check("T1 monitor visible (guide hidden — the monitor frame owns the geometry)", r.get("monitorVisible") == "block" and r.get("guideVisible") == "none", json.dumps(r))
 
 # ---------------------------------------------------------------- T2 drive physics
+RIGG = "{ speedMps: 1.8, startEaseS: .35, stopEaseS: .18, lookEaseS: .18, stickCurve: 1.3, level: true, shake: 'off', turnRoll: 0, strafeRoll: 0, rollEaseS: .6 }"
 r = parse(ev_file("t2", r'''
 (() => {
   const a = window.__app;
   const out = {};
-  // (a) 1s of W at gimbal: moves forward along the takeOver facing, eased ramp
+  const RIGG = ''' + RIGG + r''';
   const p0 = a._driveCam.position.toArray();
-  const q0 = a._driveCam.quaternion.toArray();
-  const rig = JSON.parse(JSON.stringify(window.__app.rigs && { s: 1 }));  // placeholder unused
-  for (let i = 0; i < 60; i++) a.driveTickDirect ? null : a._drive.tick(1/60, {
-    rig: { speedMps: 1.8, startEaseS: .35, stopEaseS: .18, lookEaseS: .18, stickCurve: 1.3, level: true, shake: 'off', turnRoll: 0, strafeRoll: 0, rollEaseS: .6 },
-    stickX: 0, stickY: 1, vertical: 0, shift: false, speedMps: 1.8, panDegPerS: 20 });
+  // (a) 1s of W at gimbal (eased ramp)
+  for (let i = 0; i < 60; i++) a._drive.tick(1/60, { rig: RIGG, stickX: 0, stickY: 1, vertical: 0, shift: false, speedMps: 1.8, panDegPerS: 20 });
   const p1 = a._driveCam.position.toArray();
   out.gimbalFwd = +Math.hypot(p1[0]-p0[0], p1[1]-p0[1], p1[2]-p0[2]).toFixed(3);
-  // forward = the drive cam's -Z at entry
-  const e = new Float32Array(a._driveCam ? 0 : 0); // skip
-  out.movedForward = p1[2] !== p0[2] || p1[0] !== p0[0];
-  // (b) shift scales the STICK (eWr .4): same 60 ticks with shift → ~0.4× the distance
+  // (b) shift scales the STICK (eWr .4)
   a._drive.reset(); a._driveCam.position.set(...p0);
-  for (let i = 0; i < 60; i++) a._drive.tick(1/60, {
-    rig: { speedMps: 1.8, startEaseS: .35, stopEaseS: .18, lookEaseS: .18, stickCurve: 1.3, level: true, shake: 'off', turnRoll: 0, strafeRoll: 0, rollEaseS: .6 },
-    stickX: 0, stickY: 1, vertical: 0, shift: true, speedMps: 1.8, panDegPerS: 20 });
+  for (let i = 0; i < 60; i++) a._drive.tick(1/60, { rig: RIGG, stickX: 0, stickY: 1, vertical: 0, shift: true, speedMps: 1.8, panDegPerS: 20 });
   const p2 = a._driveCam.position.toArray();
   out.shiftFwd = +Math.hypot(p2[0]-p0[0], p2[1]-p0[1], p2[2]-p0[2]).toFixed(3);
   out.shiftRatio = +(out.shiftFwd / Math.max(1e-6, out.gimbalFwd)).toFixed(3);
-  // (c) q/e vertical moves y
+  // (c) q/e vertical
   a._drive.reset(); a._driveCam.position.set(...p0);
-  for (let i = 0; i < 60; i++) a._drive.tick(1/60, {
-    rig: { speedMps: 1.8, startEaseS: .35, stopEaseS: .18, lookEaseS: .18, stickCurve: 1.3, level: true, shake: 'off', turnRoll: 0, strafeRoll: 0, rollEaseS: .6 },
-    stickX: 0, stickY: 0, vertical: 1, shift: false, speedMps: 1.8, panDegPerS: 20 });
-  const p3 = a._driveCam.position.toArray();
-  out.verticalDy = +(p3[1] - p0[1]).toFixed(3);
-  // (d) tripod: pan springs (panDegPerS 20) rotate yaw with stickX; no translation
+  for (let i = 0; i < 60; i++) a._drive.tick(1/60, { rig: RIGG, stickX: 0, stickY: 0, vertical: 1, shift: false, speedMps: 1.8, panDegPerS: 20 });
+  out.verticalDy = +(a._driveCam.position.y - p0[1]).toFixed(3);
+  // (d) tripod pan: springs rotate the AIM; the CAM yaw follows — magnitude ≈ the 1s pan angle
+  //     (P0-1 regression: was 5× overshoot before the Yrt(O.value,V.y,1) fix)
   a._drive.reset(); a._driveCam.position.set(...p0);
   const yaw0 = a._drive.yaw.value;
   for (let i = 0; i < 60; i++) a._drive.tick(1/60, {
     rig: { speedMps: 0, startEaseS: .35, stopEaseS: .2, lookEaseS: .2, stickCurve: 1.4, level: true, shake: 'off', turnRoll: 0, strafeRoll: 0, rollEaseS: .6 },
-    stickX: 1, stickY: 0, vertical: 1, shift: false, speedMps: 0, panDegPerS: 20 });
+    stickX: 1, stickY: 0, vertical: 0, shift: false, speedMps: 0, panDegPerS: 20 });
+  out.tripodAimYaw = +(a._drive.euler.y - yaw0).toFixed(4);    // ~ -20° = -.349 rad (pan right = -yaw)
+  out.tripodCamYaw = +a._drive.yaw.value.toFixed(4);           // springs track the aim (lookEase .2)
+  out.tripodCamTracksAim = Math.abs(out.tripodCamYaw - out.tripodAimYaw) < 0.12;
   const p4 = a._driveCam.position.toArray();
-  out.tripodYawDelta = +(a._drive.yaw.value - yaw0).toFixed(4);
   out.tripodMoved = +Math.hypot(p4[0]-p0[0], p4[1]-p0[1], p4[2]-p0[2]).toFixed(4);
+  // (e) P0-1 regression: mouse-look yaw — rotate the AIM, the cam yaw follows (was DEAD)
+  a._drive.reset();
+  const q = a._driveAim.quaternion;
+  a._driveAim.quaternion.setFromEuler(new (Object.getPrototypeOf(a._drive.euler).constructor)(0, 0.5, 0, 'YXZ'));
+  for (let i = 0; i < 120; i++) a._drive.tick(1/60, { rig: RIGG, stickX: 0, stickY: 0, vertical: 0, shift: false, speedMps: 1.8, panDegPerS: 20 });
+  out.lookYawFollow = +a._drive.yaw.value.toFixed(4);          // ≈ 0.5 (springs to the aim's yaw)
+  out.lookYawFollows = Math.abs(out.lookYawFollow - 0.5) < 0.05;
   return JSON.stringify(out);
 })()'''))
 check("T2 drive gimbal fwd", r.get("gimbalFwd", 0) > 0.3 and r.get("gimbalFwd", 0) < 1.8, json.dumps(r))
 check("T2 shift stick ~0.4×", 0.1 < r.get("shiftRatio", 0) < 0.75, json.dumps(r))
 check("T2 q/e vertical", r.get("verticalDy", 0) > 0.3, json.dumps(r))
-check("T2 tripod pan (yaw, no move)", r.get("tripodYawDelta", 0) != 0 and abs(r.get("tripodMoved", 1)) < 1e-6, json.dumps(r))
+check("T2 tripod pan (eased 1s aim -0.2311rad, cam tracks, no move)",
+      abs(r.get("tripodAimYaw", 0) + 0.2311) < 0.05 and r.get("tripodCamTracksAim") and abs(r.get("tripodMoved", 1)) < 1e-6,
+      json.dumps(r))
+check("T2 mouse-look yaw follows (P0-1 regression)", r.get("lookYawFollows"), json.dumps(r))
 
 # ---------------------------------------------------------------- T3 rig shake (oEr wakes)
 r = parse(ev_file("t3", r'''
@@ -427,6 +430,50 @@ r = parse(ev_file("t10", r'''
   return JSON.stringify(out);
 })()''', wait=0.3))
 check("T10 R toast", r.get("mode") == "camera" and r.get("toastShown"), json.dumps(r))
+
+# ---------------------------------------------------------------- T11 review-fix battery
+r = parse(ev_file("t11", r'''
+(() => {
+  const a = window.__app;
+  const out = {};
+  const camId = Object.entries(a.objects.all()).find(([id, o]) => o.kind === 'camera')[0];
+  a.armManualFlight(camId); a.startFilming(camId);
+  // P1-1: zoom changes the viewfinder fov (UGr reactive effect)
+  const fov0 = a.camera.fov;
+  a.setFocalLengthMm(90);
+  a.updateFrameGuide();
+  out.fovZoom = +(a.camera.fov).toFixed(2);
+  out.fovChanged = Math.abs(a.camera.fov - fov0) > 1;
+  a.setFocalLengthMm(35); a.updateFrameGuide();
+  // P1-2: modifiers don't fire rig keys (NGt) — Ctrl+Z during camera mode = undo only
+  a.rigs.setRig('gimbal', a.rigs.peekSpeeds());
+  const spdBefore = a.rigs.speedMps;
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+  out.ctrlZNoSpeedChange = a.rigs.speedMps === spdBefore;
+  // P1-3: canvas click in camera mode does NOT select/pick (ua gate)
+  const sel0 = a.objects.selectedIds.length;
+  a.manipulator._pick ? null : null;   // direct: simulate the pointerup gate
+  // (the gate is in the handler; assert the invariant differently — the click-to-lock path
+  //  must not select. Fire a real click on the canvas.)
+  const canvas = a.renderer.domElement;
+  canvas.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  out.clickNoSelect = a.objects.selectedIds.length === sel0;
+  // P2-1: the delete keymap is edit-only — Delete in camera mode does nothing
+  const tracks0 = a.show.show.tracks.length;
+  a.page.selectedTrack = { trackId: a.show.show.tracks[0].id };
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+  out.deleteGated = a.show.show.tracks.length === tracks0;
+  a.page.selectedTrack = null;
+  // P2-2: the edit toolbar is hidden in camera mode
+  out.toolbarHidden = getComputedStyle(document.getElementById('editToolbar')).display === 'none';
+  a.exitCameraMode();
+  return JSON.stringify(out);
+})()''', wait=0.4))
+check("T11 zoom fov (P1-1)", r.get("fovChanged") and r.get("fovZoom", 90) < 65, json.dumps(r))
+check("T11 ctrl+Z no rig change (P1-2)", r.get("ctrlZNoSpeedChange"), json.dumps(r))
+check("T11 canvas click no select (P1-3)", r.get("clickNoSelect"), json.dumps(r))
+check("T11 delete gated (P2-1)", r.get("deleteGated"), json.dumps(r))
+check("T11 toolbar hidden (P2-2)", r.get("toolbarHidden"), json.dumps(r))
 
 # console errors gate
 errs = ab.console_errors(S) if hasattr(ab, "console_errors") else ''

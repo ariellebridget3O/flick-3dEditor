@@ -350,13 +350,15 @@ export class App {
     // then exit (pointer-locked → the browser unlocks first).
     this._camModeKeyDown = e => {
       const k = e.key.toLowerCase();
-      const typing = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
+      const typing = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.isContentEditable);
       if (typing || this.page.mode !== 'camera' || this.page.keyboardOwner !== 'stage') return;
       if (k === 'escape') {
         if (this._monitorMenuOpen) { e.preventDefault(); this._monitorMenuOpen = null; this.page.changed(); return; }
         if (!document.pointerLockElement) { e.preventDefault(); this.exitCameraMode(); }
         return;
       }
+      // NGt @5151221: the rig keys are plain-key only (meta/ctrl/alt belong to the app shortcuts)
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (k === 'tab') {
         if (this._monitorMenuOpen) return;
         e.preventDefault();
@@ -372,6 +374,9 @@ export class App {
       }
       if (k === 'o' || k === 'p') { this._zoomKeys.add(k); this._startZoom(); e.preventDefault(); }
     };
+    // eIr.onBlur @5233480: focus loss stops a held-key zoom (else focal rails at a bound forever)
+    this._camModeBlur = () => this._stopZoom();
+    window.addEventListener('blur', this._camModeBlur);
     this._camModeKeyUp = e => {
       const k = e.key.toLowerCase();
       if (k === 'o' || k === 'p') this._zoomKeys.delete(k);
@@ -1762,7 +1767,7 @@ export class App {
       if (session && samples.length > 0) {
         this.show.updateTrackItems(session.trackId, items => items.map(it =>
           it.id === session.itemId && it.kind === 'cam-manual'
-            ? { ...it, samples, durationS: samples.length / 30, shakeBaked: true }
+            ? { ...it, samples, durationS: samples.length / 20, shakeBaked: true }   // qA=20 @4315270
             : it));
         this._lastFlight = session;
       }
@@ -1796,7 +1801,9 @@ export class App {
       this.orbit.enabled = true;
       this.camera.fov = C.EDITOR_FOV;
       this.camera.updateProjectionMatrix();
-      this._stopZoom();                        // eIr: mode change stops held-key zoom
+      this._stopZoom();                        // eIr: mode change stops held-key zoom + closeMenu
+      this._monitorToggleMenu?.(null);         // eIr mode.onChange → closeMenu (P3-7)
+      this.manipulator?.attachToSelection?.(); // $e edit branch: B() re-attaches the gizmo (P3-4)
       this._restoreCameraMeshForMonitor();
     } else if (m === 'camera') {
       // port-model: our through-the-lens drives the editor camera (the live's feed wall uses
@@ -1815,7 +1822,8 @@ export class App {
           target: this.orbit.target.clone(),
         };
       }
-      // vZt takeOver: the filming camera mesh's world pose
+      // vZt takeOver: the filming camera mesh's world pose (iBe: filming ?? focused ?? F8 —
+      // our activeCameraId covers focused/F8: selected-is-camera ?? first camera)
       const mesh = this.meshById.get(this.filmingCameraId ?? this.activeCameraId() ?? '');
       if (mesh) {
         mesh.getWorldPosition(this.camera.position);
@@ -1928,6 +1936,7 @@ export class App {
     this._zoom.targetT = Math.min(1, Math.max(0, this._zoom.targetT + dir * C.ZOOM_STEP * dt));
     this._zoom.lens = springStep(this._zoom.lens, this._zoom.targetT, C.ZOOM_LENS_TAU, dt);
     this.setFocalLengthMm(zoomMm(this._zoom.lens.value));
+    this.updateFrameGuide?.();   // P1-1: the UGr reactive effect re-runs the fov formula on every focal change
     if (dir === 0 && Math.abs(this._zoom.lens.value - this._zoom.targetT) < 1e-4 && Math.abs(this._zoom.lens.rate) < .001) {
       this._zoom = null;   // xEr — settled
     }

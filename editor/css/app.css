@@ -582,10 +582,13 @@ button.small { padding: 2px 8px; font-size: 12px; }
 
 /* ================= r17 camera-mode monitor (Yjr viewfinder) ================= */
 .monitor { position: absolute; inset: 0; display: none; z-index: 40; pointer-events: none;
-  font: 12px/1.4 'Inter', system-ui, sans-serif; color: #e8eaf0; user-select: none; }
+  font: 12px/1.4 'Inter', system-ui, sans-serif; color: #e8eaf0; user-select: none;
+  --mon-bar: 96px; }   /* KGt @5193210 — the guide reserves 96px per side */
 .monitor > * { pointer-events: auto; }
 .mon-frame { position: absolute; left: 5%; top: 5%; width: 90%; height: 90%;
   border: 1px solid rgba(255,255,255,.65); box-shadow: 0 0 0 1px rgba(0,0,0,.35); pointer-events: none; }
+.mon-frame.mon-frame-guide { left: 0; top: 0; width: 100%; height: 100%; }
+/* when driven by the guide geometry, the inline styles carry left/top/width/height in % */
 .mon-grid { position: absolute; inset: 0; pointer-events: none;
   background:
     linear-gradient(to right, transparent calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% - .5px), rgba(255,255,255,.4) calc(33.33% + .5px), transparent calc(33.33% + .5px)),
@@ -602,8 +605,8 @@ button.small { padding: 2px 8px; font-size: 12px; }
   transform-origin: center; }
 .mon-level-line.mon-level-on { background: #33cc88; }
 .mon-picture { position: absolute; inset: 0; pointer-events: none; }
-.mon-bar { position: absolute; left: 0; right: 0; height: 40px; display: flex; gap: 6px; align-items: stretch;
-  padding: 0 8px; background: rgba(12, 14, 20, .82); backdrop-filter: blur(6px); }
+.mon-bar { position: absolute; left: 0; right: 0; height: var(--mon-bar, 96px); display: flex; gap: 6px;
+  align-items: center; padding: 0 10px; background: rgba(12, 14, 20, .82); backdrop-filter: blur(6px); }
 .mon-top { top: 0; } .mon-bottom { bottom: 0; }
 .mon-field { display: flex; align-items: center; gap: 5px; padding: 0 10px; border-radius: 6px;
   background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); white-space: nowrap; cursor: default; }

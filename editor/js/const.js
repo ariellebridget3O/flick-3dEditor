@@ -10,8 +10,6 @@ export const C = {
   ORBIT_TARGET: [0, 1, 0],   // Dqr orbit.target.set
   ROTATE_SPEED: 0.75,        // Lqr
   SHADOW_MAP_PX: 3072,       // Fqr (min with maxTextureSize)
-  FLY_SPEED: 4,              // Tye WASD m/s
-  FLY_SPRINT: 3,             // Aye multiplier
   WHEEL_ZOOM_K: 0.0036,      // wot exp(deltaY*k)
   ZOOM_MIN: 0.5,             // _ot
   FREELOOK_RAD_PER_PX: 0.0022, // xot
@@ -158,8 +156,6 @@ export const C = {
   FIG_VISOR_ARC: 72 * Math.PI / 180, // Pie (old Mie)
 
   // ---------- camera object ----------
-  FOCAL_MIN: 14,             // G_
-  FOCAL_MAX: 200,            // zA
   FOCAL_DEFAULT: 50,         // Bv / Hv
   FOCAL_STEPS: [14, 18, 24, 35, 50, 85, 135, 200], // bT/yT
   SENSOR_W: 35,              // Lzt/Fzt — full-frame width constant

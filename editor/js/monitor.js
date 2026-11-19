@@ -18,9 +18,10 @@ const uEr = (t, e) => {   // @5193223 — hh:mm:ss:ff timecode
     .map(r => String(r).padStart(2, '0')).join(':');
 };
 
-// Gjr — the aspect glyph: a box scaled by the aspect ratio (max side 1.3·14px)
+// Gjr @5222035 — the aspect glyph: e = a>=1 ? min(2.2, 1.3·a) : 1.3·a; w = e·8px, h = (e/a)·8px
 function aspectGlyph(a) {
-  const w = Math.min(2.2, 1.3 * a) * 14, h = Math.min(2.2, 1.3 / a) * 14;
+  const e = a >= 1 ? Math.min(2.2, 1.3 * a) : 1.3 * a;
+  const w = e * 8, h = (e / a) * 8;
   return `<span class="mon-aspect-glyph" style="width:${w.toFixed(1)}px;height:${h.toFixed(1)}px"></span>`;
 }
 
@@ -29,6 +30,9 @@ export function createMonitor(app) {
   let tcStart = 0, tcSecs = 0;   // Zjr state (running only while "recording" — never offline)
   const mon = document.createElement('div');
   mon.className = 'monitor';
+  mon.addEventListener('click', e => {   // Yjr onClick: detail!==0 && button blur (keyboard focus hygiene)
+    if (e.detail !== 0) e.target.closest('button')?.blur();
+  });
   mon.innerHTML = `
     <div class="mon-frame">
       <div class="mon-grid" style="display:none"></div>
@@ -42,7 +46,7 @@ export function createMonitor(app) {
       <button class="mon-field mon-speed" aria-label="Speed (Z/X)"></button>
       <div class="mon-menufield mon-weight-field">
         <button class="mon-field mon-weight" aria-label="Weight ([ / ])" aria-expanded="false"></button>
-        <div class="mon-menu mon-menu-down mon-weight-menu" style="display:none">
+        <div class="mon-menu mon-menu-down mon-weight-menu" role="dialog" style="display:none">
           <div class="mon-weight-panel">
             <div class="mon-weight-row"><span>Weight <span class="mon-weight-rig"></span></span><span class="mon-weight-value"></span></div>
             <input class="mon-weight-range" type="range">
@@ -55,7 +59,7 @@ export function createMonitor(app) {
       <div class="mon-spacer"></div>
       <div class="mon-menufield mon-aspect-field">
         <button class="mon-field mon-aspect" aria-expanded="false"></button>
-        <div class="mon-menu mon-aspect-menu" style="display:none"></div>
+        <div class="mon-menu mon-aspect-menu" role="menu" style="display:none"></div>
       </div>
     </div>
     <div class="mon-bar mon-bottom">
@@ -148,19 +152,43 @@ export function createMonitor(app) {
   };
   canvas.addEventListener('click', onClickLock);
 
+  // ---- P2-3: ONE frame — the monitor's frame mirrors the XGt guide geometry; the #frameGuide
+  // DOM hides while the monitor is up (the fov adoption math in updateFrameGuide still runs).
+  // The guide element carries its geometry via inline styles — mirror them onto .mon-frame.
+  function syncFrame() {
+    const guide = document.getElementById('frameGuide');
+    if (!guide) return;
+    if (app.page.mode === 'camera' && guide.style.display !== 'none') {
+      const frame = mon.querySelector('.mon-frame');
+      frame.style.left = guide.style.left; frame.style.top = guide.style.top;
+      frame.style.width = guide.style.width; frame.style.height = guide.style.height;
+      frame.classList.add('mon-frame-guide');
+      guide.style.display = 'none';
+      guide.dataset.monitorHidden = '1';
+    } else if (app.page.mode !== 'camera' && guide.dataset.monitorHidden === '1') {
+      guide.style.display = 'block';   // the cameras view restores the shared guide
+      guide.dataset.monitorHidden = '';
+    }
+  }
+
   // ---- per-frame update (the React render path — polled fields only, SKILL #63 discipline) ----
   let lastRig = null, lastSpeed = null, lastWeight = null, lastFocal = null, lastAspect = null;
   function render() {
     if (app.page.mode !== 'camera') { mon.style.display = 'none'; return; }
     mon.style.display = 'block';
     const r = app.rigs;
-    if (r.rig !== lastRig) { lastRig = r.rig; els.rig.textContent = rigName(r.rig); }
+    if (r.rig !== lastRig) {
+      lastRig = r.rig;
+      els.rig.textContent = rigName(r.rig);
+      els.weightRig.textContent = rigName(r.rig);   // P3-3: the weight menu's rig label follows switches
+    }
     const pan = isPanOnly(r.rig);
     const speedVal = pan ? r.panDegPerS : r.speedMps;
     const speedKey = `${r.rig}|${speedVal}`;
     if (speedKey !== lastSpeed) {
       lastSpeed = speedKey;
-      els.speed.innerHTML = `${speedValueLabel(speedVal)}<small class="mon-unit">${pan ? '°/s' : 'm/s'}</small>`;
+      const label = pan ? String(speedVal) : speedValueLabel(speedVal);   // Yjr @5225600: tripod shows the raw pan value
+      els.speed.innerHTML = `${label}<small class="mon-unit">${pan ? '°/s' : 'm/s'}</small>`;
     }
     if (r.weight !== lastWeight) {
       lastWeight = r.weight;
@@ -193,6 +221,7 @@ export function createMonitor(app) {
   // TC (Zjr): counts at 24fps only while recording — frozen at 00:00:00:00 offline
   els.tc.textContent = uEr(0, C.TC_FPS);
 
+  render = (orig => () => { orig(); syncFrame(); })(render);
   app._monitorRender = render;
   app._monitorToggleMenu = toggleMenu;
   return { render, dispose: () => { mon.remove(); canvas.removeEventListener('click', onClickLock); } };

@@ -139,7 +139,11 @@ export function createDrive(aim, cam) {
       st.yaw = { ...st.yaw, value: st.yaw.value + mn };
       st.pitch = { ...st.pitch, value: st.pitch.value + Nt };
     }
-    st.yaw = springStep(st.yaw, st.yaw.value + turnRate(Dt, st.yaw.value, dt), rig.lookEaseS, dt);
+    // VERBATIM @5664119: O=RU(O, O.value+Yrt(O.value,V.y,1), lookEaseS, Ve) — the cam yaw
+    // springs toward the AIM's euler yaw (mouse-look follows at the look-ease rate);
+    // Yrt(a,b,1) = the wrapped delta. (r17 review P0-1: was mistranscribed as
+    // turnRate(Dt, yaw, dt) — dead horizontal look + 5x tripod pan overshoot.)
+    st.yaw = springStep(st.yaw, st.yaw.value + turnRate(st.yaw.value, st.euler.y, 1), rig.lookEaseS, dt);
     st.pitch = springStep(st.pitch, st.euler.x, rig.lookEaseS, dt);
     st.euler.set(st.pitch.value, st.yaw.value, 0);
     st.cam.quaternion.setFromEuler(st.euler);

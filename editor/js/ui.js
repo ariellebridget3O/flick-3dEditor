@@ -79,6 +79,7 @@ export function buildUI(app) {
   }
   $('viewSwitch').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (app.page.mode !== 'edit') return;   // r17 P2-2: the view switcher is edit-mode UI
     [...$('viewSwitch').children].forEach(x => x.classList.toggle('on', x === b));
     app.page.stageView = b.dataset.v;
     app.page.changed();          // nav ball pad / lasso button visibility ride this
@@ -692,7 +693,7 @@ export function updateFrameGuide(app) {
 function refreshSelectionUI(app) {
   const tb = document.getElementById('editToolbar');
   const ids = app.objects.selectedIds;
-  tb.style.display = ids.length ? 'flex' : 'none';
+  tb.style.display = ids.length && app.page.mode === 'edit' ? 'flex' : 'none';   // r17 P2-2: no toolbar in camera mode
   if (ids.length && app.selection.screenBounds) {
     const b = app.selection.screenBounds;
     const host = document.getElementById('viewport');

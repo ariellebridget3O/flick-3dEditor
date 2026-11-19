@@ -692,6 +692,7 @@ export class Manipulator {
       this._downMoved = false;
     });
     el.addEventListener('pointermove', e => {
+      if (app.page.mode !== 'edit') return;   // ua @5659719: no picking outside edit mode (r17 P1-3)
       if (this._lasso) { lassoRectFrom(this._lasso, e.clientX, e.clientY); return; }
       if (app.page.editInteraction === 'lasso') return;   // no hover picking while lasso cursor is up
       if (this._downPos && Math.hypot(e.clientX - this._downPos[0], e.clientY - this._downPos[1]) > C.CLICK_SLOP_PX)
@@ -716,6 +717,7 @@ export class Manipulator {
     });
     el.addEventListener('pointerup', e => {
       if (e.button !== 0) return;
+      if (app.page.mode !== 'edit') return;   // ua @5659719 — camera mode: no select/gizmo from canvas clicks
       if (this._lasso) {
         const start = this._lasso;
         this._lasso = null;
@@ -790,6 +792,7 @@ export class Manipulator {
       const k = e.key.toLowerCase();
       app._keys.add(k);
       if (app.page.keyboardOwner !== 'stage') return;
+      if (app.page.mode !== 'edit') return;   // Hzr @5637413: the stage keymap is edit-mode only (r17 P2-1)
       const mod = e.metaKey || e.ctrlKey;
       if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? app.show.redo() : app.show.undo(); }
       else if (mod && k === 'y') { e.preventDefault(); app.show.redo(); }

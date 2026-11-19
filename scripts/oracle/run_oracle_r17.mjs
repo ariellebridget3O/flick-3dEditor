@@ -204,7 +204,7 @@ function driveSim(side, rig, speeds, seq) {
       yaw = { ...yaw, value: yaw.value + mn };
       pitch = { ...pitch, value: pitch.value + Nt };
     }
-    yaw = S.springStep(yaw, yaw.value + S.turnRate(Dt, yaw.value, dt), rig.lookEaseS, dt);
+    yaw = S.springStep(yaw, yaw.value + S.turnRate(yaw.value, aimEuler.y, 1), rig.lookEaseS, dt);
     pitch = S.springStep(pitch, aimEuler.x, rig.lookEaseS, dt);
     camEuler = { x: pitch.value, y: yaw.value, z: 0 };
     // movement: aim quaternion from camEuler (YXZ)
