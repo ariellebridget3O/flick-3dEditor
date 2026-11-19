@@ -373,12 +373,15 @@ export function createEnvironment(scene, settings) {
       if (nightAmt > 0) {
         const _tsd = trueSunDirection(light), _md = moonDirection(_tsd);
         _keyDir.lerp(_md, nightAmt);
-        _keyDir.y = Math.max(_keyDir.y, 0.05);
-        _keyDir.normalize();
         sun.color.copy(g.sunColor).lerp(MOON_TONE, nightAmt);
       } else {
         _keyDir.copy(trueSunDirection(light));   // day: match the visible disc, not the remap
       }
+      // the y-floor covers BOTH branches (E2E T5: the day branch at el 0..-3 copied the true
+      // sub-horizon dir — a below-ground key light with the table still at ~0.5 intensity);
+      // ~+3deg keeps the shadow camera above the floor while the disc sits at the horizon.
+      _keyDir.y = Math.max(_keyDir.y, 0.05);
+      _keyDir.normalize();
     }
     glow = g.glow * (light.hdr?.enabled ? C.HDR_EMISSIVE_BOOST : 1);   // §4.5: night lamps cross the bloom threshold
     return glowAmount();

@@ -540,7 +540,11 @@ ${GLSL_COMMON}
       float disc = smoothstep(cos(0.0215), cos(0.0180), moonCos);
       float r2 = clamp((1.0 - moonCos) / (1.0 - cos(0.0180)), 0.0, 1.0);   // 0 center .. 1 limb
       float limb = 1.0 - 0.18 * (r2 * r2);
-      float halo = pow(max(moonCos, 0.0), 700.0) * 0.10;
+      // r19: pow1200 x 0.045 — the PLAIN path's demo curve runs uExposure=10, which amplifies
+      // small halo values ~10x (pow700 x 0.10 read 146 luma at 3deg through it — as broad as
+      // the r18 wash the feedback was about). At 0.045 the glow dies by ~3deg (~1.5 disc
+      // radii): ~50 luma at 2deg, ~21 at 3deg, invisible at 4deg.
+      float halo = pow(max(moonCos, 0.0), 1200.0) * 0.045;
       L += visible * uNightAmount * horizonFade * vec3(0.86, 0.88, 0.95) * (disc * 3.2 * limb + halo);
     }
 

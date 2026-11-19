@@ -193,7 +193,7 @@ r = ab.eval_js(S, """(function(){
   return 'night';
 })()""")
 time.sleep(2.5)
-ab.eval_js(S, "(function(){ const a=window.__app; const l=a.light; const az=l.azimuthDeg*Math.PI/180, el=l.elevationDeg*Math.PI/180; const sx=Math.sin(az)*Math.cos(el), sy=Math.sin(el), sz=-Math.cos(az)*Math.cos(el); const rl=Math.hypot(-sz, sx); const rx=-sz/rl, rz=sx/rl; const moon=Array.of(-sx+rx*0.25, -sy, -sz+rz*0.25); const n=Math.hypot(moon[0],moon[1],moon[2]); const d=Array.of(moon[0]/n, moon[1]/n, moon[2]/n); const cam=a.camera; cam.position.set(-d[0]*40, -d[1]*40+1.6, -d[2]*40); a.orbit.target.set(cam.position.x+d[0]*60, cam.position.y+d[1]*60, cam.position.z+d[2]*60); a.renderFrame(); return 'aimed'; })()")
+ab.eval_js(S, "(function(){ const a=window.__app; const l=a.light; const az=l.azimuthDeg*Math.PI/180, el=l.elevationDeg*Math.PI/180; const sx=Math.sin(az)*Math.cos(el), sy=Math.sin(el), sz=-Math.cos(az)*Math.cos(el); const rl=Math.hypot(-sz, sx); const rx=-sz/rl, rz=sx/rl; const moon=Array.of(-sx+rx*0.25, -sy, -sz+rz*0.25); const n=Math.hypot(moon[0],moon[1],moon[2]); const d=Array.of(moon[0]/n, moon[1]/n, moon[2]/n); const cam=a.camera; a.orbit.maxPolarAngle = Math.PI; cam.position.set(-d[0]*40, 40, -d[2]*40); a.orbit.target.set(cam.position.x+d[0]*60, cam.position.y+d[1]*60, cam.position.z+d[2]*60); a.orbit.enableDamping = false; a.orbit.update(); a.renderFrame(); return 'aimed'; })()")
 time.sleep(1.5)
 cap("r18_T5_moon.png")
 img = load("r18_T5_moon.png")
@@ -203,9 +203,28 @@ m = lum > 245
 lbl, n = ndimage.label(m)
 sizes = ndimage.sum(m, lbl, range(1, n + 1)) if n else []
 best = int(max(sizes)) if len(sizes) else 0
-# old disc+halo core ~120px at >245 in this pose; r18 measured 743px (the >245 core grew with
-# the bigger disc + brighter luminance; the 12x13px disc reads ~120-990px depending on threshold)
-check("T5 moon disc >= 400 px (was ~120 pre-r18)", best >= 400, f"largest blob={best}px (n={n})")
+# r19 tune: the >245 core is the DISC ONLY now (1.03deg radius ~ 6-7px at this fov -> ~130-160px;
+# the r18 743px included the broad pow140 halo crossing 245 — the r19 pow700 x0.10 halo does not).
+# Plus a HALO TIGHTNESS probe: ring r15-20 around the disc must be near-sky (r18 read ~183 there).
+_yy, _xx = np.mgrid[0:lum.shape[0], 0:lum.shape[1]]
+_disc_px = 0
+_cy, _cx = lum.shape[0]//2, lum.shape[1]//2
+if n and len(sizes):
+    # the aim centers the DISC; the nav ball (top-right, ~800px) is LARGER — pick the
+    # center-most blob >= 30px (the pre-r19 T5 asserted the nav ball vacuously)
+    _cands = []
+    for _i, _s in enumerate(sizes):
+        if _s >= 30:
+            _ys2, _xs2 = np.where(lbl == _i + 1)
+            _cands.append((abs(_xs2.mean()-lum.shape[1]/2) + abs(_ys2.mean()-lum.shape[0]/2), int(_s), int(_ys2.mean()), int(_xs2.mean())))
+    _cands.sort()
+    if _cands:
+        _, _disc_px, _cy, _cx = _cands[0]
+_rad = np.sqrt((_yy-_cy)**2 + (_xx-_cx)**2)
+_ring = lum[(_rad >= 15) & (_rad < 20)]
+_ring1520 = float(_ring.mean()) if _ring.size else 999.0
+check("T5 moon disc >= 100 px (r19 disc-only core, center-most blob)", _disc_px >= 100, f"disc={_disc_px}px (n={n})")
+check("T5b moon halo tight (ring r15-20 < 90, dies by r30)", _ring1520 < 90, f"ring={_ring1520:.1f} (r19 pow1200x0.045: 77 @r15-20 -> 5 @r30; r18 read ~183)")
 
 # ---------- T6 interior delta (plain render) ----------
 ab.eval_js(S, """(function(){
@@ -238,19 +257,46 @@ cap("r18_T7_classic_hdr.png")
 d7 = floor_rows_delta("r18_T7_classic_hdr.png", "r18_T7_realistic_hdr.png")
 check("T7 realistic+HDR interior delta floor rows < 6.0 (P0-1)", d7 < 6.0, f"mean|d|={d7:.2f}")
 
-# T9: threshold sweep on classic
-for thr in (1.0, 1.5):
-    ab.eval_js(S, f"window.__app.setHdr({{enabled:true, bloom:0.35, bloomThreshold:{thr}, exposure:1.0}})")
-    time.sleep(1.6)
-    cap(f"r18_T9_thr{thr}.png")
+# T9 (r19 INVERTED): HDR = bloom on TRUE highlights, not a blanket sky lift. The sky BODY must
+# NOT bloom at the default threshold (the r18 whole-sky lift is gone — HDR_SKY_LIFT 1.06 keeps the
+# body sub-threshold); the SUN FLARE region must bloom (HDR_CLASSIC_FLARE_LIFT 1.8, golden hour).
+ab.eval_js(S, "window.__app.setHdr({enabled:true, bloom:0.35, bloomThreshold:1.0, exposure:1.0})")
+time.sleep(1.6)
+cap("r18_T9_thr1.0.png")
 ab.eval_js(S, "window.__app.setHdr({enabled:true, bloom:0.0, bloomThreshold:1.0, exposure:1.0})")
 time.sleep(1.6)
 cap("r18_T9_bloom0.png")
 l0 = sky_sliver_luma("r18_T9_bloom0.png").mean()
 l10 = sky_sliver_luma("r18_T9_thr1.0.png").mean()
-l15 = sky_sliver_luma("r18_T9_thr1.5.png").mean()
-check("T9 sky IN high-illumination at thr 1.0, OUT at 1.5",
-      (l10 - l0) > 8 and abs(l15 - l0) < 2, f"bloom0={l0:.1f} thr1.0={l10:.1f} (+{l10-l0:.1f}) thr1.5={l15:.1f} ({l15-l0:+.1f})")
+check("T9a sky body does NOT bloom at thr 1.0 (r19 recalibration)", abs(l10 - l0) < 2.0,
+      f"bloom0={l0:.1f} thr1.0={l10:.1f} ({l10-l0:+.1f}; the r18 whole-sky bloom was +20.8)")
+# sun arm: golden hour (el 9, flare 0.60), high-vantage aim AT the sun. The stale boot-pose
+# maxPolarAngle clamp eats fresh aims — pre-clear it (see the r19 harness lesson).
+_sun_aim = """(function(){
+  const a=window.__app;
+  a.setLightCustom(128.66, 9);
+  const az=128.66*Math.PI/180, el=9*Math.PI/180;
+  const d=[Math.sin(az)*Math.cos(el), Math.sin(el), -Math.cos(az)*Math.cos(el)];
+  a.orbit.maxPolarAngle = Math.PI;
+  a.camera.position.set(-d[0]*40, 40, -d[2]*40);
+  a.orbit.target.set(a.camera.position.x+d[0]*60, a.camera.position.y+d[1]*60, a.camera.position.z+d[2]*60);
+  a.orbit.enableDamping = false; a.orbit.update();
+  a.setHdr({enabled:true, bloom:0.0, bloomThreshold:1.0, exposure:1.0});
+  a.renderFrame(); return 'aimed';
+})()"""
+ab.eval_js(S, _sun_aim)
+time.sleep(1.6)
+cap("r18_T9_sun_b0.png")
+ab.eval_js(S, "window.__app.setHdr({enabled:true, bloom:0.35, bloomThreshold:1.0, exposure:1.0})")
+time.sleep(1.6)
+cap("r18_T9_sun_t10.png")
+_s0 = load("r18_T9_sun_b0.png") @ [0.299, 0.587, 0.114]
+_s1 = load("r18_T9_sun_t10.png") @ [0.299, 0.587, 0.114]
+_c0 = _s0[:, _s0.shape[1]//3:2*_s0.shape[1]//3].mean()
+_c1 = _s1[:, _s1.shape[1]//3:2*_s1.shape[1]//3].mean()
+_pkd = float((_s1 - _s0).max())
+check("T9b sun flare region blooms at thr 1.0 (center-third > +8)", _c1 - _c0 > 8,
+      f"center-third {_c0:.1f}->{_c1:.1f} (+{_c1-_c0:.1f}), peak {_pkd:+.1f}")
 
 # T8: plain+HDR fallback no clip
 ab.eval_js(S, "(function(){ localStorage.setItem('stage-finish', JSON.stringify({enabled:false, source:'manual'})); return 1; })()")
