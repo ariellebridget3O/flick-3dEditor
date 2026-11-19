@@ -23,8 +23,8 @@ export function springStep(t, target, tau, dt) {   // RU
   const c = (t.rate + s * l) * dt;
   return { value: target + (l + c) * o, rate: (t.rate - s * c) * o };
 }
-export const springZero = t =>     // cje — snap to rest when target is 0 and both parts tiny
-  t.target === 0 && Math.abs(t.value) < C.SPRING_ZERO_EPS && Math.abs(t.rate) < C.SPRING_ZERO_EPS
+export const springZero = (t, target) =>   // cje(t, e) — snap to rest when target 0 + both parts tiny
+  target === 0 && Math.abs(t.value) < C.SPRING_ZERO_EPS && Math.abs(t.rate) < C.SPRING_ZERO_EPS
     ? { value: 0, rate: 0 } : t;
 export const ZERO_SPRING = () => ({ value: 0, rate: 0 });
 export const MOVE_SPRINGS = () => [ZERO_SPRING(), ZERO_SPRING(), ZERO_SPRING()];   // Zrt
@@ -75,7 +75,7 @@ export function panStep(t, e) {          // JCr — tripod-only pan: ±stick × 
   const [r, s] = curveStick(e.stickX, e.stickY, e.rig.stickCurve);
   const a = -r * n, o = s * n;
   const [l, c] = springsStep(t, [a, o], e.rig, e.dtS);
-  return [springZero({ ...l, target: a }), springZero({ ...c, target: o })];
+  return [springZero(l, a), springZero(c, o)];
 }
 export const panIdle = t => t[0].value === 0 && t[1].value === 0;   // QCr
 export function clampPitch(t) { return Math.max(-C.PITCH_MAX, Math.min(C.PITCH_MAX, t)); }  // DQi
@@ -103,7 +103,7 @@ export function sidewaysMps(t, e) {      // tEr — the right-axis speed at yaw 
 export function rollStep(t, e) {         // nEr
   const n = e.rig.turnRoll * e.turnRadPerS - e.rig.strafeRoll * e.sidewaysMps / Math.max(.5, e.topMps);
   const r = Math.max(-1, Math.min(1, n)) * C.ROLL_MAX;
-  return springZero({ ...springStep(t, r, e.rig.rollEaseS, e.dtS), target: r });
+  return springZero(springStep(t, r, e.rig.rollEaseS, e.dtS), r);
 }
 
 // ---- the camera-mode drive (en @5664174) ----
@@ -154,6 +154,12 @@ export function createDrive(aim, cam) {
   };
   return st;
 }
+
+// ---- zoom log map (jCr/ICr/OGt @5184395..5184572): focal 14..200 ↔ t 0..1 (log scale) ----
+const ZOOM_LOG_RANGE = Math.log(C.FOCAL_MM_MAX / C.FOCAL_MM_MIN);   // OGt
+const clamp01 = t => Math.min(1, Math.max(0, t));                   // Vhe
+export const zoomMm = t => C.FOCAL_MM_MIN * Math.exp(clamp01(t) * ZOOM_LOG_RANGE);   // jCr
+export const zoomLog = t => clamp01(Math.log(t / C.FOCAL_MM_MIN) / ZOOM_LOG_RANGE);  // ICr
 
 // ---- pointer-lock look (rzr @5609267 + szr @5609864) ----
 // Minimal port: YXZ euler look on mousemove while locked; polar clamp [π/2−max, π/2−min];

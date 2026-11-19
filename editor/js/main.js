@@ -62,17 +62,12 @@ import {
 import { createBloom } from './bloom.js';   // round 13 (HDR): UnrealBloomPass recipe port
 import { shakeOffsets, applyShakePose, rigShake } from './shake.js';   // r15 Dzt/cL + r17 the rig path (oEr) wakes in camera mode
 import { RigStore, rigWithWeight, cycleRigKey, stepSpeed, carrySpeeds, isRigKey } from './rigs.js';   // r17 kIr state subset + helpers
-import { createDrive, createLook, springStep } from './drive.js';   // r17 en/szr families
+import { createDrive, createLook, springStep, zoomMm, zoomLog } from './drive.js';   // r17 en/szr + jCr/ICr zoom map
 import { strokeRing } from './stroke.js';
 import { createNavBall, moveByStick } from './navball.js';
 
 const PLANNING_LAYER = 1;   // aye
 
-// r17 zoom log map (jCr/ICr/OGt @5184395..5184572): focal 14..200 ↔ t 0..1 (log scale)
-const ZOOM_LOG_RANGE = Math.log(C.FOCAL_MM_MAX / C.FOCAL_MM_MIN);   // OGt
-const clamp01 = t => Math.min(1, Math.max(0, t));                   // Vhe
-const zoomMm = t => C.FOCAL_MM_MIN * Math.exp(clamp01(t) * ZOOM_LOG_RANGE);   // jCr
-const zoomLog = t => clamp01(Math.log(t / C.FOCAL_MM_MIN) / ZOOM_LOG_RANGE);  // ICr
 const _bufSize = new THREE.Vector2();
 const _q1 = new THREE.Quaternion();   // scratch quaternion (poser _camHie)
 
