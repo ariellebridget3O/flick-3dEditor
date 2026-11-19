@@ -320,6 +320,9 @@ export function createEnvironment(scene, settings) {
     scene.fog.color.multiplyScalar(lift);
     u.flare.value.copy(g.sunColor).multiplyScalar(g.flare * w.flare * lift);
     if (skyStyle === 'realistic') {
+      // r18 (feedback #1): keep the IBL's directional/color character at a reduced magnitude so
+      // the total indirect stays ~continuous with classic (the hemi is identical in both styles)
+      scene.environmentIntensity = C.SKY_IBL_INTENSITY;
       const sp = buildSkyParams(light, scene.fog.color, g);
       realistic.setParams(sp);
       // P2: cloud params ride the same daylight pass; changed params rebake the IBL only
@@ -347,6 +350,7 @@ export function createEnvironment(scene, settings) {
     skyStyle = style === 'realistic' ? 'realistic' : 'classic';
     sky.visible = skyStyle === 'classic';
     if (skyStyle !== 'realistic' && scene.environment) scene.environment = null;  // drop IBL BEFORE the RT dispose
+    scene.environmentIntensity = 1;                                            // r18: restore three's default off-style
     realistic.setEnabled(skyStyle === 'realistic');
     // P2: clouds are a realistic-sky feature — classic look stays byte-identical (mesh hidden,
     // twin removed, dome.renderOrder restored to -1 by setCloudTwin(null))

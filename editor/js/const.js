@@ -112,6 +112,11 @@ export const C = {
   // 242-243 flat-lid band). Gated hdr && finishOn (P0-2: the plain+HDR fallback has no ACES
   // on the raw dome shader — a lift >= 1.25 clips to white there).
   HDR_SKY_LIFT: 1.48,
+  // r18 (feedback #1): the realistic-sky PMREM IBL is a PURE ADDITION on the unchanged hemi —
+  // switching classic<->realistic moved interiors by mean|d| 8.5-10.4/255 (p95 23). Scaling the
+  // IBL term (scene.environmentIntensity) is a PROPORTIONAL correction — delta_new = k x delta_old
+  // at every elevation/weather/indoor state (audit P0-3); 0.30 takes the measured 8.95 -> ~2.7.
+  SKY_IBL_INTENSITY: 0.30,
   HDR_REALISTIC_GAIN: 1.7,               // the realistic LUT sky body is dimmer than the classic
                                          // table — calibrate to the same 1.1-1.3 linear target
   HDR_CLASSIC_SKY_LIFT_LEGACY: 1.10,     // (kept for reference; superseded by HDR_SKY_LIFT)
