@@ -470,6 +470,7 @@ ${GLSL_COMMON}
   uniform vec3 uFogColor;        // linear working space (matches scene.fog.color exactly)
   uniform float uFogBlend;       // 0..1 horizon band mix
   uniform vec3 uSunDiscL;        // sun disc luminance (pre-curve)
+  uniform float uHdrGain;        // r18: finish+HDR visible-dome gain (PMREM bakes at 1)
   in vec3 vDirection;
   layout(location = 0) out vec4 outColor;
 
@@ -539,6 +540,8 @@ ${GLSL_COMMON}
       float halo = pow(max(moonCos, 0.0), 140.0) * 0.15;
       L += visible * uNightAmount * horizonFade * vec3(0.86, 0.88, 0.95) * (disc * 0.62 * limb + halo);
     }
+
+    L *= uHdrGain;   // r18: finish+HDR visible path — the sky body crosses the bloom threshold
 
     // --- weather mood (same Rec.601 desat + darken as the classic dome) ---
     float lum = dot(L, vec3(0.299, 0.587, 0.114));
@@ -629,6 +632,8 @@ export function createRealisticSky({ renderer }) {
       uFogColor: { value: new THREE.Color(0xffffff) },
       uFogBlend: { value: 0.06 },
       uSunDiscL: { value: new THREE.Vector3(30, 30, 30) },
+      uHdrGain: { value: 1 },             // r18 (P0-1): visible-dome-only HDR gain — saved/restored
+                                           // (zeroed to 1) in bakePMREM so the IBL stays un-gained
     },
   });
 
@@ -738,14 +743,16 @@ export function createRealisticSky({ renderer }) {
 
   function bakePMREM() {
     if (!pmremGen) pmremGen = new THREE.PMREMGenerator(renderer);
-    // linear HDR bake: the dome AND any registered cloud twin (same uOutputSRGB/uToneMap gates)
+    // linear HDR bake: the dome AND any registered cloud twin (same uOutputSRGB/uToneMap gates;
+    // uHdrGain forced to 1 — the IBL must NOT inherit the r18 visible-dome HDR gain, else the
+    // interior-lighting continuity (feedback #1) breaks under finish+HDR)
     const mats = [domeMat, ...(cloudTwin ? [cloudTwin.material] : [])];
-    const prev = mats.map(m => [m.uniforms.uOutputSRGB.value, m.uniforms.uToneMap.value]);
-    for (const m of mats) { m.uniforms.uOutputSRGB.value = 0; m.uniforms.uToneMap.value = 0; }
+    const prev = mats.map(m => [m.uniforms.uOutputSRGB.value, m.uniforms.uToneMap.value, m.uniforms.uHdrGain ? m.uniforms.uHdrGain.value : 1]);
+    for (const m of mats) { m.uniforms.uOutputSRGB.value = 0; m.uniforms.uToneMap.value = 0; if (m.uniforms.uHdrGain) m.uniforms.uHdrGain.value = 1; }
     const prevRT = pmremRT;
     pmremRT = pmremGen.fromScene(pmremScene, 0, 0.1, 1000);
     prevRT?.dispose();
-    mats.forEach((m, i) => { m.uniforms.uOutputSRGB.value = prev[i][0]; m.uniforms.uToneMap.value = prev[i][1]; });
+    mats.forEach((m, i) => { m.uniforms.uOutputSRGB.value = prev[i][0]; m.uniforms.uToneMap.value = prev[i][1]; if (m.uniforms.uHdrGain) m.uniforms.uHdrGain.value = prev[i][2]; });
     lastPmremAt = performance.now();
     pmremPending = false;
   }
@@ -788,6 +795,7 @@ export function createRealisticSky({ renderer }) {
     domeMat.uniforms.uOutputSRGB.value = outputSRGB ? 1 : 0;
     domeMat.uniforms.uToneMap.value = 1;
     domeMat.uniforms.uCurve.value = linearHDR ? 0 : 1;
+    domeMat.uniforms.uHdrGain.value = linearHDR ? C.HDR_REALISTIC_GAIN : 1;   // r18 P0-1: visible path only
     const now = performance.now();
     if ((lutDirty || svDirty) && now - lastBakeAt >= REBAKE_MIN_MS) {
       if (lutDirty) bake(); else bakeSkyView();

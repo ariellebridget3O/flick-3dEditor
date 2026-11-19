@@ -391,6 +391,7 @@ ${CL_ATMOS_CHUNK}
     L *= hf;
     Tview = mix(1.0, Tview, hf);
 
+    L *= uHdrGain;   // r18 (P1-6): clouds stay white against the lifted sky (pre-curve, pre-shoulder)
     // mood ops (same Rec.601 desat + darken as the domes) + the r18 residual cloud darken
     // (overcast/rain gray-lid on top of the Lc×w.sun weather dimming)
     float lum = dot(L, vec3(0.299, 0.587, 0.114));
@@ -454,6 +455,7 @@ export function createCloudLayer({ renderer, sky }) {
     uWeatherSun: { value: 1 },
     uWeatherHemi: { value: 1 },
     uCloudDarken: { value: 0 },
+    uHdrGain: { value: 1 },               // r18 (P1-6): the deck gains with the sky under finish+HDR
     uNightAmount: { value: 0 },
     uMoonDir: { value: new THREE.Vector3(0, -1, 0) },
     uSheetCount: { value: CL_SHEET_COUNT },
@@ -775,6 +777,7 @@ export function createCloudLayer({ renderer, sky }) {
     uniforms.uOutputSRGB.value = outputSRGB ? 1 : 0;
     uniforms.uToneMap.value = 1;
     uniforms.uCurve.value = linearHDR ? 0 : 1;   // finish+HDR: linear deck in the linear dome (review r13 P1)
+    uniforms.uHdrGain.value = linearHDR ? C.HDR_REALISTIC_GAIN : 1;   // r18 P1-6 (PMREM bake forces 1 via sky.js bakePMREM)
     if (!staticMode && windClock !== null) {
       const now = performance.now();
       const dt = Math.min(0.5, (now - windClock) / 1000);

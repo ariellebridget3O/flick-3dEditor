@@ -105,7 +105,16 @@ export const C = {
   HDR_SHADOW_BOOST_FILL_K: 0.30,         // fillK     = 1 − 0.30·shadowBoost (0.5 → ×0.85, hemi + ambient)
   HDR_SHADOW_BOOST_RADIUS_K: 0.75,       // sun.shadow.radius = C.SUN_RADIUS × (1 + 0.75·shadowBoost)
   HDR_EMISSIVE_BOOST: 4,                 // lantern glow ×4 — night lamps cross the bloom threshold
-  HDR_CLASSIC_SKY_LIFT: 1.10,            // classic dome zenith/horizon/fog/flare lift so the sRGB
+  // r18 (user feedback #3 'the sky is NOT part of the high illumination area'): the sky's
+  // linear luminance must sit ABOVE the default bloom threshold 1.0 (measured: it stopped
+  // blooming between thr 0.6 and 1.0 — just below). Lift 1.48 puts the classic dome at
+  // ~1.13-1.29 linear ~= 1.0-1.4x sunlit white (audit P1-5: NOT 2.0 — that re-created the
+  // 242-243 flat-lid band). Gated hdr && finishOn (P0-2: the plain+HDR fallback has no ACES
+  // on the raw dome shader — a lift >= 1.25 clips to white there).
+  HDR_SKY_LIFT: 1.48,
+  HDR_REALISTIC_GAIN: 1.7,               // the realistic LUT sky body is dimmer than the classic
+                                         // table — calibrate to the same 1.1-1.3 linear target
+  HDR_CLASSIC_SKY_LIFT_LEGACY: 1.10,     // (kept for reference; superseded by HDR_SKY_LIFT)
                                          // sky (≤1.15 linear) survives ACES at exposure 1 (§4.6)
   // sun presets (TQr/AQr light popover) — ELEVATION ONLY, azimuth preserved (audit P1-13: the
   // azimuthDeg fields here are IGNORED; live _Qr sets elevation only via r({...t, elevationDeg}))

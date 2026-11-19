@@ -1500,6 +1500,9 @@ export class App {
     const size = this.renderer.getDrawingBufferSize(_bufSize);
     if (size.x === 0 || size.y === 0) return;
     const finishOn = this.finishOn();
+    // r18 (P0-2): the env's HDR sky lift is gated on hdr && finishOn — sync on every frame
+    // (finishPref changes at boot, setHdr, and the auto-measure; one memoized recompute).
+    if (this.env.getFinishOn() !== finishOn) { this.env.setFinishOn(finishOn); this.env.applyDaylight(this.light); }
     // round 13 (HDR): plain fallback — three injects the tone map ONLY when drawing to the
     // canvas (vendor three.module.js WebGLPrograms.getParameters: toneMapping applies when
     // `currentRenderTarget === null`), so while hdr is on and finish is off the renderer

@@ -244,6 +244,7 @@ export function createEnvironment(scene, settings) {
   const cloudLayer = createCloudLayer({ renderer: settings.renderer, sky: realistic });
   scene.add(cloudLayer.mesh);
   let skyStyle = 'classic';
+  let _finishOn = false;                   // r18 P0-2: the HDR sky lift is gated hdr && finishOn
   let _lastLight = null;
   scene.fog = new THREE.FogExp2(0xffffff, 0);
   const hemi = new THREE.HemisphereLight();
@@ -283,6 +284,7 @@ export function createEnvironment(scene, settings) {
     const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;      // round 6 (D5)
     const indoor = !!light.indoor;                              // round 6 (D7)
     const key = light.azimuthDeg + '|' + light.elevationDeg + '|' + light.weather + '|' + indoor + '|' + (light.ambientLevel ?? '') + '|' + (light.geo?.altitudeM ?? 0) + '|s' + skyStyle
+      + '|f' + (_finishOn ? 1 : 0)
       + '|c' + (light.clouds?.enabled ? [light.clouds.coverage, light.clouds.density, light.clouds.altitudeM, light.clouds.thicknessM, light.clouds.cirrus, light.clouds.windSpeed, light.clouds.seed ?? 0].join(',') : 'off')   // r13 audit P1: skyStyle in the key (r18: +seed)
       + '|h' + (light.hdr?.enabled ? [light.hdr.exposure, light.hdr.bloom, light.hdr.bloomThreshold, light.hdr.bloomRadius, light.hdr.shadowBoost].join(',') : 'off');   // r13 HDR: memo-key parity with setHdr (shadowBoost r13 review)
     if (key === _lastKey) return glowAmount();
@@ -308,7 +310,7 @@ export function createEnvironment(scene, settings) {
     // weather color ops: desat fillSky/fillGround/zenith/horizon/fog; darken the sky dome
     // (§4.6 classic lift ×1.10 under hdr: sRGB-derived dome values ≤1.15 would otherwise sit
     // BELOW the bloom threshold and read darker through ACES — the lift keeps the sky scale)
-    const lift = light.hdr?.enabled && skyStyle === 'classic' ? C.HDR_CLASSIC_SKY_LIFT : 1;
+    const lift = light.hdr?.enabled && _finishOn ? C.HDR_SKY_LIFT : 1;   // r18: both styles (fog + domes); finishOn-gated
     hemi.color.copy(g.fillSky); desat(hemi.color, w.desat);
     hemi.groundColor.copy(g.fillGround); desat(hemi.groundColor, w.desat);
     const u = sky.material.uniforms;
@@ -377,6 +379,7 @@ export function createEnvironment(scene, settings) {
   }
   return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx,
     setSkyStyle, updateRealisticSky, realisticSky: () => realistic, getSkyStyle: () => skyStyle,
+    setFinishOn: v => { _finishOn = !!v; }, getFinishOn: () => _finishOn,
     clouds: () => cloudLayer, setClouds };
 }
 
