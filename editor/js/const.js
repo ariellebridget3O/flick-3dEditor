@@ -124,9 +124,13 @@ export const C = {
   // IBL term (scene.environmentIntensity) is a PROPORTIONAL correction — delta_new = k x delta_old
   // at every elevation/weather/indoor state (audit P0-3); 0.30 takes the measured 8.95 -> ~2.7.
   SKY_IBL_INTENSITY: 0.30,
+  // r19 L2/L3: the moon tone SHARED by the visible disc (sky.js GLSL literal — keep in sync)
+  // and the night key-light color lerp (env.js MOON_TONE). 0.86/0.88/0.95 linear.
+  MOON_TONE: 0xdbe0f2,
   HDR_REALISTIC_GAIN: 1.22,              // r19 L4: body-sub-threshold calibration (raw LUT body
-                                         // luma ~0.76-0.81 x 1.22 = 0.93-0.99 < 1.0; numeric gate:
-                                         // body luma p95 < 0.98 — see r19 E2E). The sun disc (30xT)
+                                         // luma ~0.76-0.81 x 1.22 = 0.93-0.99 < 1.0; verified in
+                                         // the display domain — r19 E2E T6b: body bloom delta +0.00
+                                         // at thr 1.0, p95 display luma 203). The sun disc (30xT)
                                          // and the moon core (3.2) still tower over the threshold.
   HDR_CLASSIC_SKY_LIFT_LEGACY: 1.10,     // (kept for reference; superseded by HDR_SKY_LIFT)
                                          // sky (≤1.15 linear) survives ACES at exposure 1 (§4.6)

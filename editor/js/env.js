@@ -130,7 +130,9 @@ export function moonDirection(sunDir, out = new THREE.Vector3()) {
   out.addScaledVector(_moonRight, 0.25).normalize();
   return out;
 }
-const MOON_TONE = new THREE.Color(0.86, 0.88, 0.95);   // = the disc tone in sky.js (shared)
+const MOON_TONE = new THREE.Color(C.MOON_TONE);   // r19: hoisted to C (the sky.js disc literal cites it)
+// r19: the night-amount ramp — ONE formula shared by buildSkyParams and the key-light blend
+const nightAmountOf = elDeg => Math.min(1, Math.max(0, (-elDeg - 3) / 11));
 
 // round 10 (skybox P1): realistic-sky parameter bundle from the light state.
 // Sun direction follows sunDirection(light) so the disc, shadows and flare always agree;
@@ -149,7 +151,7 @@ function buildSkyParams(light, fogColor, g) {
   _tint.copy(gg.sunColor);
   const mx = Math.max(_tint.r, _tint.g, _tint.b, 1e-6);
   _tint.multiplyScalar(1 / mx).lerp(_white, 0.5);          // hue only, halved toward white
-  const nightAmt = Math.min(1, Math.max(0, (-light.elevationDeg - 3) / 11));
+  const nightAmt = nightAmountOf(light.elevationDeg);
   const moonDir = moonDirection(sunDir);
   return {
     sunDir,
@@ -260,6 +262,7 @@ export function createEnvironment(scene, settings) {
   let _finishOn = false;                   // r18 P0-2: the HDR sky lift is gated hdr && finishOn
   let _lastLight = null;
   const _keyDir = new THREE.Vector3(0, 1, 0);   // r19 L2: effective hard-light dir (see applyDaylight)
+  const _blendAxis = new THREE.Vector3(), _blendQuat = new THREE.Quaternion();   // r19 L2 slerp scratch
   scene.fog = new THREE.FogExp2(0xffffff, 0);
   const hemi = new THREE.HemisphereLight();
   scene.add(hemi);
@@ -369,13 +372,31 @@ export function createEnvironment(scene, settings) {
     // color slides sunColor → the moon tone so lit surfaces and the disc agree.
     _keyDir.copy(sunDirection(light));
     if (skyStyle === 'realistic') {
-      const nightAmt = Math.min(1, Math.max(0, (-light.elevationDeg - 3) / 11));
+      // r19 review P1-1: blend from the TRUE sun dir on BOTH branches — seeding from the
+      // remapped sunDirection imported the EL_REMAP 5->33deg discontinuity at el -8 into the
+      // dusk sweep (a 74deg key swing in 2deg of elevation while the table still read 0.25).
+      // The true dir is continuous in el; the whole handoff is then the smooth sun->moon slide.
+      const nightAmt = nightAmountOf(light.elevationDeg);
+      const _tsd = trueSunDirection(light);
       if (nightAmt > 0) {
-        const _tsd = trueSunDirection(light), _md = moonDirection(_tsd);
-        _keyDir.lerp(_md, nightAmt);
+        // SLERP, not lerp: the sun and moon are nearly OPPOSITE unit vectors — a linear blend
+        // passes through the zero vector at the midpoint (horizontal components cancel) and
+        // the normalize amplifies the cancellation into a wild direction (the r19 T5 sweep
+        // measured 68deg/deg swings around el -8.5). Rotating around the sun x moon axis has
+        // uniform angular rate (~15deg per degree of elevation) and never degenerates.
+        const _md = moonDirection(_tsd);
+        _blendAxis.crossVectors(_tsd, _md);
+        if (_blendAxis.lengthSq() > 1e-10) {
+          _blendAxis.normalize();
+          const _ang = Math.acos(Math.max(-1, Math.min(1, _tsd.dot(_md)))) * nightAmt;
+          _blendQuat.setFromAxisAngle(_blendAxis, _ang);
+          _keyDir.copy(_tsd).applyQuaternion(_blendQuat);
+        } else {
+          _keyDir.copy(_tsd);
+        }
         sun.color.copy(g.sunColor).lerp(MOON_TONE, nightAmt);
       } else {
-        _keyDir.copy(trueSunDirection(light));   // day: match the visible disc, not the remap
+        _keyDir.copy(_tsd);   // day: match the visible disc, not the remap
       }
       // the y-floor covers BOTH branches (E2E T5: the day branch at el 0..-3 copied the true
       // sub-horizon dir — a below-ground key light with the table still at ~0.5 intensity);

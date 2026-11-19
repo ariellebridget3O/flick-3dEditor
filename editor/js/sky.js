@@ -545,6 +545,8 @@ ${GLSL_COMMON}
       // the r18 wash the feedback was about). At 0.045 the glow dies by ~3deg (~1.5 disc
       // radii): ~50 luma at 2deg, ~21 at 3deg, invisible at 4deg.
       float halo = pow(max(moonCos, 0.0), 1200.0) * 0.045;
+      // tone = C.MOON_TONE (0.86,0.88,0.95 — the GLSL literal mirrors the const the night key
+      // light lerps to in env.js; keep the two in sync)
       L += visible * uNightAmount * horizonFade * vec3(0.86, 0.88, 0.95) * (disc * 3.2 * limb + halo);
     }
 

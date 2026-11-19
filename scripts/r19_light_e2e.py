@@ -17,6 +17,7 @@ Covers the five r19 layers:
   T10 console errors == 0
 """
 import json
+import math
 import os
 import sys
 import time
@@ -121,16 +122,20 @@ check("T4 classic night keyDir == remapped sunDirection (unchanged)", cd < 0.005
 check("T3 realistic night keyDir == uMoonDir (moonlight sync)", d["dot"] > 0.999,
       f"dot={d['dot']:.4f} dir={d['realDir']} moon={d['moonUniform']} col={d['realCol']}")
 
-# T5: dusk sweep (realistic)
+# T5: dusk sweep (realistic) — FULL-ANGLE gate (review P1-1: the y-only delta was blind to
+# azimuthal swings and skipped the el -6..-8 step where the remapped seed jumps 5->33deg at
+# EL_REMAP_EDGE while the blend is mid-slide; gate the intensity at 0.02 so the trough edges
+# are covered, and measure the actual angle between consecutive key directions)
 r = ab.eval_js(S, """(function(){
   const a=window.__app;
   a.setSkyStyle('realistic');
   const steps = [];
   let sun=null; a.scene.traverse(function(o){ if (o.type==='DirectionalLight') sun=o; });
-  for (let el = 10; el >= -30; el -= 2) {
+  for (let el = 10; el >= -30; el -= 1) {
     a.setLightCustom(0, el); a.env.applyDaylight(a.light);
     const k = a.env.keyDirection;
-    steps.push({el: el, y: +k.y.toFixed(3), i: +sun.intensity.toFixed(3)});
+    steps.push({el: el, y: +k.y.toFixed(3), i: +sun.intensity.toFixed(3),
+                d: [k.x, k.y, k.z].map(function(v){return +v.toFixed(4);})});
   }
   return JSON.stringify(steps);
 })()""")
@@ -138,11 +143,12 @@ steps = json.loads(r)
 ok5 = all(s["y"] >= 0.049 and abs(s["y"]) <= 1 for s in steps)
 jumps = []
 for i in range(1, len(steps)):
-    if steps[i]["i"] >= 0.1 and steps[i-1]["i"] >= 0.1:
-        dy = abs(steps[i]["y"] - steps[i-1]["y"])
-        if dy > 0.42:  # ~25deg in y-component between 2deg steps while the key is lit
-            jumps.append((steps[i-1]["el"], steps[i]["el"], round(dy, 3)))
-check("T5 dusk sweep: keyDir.y floored >= 0.05, no >25deg jump while lit", ok5 and not jumps,
+    a, b = steps[i-1]["d"], steps[i]["d"]
+    dot = max(-1, min(1, a[0]*b[0] + a[1]*b[1] + a[2]*b[2]))
+    ang = math.degrees(math.acos(dot))
+    if (steps[i]["i"] >= 0.02 or steps[i-1]["i"] >= 0.02) and ang > 25:
+        jumps.append((steps[i-1]["el"], steps[i]["el"], round(ang, 1), steps[i]["i"]))
+check("T5 dusk sweep: y floored >= 0.05, no >25deg/deg jump near the lit trough", ok5 and not jumps,
       f"y-range [{min(s['y'] for s in steps):.2f},{max(s['y'] for s in steps):.2f}] jumps={jumps}")
 
 # T8: IBL indoor/outdoor split (+ the style re-click race)
@@ -164,6 +170,8 @@ r = ab.eval_js(S, """(function(){
 d = json.loads(r)
 check("T8 IBL split: outdoor 0.30 / indoor 0 (survives re-click)", abs(d["outdoor"] - 0.30) < 1e-6 and d["indoor"] == 0 and d["reclick"] == 0 and abs(d["backOutdoor"] - 0.30) < 1e-6,
       json.dumps(d))
+errs_a = ab.console_errors(S)
+check("T10a session A console errors == 0", not errs_a, str(errs_a)[:120])
 
 # ============ Session B: plain, room fixture — T2 shaft ============
 ab.close(S); time.sleep(1)
@@ -190,6 +198,8 @@ floor_in = (A[int(BH*0.60):] > 200).mean()
 floor_bl = (C[int(BH*0.60):] > 200).mean()
 check("T2 window shaft follows the sun azimuth (through vs blocked)", d2 > 4.0 and floor_in > floor_bl + 0.03,
       f"mean|d|={d2:.2f} floor>200: {floor_in*100:.0f}% vs {floor_bl*100:.0f}%")
+errs_b = ab.console_errors(S)
+check("T10b session B console errors == 0", not errs_b, str(errs_b)[:120])
 
 # ============ Session C: finish forced — T6/T7/T9 ============
 ab.close(S); time.sleep(1)
@@ -267,7 +277,7 @@ check("T9 indoor style delta ~ 0 (floor rows < 1.5)", d9 < 1.5, f"mean|d|={d9:.2
 # T10 console
 ab.eval_js(S, "(function(){ localStorage.removeItem('stage-finish'); return 1; })()")
 errs = ab.console_errors(S)
-check("T10 console errors == 0", not errs, str(errs)[:120])
+check("T10c session C console errors == 0", not errs, str(errs)[:120])
 ab.close(S)
 
 fails = [n for n, ok, _ in RESULTS if not ok]
