@@ -244,15 +244,46 @@ export const C = {
   SEL_STROKE_PX: 1.5,        // $Wr
   SEL_TOOLBAR_PAD: 0.18,     // GWr — selectionScreenBounds extend fraction of clientHeight
 
-  // ---------- camera rigs (gq) ----------
-  CAMERA_RIGS: {             // gq: tripod/gimbal/steadicam/handheld/run/drone
-    tripod:    { speed: 0,   shake: 'off',    roll: 0 },
-    gimbal:    { speed: 1.8, shake: 'off',    roll: 0 },
-    steadicam: { speed: 1.8, shake: 'subtle', roll: 0.06, roll2: 0.04 },
-    handheld:  { speed: 1.8, shake: 'medium', roll: 0 },
-    run:       { speed: 5,   shake: 'stride', roll: 0.04 },   // gq run turnRoll .04 @5187159 (review P2-3)
-    drone:     { speed: 7.5, shake: 'off',    roll: 0.2, roll2: 0.12 },
+  // ---------- camera rigs (gq @5186601 — FULL verbatim table, r17; supersedes the r5 summary) ----------
+  RIG_KEYS: ['tripod', 'gimbal', 'steadicam', 'handheld', 'run', 'drone'],   // i$ @5186537
+  RIG_DEFAULT: 'gimbal',    // BGt @5186568
+  CAMERA_RIGS: {            // gq — field names verbatim
+    tripod:    { speedMps: 0,   startEaseS: .35, stopEaseS: .2,  lookEaseS: .2,  stickCurve: 1.4, level: true,  shake: 'off',    turnRoll: 0,   strafeRoll: 0,   rollEaseS: .6 },
+    gimbal:    { speedMps: 1.8, startEaseS: .35, stopEaseS: .18, lookEaseS: .18, stickCurve: 1.3, level: true,  shake: 'off',    turnRoll: 0,   strafeRoll: 0,   rollEaseS: .6 },
+    steadicam: { speedMps: 1.8, startEaseS: .55, stopEaseS: .3,  lookEaseS: .28, stickCurve: 1.3, level: true,  shake: 'subtle', turnRoll: .06, strafeRoll: .04, rollEaseS: .7 },
+    handheld:  { speedMps: 1.8, startEaseS: .2,  stopEaseS: .12, lookEaseS: .08, stickCurve: 1.2, level: true,  shake: 'medium', turnRoll: 0,   strafeRoll: 0,   rollEaseS: .4 },
+    run:       { speedMps: 5,   startEaseS: .25, stopEaseS: .15, lookEaseS: .06, stickCurve: 1.2, level: true,  shake: 'stride', turnRoll: .04, strafeRoll: 0,   rollEaseS: .4 },
+    drone:     { speedMps: 7.5, startEaseS: .6,  stopEaseS: .35, lookEaseS: .32, stickCurve: 1.5, level: false, shake: 'off',    turnRoll: .2,  strafeRoll: .12, rollEaseS: .6 },
   },
+  RIG_SPEED_STEPS: [.3, .6, .9, 1.2, 1.8, 2.4, 3.6, 5, 7.5, 11, 16, 24, 36, 50],  // HGt @5187425
+  RIG_PAN_STEPS: [5, 10, 15, 20, 30, 45, 60, 90],       // $Gt @5187455
+  RIG_PAN_DEFAULT: 20,        // VGt @5187477
+  RIG_WEIGHT_MAX: Math.log2(3),   // Eie @5188185 — clamp ±log2(3)
+  RIG_WEIGHT_DEADZONE: .08,   // zCr @5188196
+  RIG_WEIGHT_STEP: .25,       // UCr @5188192 — ×2^±.25 per press
+  RIG_WEIGHT_STORAGE: 'flick3dEditor.rig-weights',  // nqt "stage-rig-weights" @5241269 (origin-prefixed per port convention)
+  STICK_DEADZONE: .1,         // m2e @5185663
+  STICK_LEVEL_MIN: .001,      // RCr @5185668
+  VERTICAL_SPEED_FLOOR: .6,   // ZCr/KCr @5189298 (both .6)
+  ROLL_MAX: 25 * Math.PI / 180,  // eEr @5189933
+  PITCH_MAX: Math.PI / 2 - .05,  // Iie @5188719
+  SPRING_ZERO_EPS: 1e-4,      // Xrt @5189516
+  EDIT_DRIVE_SPEED: 4,        // Tye @5639807 — edit-mode WASD m/s
+  EDIT_DRIVE_SPRINT: 3,       // Aye — shift ×
+  CAM_DRIVE_SHIFT_STICK: .4,  // eWr @5639821 — camera-mode shift scales the STICK (fine)
+  CAM_FLOOR_GUARD: 1.6,       // Yzr @5639801 — takeOver fallback min height
+  LOOK_RAD_PER_PX: .002,      // zit @5609244
+  LOOK_POINTER_SPEED: .35,    // tWr @5639834 (z.pointerSpeed)
+  ZOOM_STEP: .35,             // pEr @5193531 — held-key target step/s
+  ZOOM_LENS_TAU: .15,         // fEr — lens spring tau
+  ZOOM_WHEEL_RATE: 6e-4,      // mEr — wheel zoom rate
+  ZOOM_WHEEL_DIV: 33,         // gEr — deltaMode 1 divisor
+  ZOOM_DT_MAX: .05,           // Jjr — rAF dt clamp
+  TC_FPS: 24,                 // Qne @5192245
+  LEVEL_ON_DEG: 1,            // TCr @5183721 — level indicator on threshold
+  MONITOR_BAR_PX: 96,         // KGt @5193210
+  FOCAL_MM_MIN: 14,           // q_ @3920347
+  FOCAL_MM_MAX: 200,          // WA
   SHAKE_PRESETS: {           // d2r (Dzt @3921570)
     subtle: { posUnits: 0.005, rotDeg: 0.15 },
     medium: { posUnits: 0.015, rotDeg: 0.4 },
