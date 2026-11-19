@@ -1517,6 +1517,9 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
         dragging = true;
         app._tl.interaction = 'drag';
         blockEl.classList.add('dragging');
+        // r16 (I() @5173556): the drag becoming active starts the segment-drag state —
+        // the viewport BUr branch glows canDropSegmentOnObject candidates from now on
+        app.show.beginSegmentDrag({ trackId, itemId });
       }
       const desiredStart = startS0 + dx / pps;
       const useMagnet = magnet && !(ev.metaKey || ev.ctrlKey);   // live: meta/ctrl bypasses
@@ -1586,15 +1589,21 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       window.removeEventListener('pointercancel', cancel);
       lanes.querySelectorAll('.snap-guide,.ghost-blk,.ghost-caret').forEach(g => g.remove());
       lanes.querySelectorAll('.lane-body.dup-target').forEach(l => l.classList.remove('dup-target'));
+      // r16 (ne @5173556): endSegmentDrag FIRST (clears the viewport glow), then the
+      // wasSegmentDropTaken gate — a drop taken by the viewport SUPPRESSES the timeline's
+      // own duplicate/move/reorder commit (the segment was duplicated onto an object).
+      app.show.endSegmentDrag();
       if (!dragging) return;
       app._tl.justDragged = true;
       app._tl.interaction = null;
-      if (duplicating) {
-        app.show.duplicateItemTo(trackId, itemId, toTrackId, curStart);
-      } else if (plan.kind === 'reorder') {
-        app.show.reorderItem(trackId, itemId, plan.toIndex);
-      } else if (plan.kind === 'move') {
-        app.show.moveItem(trackId, itemId, plan.startS);
+      if (!app.show.wasSegmentDropTaken()) {
+        if (duplicating) {
+          app.show.duplicateItemTo(trackId, itemId, toTrackId, curStart);
+        } else if (plan.kind === 'reorder') {
+          app.show.reorderItem(trackId, itemId, plan.toIndex);
+        } else if (plan.kind === 'move') {
+          app.show.moveItem(trackId, itemId, plan.startS);
+        }
       }
       app.show.changed();
       refreshTimeline(app);
@@ -1606,6 +1615,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
       window.removeEventListener('pointercancel', cancel);
       lanes.querySelectorAll('.snap-guide,.ghost-blk,.ghost-caret').forEach(g => g.remove());
       lanes.querySelectorAll('.lane-body.dup-target').forEach(l => l.classList.remove('dup-target'));
+      app.show.endSegmentDrag();                        // r16: clear the viewport glow state
       if (dragging) { app._tl.interaction = null; refreshTimeline(app); }
     };
     window.addEventListener('pointermove', mv);

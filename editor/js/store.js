@@ -384,6 +384,9 @@ export class ShowStore extends StoreBase {
     this.redoStack = [];
     this._gestureSnapshots = null; // [sceneRef, showRef] at outermost gesture start
     this._gestureDepth = 0;         // nestable brackets: undo pushed when depth returns to 0
+    this.draggingSegment = null;    // @5547092 — segment-drag-to-object state (r16)
+    this.segmentDropTaken = false;
+    this.onSegmentDragChange = null; // reactive glow driver (palette.js registers)
   }
   setShow(show) { this.show = show; this.undoStack = []; this.redoStack = []; this.changed(); }
   tracks() { return this.show.tracks; }
@@ -546,6 +549,41 @@ export class ShowStore extends StoreBase {
     const copy = dropSelfRefs({ ...JSON.parse(JSON.stringify(it)), id: uuid(), startS: Math.max(0, startS) }, dest.characterId);
     this._commit(toTrackId, t => { t.items = [...t.items, copy]; });
     return copy;
+  }
+  // ---- segment-drag-to-object family (r16 verbatim @5547092..5548118): draggingSegment +
+  // segmentDropTaken + begin/end/mark/was + draggedSegment + canDropSegmentOnObject +
+  // dropSegmentOnObject. The viewport BUr branch glows candidates while a timeline segment
+  // is dragged; pointerup (capture) over one duplicates the item into that character's
+  // track and sets segmentDropTaken — the timeline up-handler then SKIPS its own commit.
+  // onSegmentDragChange mirrors the live's onSegmentDragChange prop (reactive glow driver;
+  // palette.js registers the observer). No gesture bracket — the item ops self-bracket.
+  beginSegmentDrag(e) { this.segmentDropTaken = false; this.draggingSegment = e; this.onSegmentDragChange?.(e); }
+  endSegmentDrag() { this.draggingSegment = null; this.onSegmentDragChange?.(null); }
+  markSegmentDropTaken() { this.segmentDropTaken = true; }
+  wasSegmentDropTaken() { return this.segmentDropTaken; }
+  draggedSegment() {
+    const e = this.draggingSegment;
+    return e ? this.show.tracks.find(t => t.id === e.trackId)?.items.find(i => i.id === e.itemId) ?? null : null;
+  }
+  canDropSegmentOnObject(id) {                           // @5547519 — Art(segment, kind)
+    const n = this.draggedSegment();
+    return !n || !this.canOwnTrack(id) ? false : canDuplicateOnto(n, this._objs()[id]?.kind);
+  }
+  dropSegmentOnObject(id) {                              // @5547647 — duplicate into target track at MP
+    const n = this.draggingSegment;
+    if (!n || !this.canDropSegmentOnObject(id)) return null;
+    // r16 review P2-1: the live's coalescing history observer records the track creation
+    // + duplicate as ONE undo beat — bracket here so undoing removes BOTH (an orphan
+    // empty track otherwise survives). Outer depth-1 + the _commit inner depth-2 = one push.
+    this.beginEditGesture();
+    try {
+      const s = this.show.tracks.find(t => t.characterId === id)?.id ?? this.addPerformanceTrack(id);
+      if (!s) return null;
+      const a = this.show.tracks.find(t => t.id === s)?.items ?? [];
+      const o = this.duplicateItemTo(n.trackId, n.itemId, s, maxEnd(a));
+      if (o) this.segmentDropTaken = true;
+      return o;
+    } finally { this.endEditGesture(); }
   }
   // kGt: move item to slot index (startS inherits the slot's original start)
   reorderItem(trackId, itemId, toIndex) {

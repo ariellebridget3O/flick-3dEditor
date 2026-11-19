@@ -747,7 +747,10 @@ export function installActionDrop(app) {
   const ndc = new THREE.Vector2();
 
   const clearHover = () => {
-    if (hoverId) applyGlow(app, [hoverId], GLOW_IDLE, GLOW_IDLE_I);
+    // live m(k) @5603702: repaint the previous hover to idle only if STILL a candidate
+    if (hoverId && (!candidates || candidates.includes(hoverId))) {
+      applyGlow(app, [hoverId], GLOW_IDLE, GLOW_IDLE_I);
+    }
     hoverId = null;
   };
   const restoreAll = () => { restoreGlow(); candidates = null; hoverId = null; };
@@ -757,6 +760,35 @@ export function installActionDrop(app) {
     const ids = Object.keys(app.objects.all()).filter(id => app.show.canDropActionOnObject(id, payload));
     applyGlow(app, ids, GLOW_IDLE, GLOW_IDLE_I);
     return ids;
+  };
+
+  // r16 segment branch (BUr @5603400..5604650): while a timeline segment is dragged,
+  // candidates glow idle-blue; document pointermove hovers; pointerup (CAPTURE) over a
+  // candidate duplicates the segment into that character's track (dropSegmentOnObject).
+  // The live drives this reactively off draggingSegment (its onSegmentDragChange prop);
+  // ours registers the same observer on the store.
+  const segmentCandidates = () => {
+    const ids = Object.keys(app.objects.all()).filter(id => app.show.canDropSegmentOnObject(id));
+    applyGlow(app, ids, GLOW_IDLE, GLOW_IDLE_I);
+    return ids;
+  };
+  // f(k) verbatim: bounds check FIRST (pointer outside the canvas → null — the document
+  // pointermove must not glow when the drag is over the timeline), then NDC raycast.
+  const segmentRaycast = e => {
+    const rect = el.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return null;
+    ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, app.camera);
+    const meshes = (candidates ?? []).map(id => app.meshById.get(id)).filter(Boolean);   // r16 review P3-2: defensive
+    const hits = raycaster.intersectObjects(meshes, true);
+    if (!hits.length) return null;
+    let o = hits[0].object;
+    while (o && o.userData?.objectId === undefined) o = o.parent;
+    return o?.userData?.objectId ?? null;
+  };
+  app.show.onSegmentDragChange = payload => {   // reactive effect (qt @5603490 shape)
+    restoreAll();
+    if (payload) candidates = segmentCandidates();
   };
 
   el.addEventListener('dragover', e => {
@@ -802,6 +834,27 @@ export function installActionDrop(app) {
     app._ui?.refreshInspector();
     app._ui?.refreshTimeline();
   });
+  // segment branch document listeners (v/x @5604551 — pointermove hovers; pointerup
+  // CAPTURE drops; the capture phase runs BEFORE the timeline's bubble-phase up handler,
+  // so segmentDropTaken is set before the timeline's wasSegmentDropTaken() gate reads it)
+  document.addEventListener('pointermove', e => {
+    if (!app.show.draggingSegment) return;
+    const hitId = segmentRaycast(e);
+    if (hitId !== hoverId) {
+      clearHover();
+      if (hitId) applyGlow(app, [hitId], GLOW_HOVER, GLOW_HOVER_I);
+      hoverId = hitId;
+    }
+  });
+  document.addEventListener('pointerup', e => {
+    if (!app.show.draggingSegment) return;
+    const hitId = segmentRaycast(e);
+    clearHover();
+    if (hitId) {
+      try { app.show.dropSegmentOnObject(hitId); }
+      finally { app._ui?.refreshInspector(); app._ui?.refreshTimeline(); }
+    }
+  }, true);
   return { restore: restoreAll };
 }
 
