@@ -102,6 +102,7 @@ export function normalizeLight(l) {
       thicknessM: Number.isFinite(c.thicknessM) ? Math.min(4000, Math.max(200, c.thicknessM)) : 1200,
       cirrus: Number.isFinite(c.cirrus) ? Math.min(1, Math.max(0, c.cirrus)) : 0.15,
       windSpeed: Number.isFinite(c.windSpeed) ? Math.min(3, Math.max(0, c.windSpeed)) : 0.2,
+      seed: Number.isFinite(c.seed) ? Math.min(999, Math.max(0, Math.round(c.seed))) : 0,   // r18 review P0-1: schema kept it, this normalize dropped it on every load
     };
   }
   return out;
@@ -350,7 +351,10 @@ export function createEnvironment(scene, settings) {
     skyStyle = style === 'realistic' ? 'realistic' : 'classic';
     sky.visible = skyStyle === 'classic';
     if (skyStyle !== 'realistic' && scene.environment) scene.environment = null;  // drop IBL BEFORE the RT dispose
-    scene.environmentIntensity = 1;                                            // r18: restore three's default off-style
+    // r18 review P1-1: resetting to 1 here + the 0.30 restore living inside applyDaylight's
+    // memoized branch left the IBL at 1.0 when a key-identical applyDaylight followed (clicking
+    // the active style seg, re-opening the same scene). Set the STYLE-correct value directly.
+    scene.environmentIntensity = skyStyle === 'realistic' ? C.SKY_IBL_INTENSITY : 1;
     realistic.setEnabled(skyStyle === 'realistic');
     // P2: clouds are a realistic-sky feature — classic look stays byte-identical (mesh hidden,
     // twin removed, dome.renderOrder restored to -1 by setCloudTwin(null))

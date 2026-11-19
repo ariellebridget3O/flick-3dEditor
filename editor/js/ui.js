@@ -596,7 +596,7 @@ function buildLightPopover(app) {
     const c = b.dataset.c;
     commit(() => {
       if (c === 'off') app.setClouds({ enabled: false });
-      else app.setClouds({ enabled: true, mode: c });
+      else app.setClouds({ enabled: true });   // r18 review P3: the mode field is dead (single mode)
     });
     render();
   });

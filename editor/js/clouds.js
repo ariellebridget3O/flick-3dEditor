@@ -45,7 +45,7 @@ const satJs = x => Math.min(1, Math.max(0, x));
 // decorrelated; any translate of the stationary field is an equally-valid new pattern draw).
 function seedOffset(seed) {
   const s = Math.min(999, Math.max(0, Math.round(seed)));
-  return [s * 37.7192 % 128, s * 61.8384 % 128, s * 29.5504 % 128];
+  return [(s * 37.7192) % 128, (s * 61.8384) % 128, (s * 29.5504) % 128];
 }
 // R13 §3.4 remap — the denominator keeps its SIGN: inverted ranges like remap(hn, 1.0,
 // 0.30, 0.0, 1.0) (the cumulus "rounded top" profile) are intentional call sites; a
@@ -365,8 +365,9 @@ ${CL_ATMOS_CHUNK}
         // to ~2.6px; the 40px blobs averaged back into the invisible veil — the r18 it3 bug).
         // 16 texels/px on both axes caps the chain at level 4 (16px rows) where blobs live.
         vec2 gcap = vec2(16.0 / ${CL_SHEET_ATLAS_W.toFixed(1)}, 16.0 / (${CL_SHEET_ATLAS_W.toFixed(1)} * ${CL_SHEET_COUNT.toFixed(1)}));
-        vec2 gdx = clamp(dFdx(uv), -gcap, gcap);
-        vec2 gdy = clamp(dFdy(uv), -gcap, gcap);
+        vec2 gs = vec2(1.0, 0.96 / ${CL_SHEET_COUNT.toFixed(1)});   // review P2-1: suv.y scales uv.y by 0.96/6
+        vec2 gdx = clamp(dFdx(uv) * gs, -gcap, gcap);
+        vec2 gdy = clamp(dFdy(uv) * gs, -gcap, gcap);
         vec4 sh = textureGrad(uSheetAtlas, suv, gdx, gdy);
         float aS = sh.a;
         if (aS < 0.004) continue;
@@ -594,26 +595,31 @@ export function createCloudLayer({ renderer, sky }) {
       // (measured: effective 18% rendered as an invisible ~5/255 veil even with the textureGrad
       // clamp). Real scattered cumulus = FEW BIG solid blobs: blur, then threshold -> a few
       // large islands whose size survives the mip chain. Two wrapped box passes ~= triangular.
-      const RB = 10;
+      // running-sum sliding window (review P1-2: the naive 21-tap box x2 passes x2 axes cost
+      // ~150-380ms/build and janked the coverage slider; this is O(1)/px per axis)
+      const RB = 10, WIN = 2 * RB + 1;
       let blurred = field;
       for (let pass = 0; pass < 2; pass++) {
+        const outH = new Float32Array(W * W);
+        for (let y = 0; y < W; y++) {
+          const row = y * W;
+          let acc = 0;
+          for (let k = -RB; k <= RB; k++) acc += blurred[row + ((k + W) % W)];
+          for (let x = 0; x < W; x++) {
+            outH[row + x] = acc / WIN;
+            acc += blurred[row + ((x + RB + 1) % W)] - blurred[row + ((x - RB + W) % W)];
+          }
+        }
         const out = new Float32Array(W * W);
-        for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+        for (let x = 0; x < W; x++) {
           let acc = 0;
-          for (let k = -RB; k <= RB; k++) {
-            acc += blurred[y * W + ((x + k + W) % W)];
+          for (let k = -RB; k <= RB; k++) acc += outH[((k + W) % W) * W + x];
+          for (let y = 0; y < W; y++) {
+            out[y * W + x] = acc / WIN;
+            acc += outH[((y + RB + 1) % W) * W + x] - outH[((y - RB + W) % W) * W + x];
           }
-          out[y * W + x] = acc / (2 * RB + 1);
         }
-        const out2 = new Float32Array(W * W);
-        for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
-          let acc = 0;
-          for (let k = -RB; k <= RB; k++) {
-            acc += out[((y + k + W) % W) * W + x];
-          }
-          out2[y * W + x] = acc / (2 * RB + 1);
-        }
-        blurred = out2;
+        blurred = out;
       }
       // histogram threshold at the (1-c_s) quantile of the ACTUAL (blurred) field
       const sorted = Float32Array.from(blurred).sort();
@@ -677,6 +683,7 @@ export function createCloudLayer({ renderer, sky }) {
     stats.composite = 1 - stats.composite;
     lastSheetsStats = stats;
     ctx.putImageData(img, 0, 0);
+    const prevTex = sheetAtlas;   // review P2-3: dispose the previous atlas (mip chain ~2MB VRAM leaked per rebuild)
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.minFilter = THREE.LinearMipmapLinearFilter;   // r18: mipmaps + the textureGrad texel clamp
@@ -685,6 +692,13 @@ export function createCloudLayer({ renderer, sky }) {
     tex.colorSpace = THREE.NoColorSpace;
     sheetAtlas = tex;
     uniforms.uSheetAtlas.value = tex;
+    prevTex?.dispose();
+  }
+
+  let sheetsTimer = null;                              // review P1-2: debounce (coalesce slider-tick rebuilds)
+  function scheduleSheets() {
+    if (sheetsTimer !== null) return;
+    sheetsTimer = setTimeout(() => { sheetsTimer = null; buildSheets(); }, 120);
   }
 
   // ---- state ----
@@ -743,12 +757,12 @@ export function createCloudLayer({ renderer, sky }) {
     if (typeof next.geoAltitudeM === 'number') geoAltitudeM = next.geoAltitudeM;
     if (p.fogColor) u.uFogColor.value.copy(p.fogColor);
     if (p.moonDir) u.uMoonDir.value.copy(p.moonDir);
-    // r13 audit P2: the layered atlas bakes coverage/density at build time — rebuild when they
-    // change in layered mode (CPU-side 256xN, ~2-5 ms; the sliders stay live)
+    // r13 audit P2 (perf re-benchmarked r18): the atlas bakes coverage/density/seed at build
+    // time — rebuild when they change; the build is debounced (slider drags coalesce).
     currentSeed = next.seed;
     if (enabled && noiseCPU) {
       const sk = next.coverage.toFixed(4) + '|' + next.density.toFixed(4) + '|' + next.seed;
-      if (sk !== sheetsKey) { sheetsKey = sk; buildSheets(); }
+      if (sk !== sheetsKey) { sheetsKey = sk; scheduleSheets(); }   // review P1-2: debounced — slider drags fired a ~100ms+ build per input tick
     }
     return changed;
   }
@@ -766,7 +780,8 @@ export function createCloudLayer({ renderer, sky }) {
     twinMesh.visible = enabled;
     if (enabled && !shapeTex) {
       bakeNoise3D();                            // one-time renderer-level 128^3 bake
-      buildSheets();                            // layered fallback sheets from the same noise
+      buildSheets();                            // layered sheets from the same noise
+      sheetsKey = uniforms.uCoverage.value.toFixed(4) + '|' + uniforms.uDensity.value.toFixed(4) + '|' + currentSeed;   // review P1-2: setParams always follows on every enable path — don't build twice
     }
     if (enabled) windClock = performance.now(); // wind animates only while enabled
     else windClock = null;

@@ -90,7 +90,7 @@ export const C = {
   CLOUD_WEATHER_DARKEN: { clear: 0.0, cloudy: 0.0, overcast: 0.16, rain: 0.50, fog: 0.40 },
   CLOUD_COVERAGE_DEFAULT: 0.45,          // schema light.clouds.coverage default
   CLOUD_MODES: ['layered'],              // r18: procedural removed (unusably slow)
-  CLOUD_BUDGET_MS: 11,                   // auto-gate: plain+clouds − plain @1080p reference
+  // (r13 CLOUD_BUDGET_MS removed r18 — the budget auto-gate went with the procedural tier)
   // round 13 (HDR): tone mapping + bloom (editor/js/bloom.js — UnrealBloomPass recipe port).
   // BLOOM_MIPS: the mip-chain depth (bright pass + 5 h/v blur levels, starting at ½ res).
   BLOOM_MIPS: 5,

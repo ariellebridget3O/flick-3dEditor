@@ -107,20 +107,22 @@ r3 = ab.eval_js(S, """(async function(){
   const c=app.env.clouds();
   return JSON.stringify({enabled: c.enabled, mode: app.light.clouds ? (app.light.clouds.mode ?? 'ABSENT') : 'ABSENT'});
 })()""")
-check("T1b procedural scene migrates to layered", '"mode":"ABSENT"' in str(r3) or '"mode":"layered"' in str(r3), str(r3))
+check("T1b procedural scene migrates to layered (enabled)", ('"mode":"ABSENT"' in str(r3) or '"mode":"layered"' in str(r3)) and '"enabled":true' in str(r3), str(r3))
 
 # ---------- T2/T3 weather coverage + instrumentation ----------
 stats = {}
 for wx in ["clear", "cloudy", "overcast", "rain", "fog"]:
-    r = ab.eval_js(S, f"""(function(){{
+    ab.eval_js(S, f"""(function(){{
       const a=window.__app; a.setSkyStyle('realistic'); a.setWeather('{wx}');
       a.setClouds({{enabled:true, coverage:0.45, seed:0}});
       a.env.clouds().setStatic(true);
       a.renderFrame();
-      return JSON.stringify(a.env.clouds()._debug.lastSheetsStats);
+      return 1;
     }})()""")
-    time.sleep(1.6)
-    stats[wx] = json.loads(str(r).replace("'", '"').replace('"{', "{").replace('}"', "}")) if isinstance(r, str) and r.startswith("{") else json.loads(json.dumps(r))
+    time.sleep(0.6)   # the atlas rebuild is debounced 120ms (review P1-2) — read AFTER it lands
+    r = ab.eval_js(S, "JSON.stringify(window.__app.env.clouds()._debug.lastSheetsStats)")
+    time.sleep(1.0)
+    stats[wx] = json.loads(str(r))
 anchors = {"clear": 0.18, "cloudy": 0.55, "overcast": 0.85, "rain": 0.90, "fog": 0.95}
 ok2 = all(abs(stats[w]["composite"] - anchors[w]) / anchors[w] < 0.15 for w in anchors)
 check("T2 weather->effective coverage (composite within 15% of anchor)",
@@ -129,13 +131,12 @@ ok3 = all(all(abs(m - stats[w]["cSheet"]) / stats[w]["cSheet"] < 0.15 for m in s
 check("T3 per-sheet means within 15% of c_s", ok3,
       " ".join(f"{w}:{np.mean(stats[w]['sheets']):.4f}/{stats[w]['cSheet']:.4f}" for w in anchors))
 # floors: rain at coverage 0.05 (user slider near zero) still >= 0.88
-r = ab.eval_js(S, """(function(){
+ab.eval_js(S, """(function(){
   const a=window.__app; a.setWeather('rain'); a.setClouds({coverage:0.05, seed:0});
-  a.env.clouds().setStatic(true); a.renderFrame();
-  return JSON.stringify(a.env.clouds()._debug.lastSheetsStats);
+  a.env.clouds().setStatic(true); a.renderFrame(); return 1;
 })()""")
-time.sleep(1.6)
-fr = json.loads(str(r)) if not str(r).startswith('"{') else json.loads(str(r)[1:-1])
+time.sleep(0.6)
+fr = json.loads(str(ab.eval_js(S, "JSON.stringify(window.__app.env.clouds()._debug.lastSheetsStats)")))
 check("T2b rain floor (user 0.05 -> composite >= 0.80)", fr["composite"] >= 0.80, f"composite={fr['composite']:.3f}")
 
 # ---------- T4 seed A/B ----------
@@ -147,10 +148,11 @@ r = ab.eval_js(S, """(function(){
 })()""")
 time.sleep(1.8)
 cap("r18_T4_seed0.png")
-r2 = ab.eval_js(S, "(function(){ const a=window.__app; a.setClouds({seed:137}); a.env.clouds().setStatic(true); a.renderFrame(); return JSON.stringify({seed: a.env.clouds()._debug.seed, st: a.env.clouds()._debug.lastSheetsStats.composite}); })()")
+r2 = ab.eval_js(S, "(function(){ const a=window.__app; a.setClouds({seed:137}); a.env.clouds().setStatic(true); a.renderFrame(); return 1; })()")
 time.sleep(1.8)
 cap("r18_T4_seed137.png")
-print("T4 state:", str(r)[:80], "->", str(r2)[:80], flush=True)
+r2b = ab.eval_js(S, "JSON.stringify({seed: window.__app.env.clouds()._debug.seed, st: window.__app.env.clouds()._debug.lastSheetsStats.composite})")
+print("T4 state:", str(r)[:80], "->", str(r2b)[:80], flush=True)
 d = np.abs(load("r18_T4_seed0.png") - load("r18_T4_seed137.png")).mean()
 check("T4a seed 0 vs 137 different pattern (mean|d| > 3)", d > 3.0, f"mean|d|={d:.2f}")
 # seed=0 == absent: reload the same scene without the seed field
@@ -162,7 +164,25 @@ r = ab.eval_js(S, """(function(){
 })()""")
 time.sleep(1.6)
 cap("r18_T4_noseed.png")
-check("T4b seed field absent == seed 0", '"seed":0' in str(r), str(r))
+check("T4b seed field absent == seed 0 (state)", '"seed":0' in str(r), str(r))
+d0 = np.abs(load("r18_T4_noseed.png") - load("r18_T4_seed0.png")).mean()
+check("T4b2 seed-absent render == seed-0 render (<=2.5 orbit-damping drift)", d0 <= 2.5, f"mean|d|={d0:.2f}")
+# T4c (review P0-1): the seed survives a scene LOAD (env.normalizeLight kept it)
+seeded = "/tmp/r18_seeded.json"
+base2 = json.load(open("/home/z/my-project/flick-3dEditor/editor/samples/synthetic_tracks.json"))
+base2["light"]["skyStyle"] = "realistic"
+base2["light"]["clouds"] = {"enabled": True, "coverage": 0.45, "seed": 137}
+with open(seeded, "w") as f:
+    json.dump(base2, f)
+os.system("cp /tmp/r18_seeded.json /home/z/my-project/public/editor/samples/r18_seeded.json")
+r4 = ab.eval_js(S, """(async function(){
+  const app=window.__app;
+  const res=await fetch('/editor/samples/r18_seeded.json');
+  app.loadSceneData(await res.json());
+  await new Promise(r=>setTimeout(r, 1400));
+  return JSON.stringify({seed: app.env.clouds()._debug.seed, enabled: app.env.clouds().enabled});
+})()""")
+check("T4c seed survives scene load (P0-1)", '"seed":137' in str(r4) and '"enabled":true' in str(r4), str(r4))
 
 # ---------- T5 moon ----------
 r = ab.eval_js(S, """(function(){
@@ -173,7 +193,7 @@ r = ab.eval_js(S, """(function(){
   return 'night';
 })()""")
 time.sleep(2.5)
-ab.eval_file(S, "/tmp/r18_aim.js")
+ab.eval_js(S, "(function(){ const a=window.__app; const l=a.light; const az=l.azimuthDeg*Math.PI/180, el=l.elevationDeg*Math.PI/180; const sx=Math.sin(az)*Math.cos(el), sy=Math.sin(el), sz=-Math.cos(az)*Math.cos(el); const rl=Math.hypot(-sz, sx); const rx=-sz/rl, rz=sx/rl; const moon=Array.of(-sx+rx*0.25, -sy, -sz+rz*0.25); const n=Math.hypot(moon[0],moon[1],moon[2]); const d=Array.of(moon[0]/n, moon[1]/n, moon[2]/n); const cam=a.camera; cam.position.set(-d[0]*40, -d[1]*40+1.6, -d[2]*40); a.orbit.target.set(cam.position.x+d[0]*60, cam.position.y+d[1]*60, cam.position.z+d[2]*60); a.renderFrame(); return 'aimed'; })()")
 time.sleep(1.5)
 cap("r18_T5_moon.png")
 img = load("r18_T5_moon.png")
@@ -266,8 +286,8 @@ check("T10 rain deck darker than overcast by > 15 luma", mo - mr > 15, f"overcas
 
 # ---------- T11 console ----------
 ab.eval_js(S, "(function(){ localStorage.removeItem('stage-finish'); return 1; })()")
-out = ab.run(S, "console")
-check("T11 console errors == 0", not str(out).strip() or "error" not in str(out).lower(), str(out)[:120])
+errs = ab.console_errors(S)
+check("T11 console errors == 0", not errs, str(errs)[:120])
 ab.close(S)
 
 fails = [n for n, ok, _ in RESULTS if not ok]
