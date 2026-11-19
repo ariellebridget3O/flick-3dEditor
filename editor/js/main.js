@@ -52,6 +52,7 @@ import { tickGizmoHover } from './gizmo.js';
 import { createGroundGrid, syncSnap, applyRenderMode } from './viewport-modes.js';
 import { PlanStore, PlanCanvas } from './plan.js';
 import { buildUI } from './ui.js';
+import { createMonitor } from './monitor.js';   // r17 viewfinder
 import { installComponentDrop, wireComponentCatalog } from './components.js';   // r16 component family
 import {
   patchSoftTerminator, createFinishComposer, finishCapable,
@@ -372,6 +373,7 @@ export class App {
         else if (k === 'x') this.changeSpeed(1);
         else if (k === '[') this.stepWeight(-1);
         else if (k === ']') this.stepWeight(1);
+        else if (k === 'r') this.toast?.('Video recording ships with the filming subsystem — not available offline');
       }
       if (k === 'o' || k === 'p') { this._zoomKeys.add(k); this._startZoom(); e.preventDefault(); }
     };
@@ -1327,7 +1329,7 @@ export class App {
     // target + distance = max(dist, .6) when framing (yFr), distance 3 otherwise.
     const [rw, rh] = C.ASPECTS[this.page.recordAspect] ?? C.ASPECTS['16:9'];
     const aspect = rw / rh;
-    const fovDeg = fovFromFocal(this.page.focalLengthMm ?? C.FOCAL_DEFAULT, aspect);
+    const fovDeg = fovFromFocal(this.focalLengthMm, aspect);   // BU: DERIVED active-camera focal (F8+Hv 50) — r17
     for (const [id, obj] of Object.entries(this.objects.all())) {
       if (obj.kind !== 'camera') continue;
       const mesh = this.meshById.get(id);
@@ -1463,6 +1465,7 @@ export class App {
     // restore). In camera mode this is the RIG shake (oEr — the dormant r15 family wakes here).
     this.tickShake(dt);
     try { this.renderFrame(); } finally { this.restoreShake(); }
+    this._monitorRender?.();   // r17 monitor bar (polled fields only — SKILL #63)
   }
 
   finishOn() {   // m(): capability && pref
@@ -1732,7 +1735,7 @@ export class App {
   // enter/exit leaves no undo entry and no scene residue.
   armManualFlight(cameraId) {
     if (this.objects.get(cameraId)?.kind !== 'camera') return false;
-    const existing = this.show.tracks.find(t => t.characterId === cameraId)?.id;
+    const existing = this.show.show.tracks.find(t => t.characterId === cameraId)?.id;
     this.show.beginEditGesture();          // held until finishManualFlight
     const trackId = existing ?? this.show.addPerformanceTrack(cameraId);
     const itemId = trackId && this.show.addCameraItem(trackId, 'manual', this.page.playheadS, null);
@@ -1743,7 +1746,7 @@ export class App {
 
   // startManualFlight @5531164: validate cam-manual on a camera; stop playback; arm the session
   startManualFlight(trackId, itemId) {
-    const tr = this.show.tracks.find(t => t.id === trackId);
+    const tr = this.show.show.tracks.find(t => t.id === trackId);
     const it = tr?.items.find(i => i.id === itemId);
     if (!tr || it?.kind !== 'cam-manual' || this.objects.get(tr.characterId)?.kind !== 'camera') return null;
     if (this.page.playing) this.page.stop();
@@ -1758,6 +1761,7 @@ export class App {
     const draft = this._draft;
     this._draft = null;
     const session = this._manualFlight;
+    this._manualFlight = null;   // manualFlight.set(null) @5800128
     try {
       // performanceStore.finishManualFlight @5800128: samples land in the cam-manual item
       if (session && samples.length > 0) {
@@ -1836,12 +1840,11 @@ export class App {
   // BU @5444685: camera-mode fov = Z_(focalLengthMm, recordAspect) — the filming camera's
   // focal (derived F8+Hv default 50) at the record aspect
   applyCameraModeFov() {
-    // BU @5444685: fov = Z_(focalLengthMm, recordAspect) — the filming camera's focal at the
-    // RECORD aspect (the viewfinder shows the recorded framing, not the viewport's)
-    const focal = this.focalLengthMm;
-    this.camera.fov = fovFromFocal(focal, C.ASPECTS[this.page.recordAspect] ?? 16 / 9);
+    // UGr c() (= the live's applyCameraModeFov — NOT BU): the viewfinder fov adopts the guide
+    // formula 2·atan(fovScale·XCe(viewportAspect)/2/focal). updateFrameGuide implements exactly
+    // this — delegate (audit P0-2 correction).
     this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
-    this.camera.updateProjectionMatrix();
+    this.updateFrameGuide?.();
   }
 
   // setFocalLengthMm @5150107: writes the ACTIVE CAMERA OBJECT (zoom persists into the scene)
@@ -2075,6 +2078,9 @@ export async function boot(container, opts = {}) {
   app.objects.propCatalog = app.propCatalog;      // r16: addComponent prop gate + prop defaultName
   wireComponentCatalog(app.propCatalog);          // r16: Xqt prop ghost builds
   app._componentDrop = installComponentDrop(app); // r16: VUr viewport drop (ghost preview)
+  // r17: pointer-lock look (rzr — the look drives the drive's AIM holder) + the monitor bar
+  app._look = createLook(app._driveAim, app.renderer.domElement);
+  app._monitor = createMonitor(app);
   app.attachWheel();
   app.start();
   return app;

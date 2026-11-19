@@ -257,6 +257,7 @@ export function buildUI(app) {
     app.objects.subscribe?.(() => { aspectPicker.value = app.page.recordAspect ?? '16:9'; });
   }
   app.onAspect = () => updateFrameGuide(app);
+  app.updateFrameGuide = () => updateFrameGuide(app);   // r17: applyMode/c() calls back into the guide fov
   updateFrameGuide(app);
 }
 
@@ -658,7 +659,9 @@ function buildLightPopover(app) {
 export function updateFrameGuide(app) {
   const guide = document.getElementById('frameGuide');
   if (!guide) return;
-  const inCamMode = app.page.stageView === 'cameras';
+  // r17: the guide shows in the cameras view AND in camera mode (the monitor viewfinder); the
+  // camera-mode fov adoption (applyCameraModeFov = UGr c()) IS this formula — one path for both
+  const inCamMode = app.page.stageView === 'cameras' || app.page.mode === 'camera';
   if (!inCamMode) { guide.style.display = 'none'; app.camera.fov = C.EDITOR_FOV; app.camera.updateProjectionMatrix(); return; }
   const host = document.getElementById('viewport');
   const w = host.clientWidth, h = host.clientHeight;
@@ -677,10 +680,11 @@ export function updateFrameGuide(app) {
   guide.style.top = `${(1 - hf) / 2 * 100}%`;
   guide.style.width = `${wf * 100}%`;
   guide.style.height = `${hf * 100}%`;
-  // camera-mode fov adoption: fov = 2·atan(fovScale·XCe(viewportAspect)/2/focal)
-  const focal = app.page.focalLengthMm;
+  // camera-mode fov adoption (UGr c() = applyCameraModeFov): fov = 2·atan(r·XCe(viewportAspect)/2/focal)
+  // — focal = the ACTIVE camera's (derived F8+Hv 50), r = the guide's fovScale. No clamp in the live.
+  const focal = app.focalLengthMm;
   const fov = 2 * Math.atan(r * XCe(viewportAspect) / 2 / focal) * 180 / Math.PI;
-  app.camera.fov = Math.min(120, Math.max(10, fov));
+  app.camera.fov = fov;
   app.camera.updateProjectionMatrix();
 }
 
@@ -785,7 +789,8 @@ function renderObjectSection(app, body) {
   if (isCam) {
     html += `<label class="row">Focal mm<input type="number" step="1" min="14" max="200" value="${obj.focalLengthMm ?? 50}" data-k="focalLengthMm"></label>
       <label class="row">Aspect<select data-k="recordAspect">${C.ASPECT_KEYS.map(a => `<option value="${a}" ${app.page.recordAspect === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
-      <label class="row">Shake<select data-k="shake">${C.SHAKE_VALUES.map(v => `<option ${obj.shake === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
+      <label class="row">Shake<select data-k="shake">${C.SHAKE_VALUES.map(v => `<option ${obj.shake === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+      <button class="primary small" data-act="film">Film</button>`;
   }
   if (obj.kind === 'spotlight') {
     const sp = obj.spotlight ?? C.SPOT_DEFAULTS;
@@ -848,6 +853,11 @@ function renderObjectSection(app, body) {
       if (deleteObjects(app, [id])) app.toast('Paired targets can\u2019t be deleted — delete their camera instead');
     });
     if (act === 'dup') objectOp(() => { const nid = app.objects.duplicate(id, app.show); if (nid) app.objects.select([nid]); });
+    // r17: the live's filmWithPhone non-phone body — arm the manual flight then film
+    // (filmWithPhone @5800534: mode edit + no recording → armPhoneFlight(e) && startFilming(e))
+    if (act === 'film') {
+      if (app.page.mode === 'edit' && app.armManualFlight(id)) app.startFilming(id);
+    }
   });
   if (seg) renderActionSection(app, body);
 }
@@ -944,6 +954,11 @@ function renderActionSection(app, body) {
     if (f === 'dist') el.onchange = e => patch({ distanceScale: clampNum(+e.target.value, 0.1, 4) });
     if (f === 'dur') el.onchange = e => app.show.trimItem(seg.trackId, seg.itemId, +e.target.value);
     if (f === 'edit') el.onclick = () => app.pathEditor.enterPaint(seg.trackId, seg.itemId);
+    if (f === 'fly') el.onclick = () => {
+      // flyManualSegment @5800533 (r17): arm THIS segment's manual flight, then film it
+      const cid = app.startManualFlight(seg.trackId, seg.itemId);
+      if (cid) app.startFilming(cid);
+    };
     if (f === 'axis') el.onchange = e => patch({ axis: e.target.value });
     if (f === 'deg') el.onchange = e => { const v = +e.target.value; if (!Number.isNaN(v)) patch({ degPerS: v }); };
     if (f === 'factor') el.onchange = e => { const v = +e.target.value; if (!Number.isNaN(v) && v > 0) patch({ factor: v }); };
