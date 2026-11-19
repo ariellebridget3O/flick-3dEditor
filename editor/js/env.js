@@ -96,7 +96,6 @@ export function normalizeLight(l) {
     const c = l.clouds;
     out.clouds = {
       enabled: true,
-      mode: c.mode === 'layered' ? 'layered' : 'procedural',
       coverage: Number.isFinite(c.coverage) ? Math.min(1, Math.max(0, c.coverage)) : C.CLOUD_COVERAGE_DEFAULT,
       density: Number.isFinite(c.density) ? Math.min(4, Math.max(0.25, c.density)) : 1,
       altitudeM: Number.isFinite(c.altitudeM) ? Math.min(8000, Math.max(500, c.altitudeM)) : 2500,
@@ -153,7 +152,6 @@ function buildSkyParams(light, fogColor, g) {
 }
 
 // ---------- clouds (P2): params from light.clouds + weather coupling (realistic branch only) ----------
-const CLOUD_STEPS = 40;                    // procedural primary march (32-48 per design)
 // r13 tune: the USER coverage is authoritative; weather modulates ±30% max. The old anchoring
 // (userCov × weatherCov/0.45) crushed clear weather to ×0.4 — user 0.5 rendered as 0.2 and the
 // deck dissolved into wisps. Overcast/rain factors still reach 1.0 at high user coverage.
@@ -169,7 +167,6 @@ function buildCloudParams(light, sp) {     // sp = buildSkyParams bundle (shares
     baseKm: (cl.altitudeM ?? 2500) / 1000,
     heightKm: (cl.thicknessM ?? 1200) / 1000,
     windSpeed: cl.windSpeed ?? 0.2,
-    steps: CLOUD_STEPS,
     nightAmt: sp.nightAmt,
     moonDir: sp.moonDir,
     weatherDesat: sp.weatherDesat,
@@ -312,7 +309,6 @@ export function createEnvironment(scene, settings) {
       const sp = buildSkyParams(light, scene.fog.color, g);
       realistic.setParams(sp);
       // P2: cloud params ride the same daylight pass; changed params rebake the IBL only
-      cloudLayer.setMode(light.clouds?.mode);            // procedural | layered (idempotent)
       if (cloudLayer.setParams(buildCloudParams(light, sp))) {
         realistic.markPMREMDirty();
       }
@@ -348,7 +344,7 @@ export function createEnvironment(scene, settings) {
       if (l) {                                        // r13 audit P1: push clouds on the style switch too
         const sp = buildSkyParams(l, scene.fog.color);
         realistic.setParams(sp);
-        if (wantClouds) { cloudLayer.setMode(l.clouds?.mode); cloudLayer.setParams(buildCloudParams(l, sp)); }
+        if (wantClouds) cloudLayer.setParams(buildCloudParams(l, sp));
       }
     }
   }
@@ -357,11 +353,6 @@ export function createEnvironment(scene, settings) {
     const want = skyStyle === 'realistic' && light?.clouds?.enabled === true;
     cloudLayer.setEnabled(want);
     realistic.setCloudTwin(want ? cloudLayer.twinMesh : null);
-  }
-  function setCloudsRuntime(kind) {   // budget-gate tier control: MESH-level only — light.clouds (the schema) keeps the authored intent (r13)
-    if (kind === 'off') { cloudLayer.setEnabled(false); realistic.setCloudTwin(null); }
-    else if (kind === 'layered') { if (cloudLayer.enabled) cloudLayer.setMode('layered'); }
-    else if (kind === 'procedural') { if (cloudLayer.enabled) cloudLayer.setMode('procedural'); }
   }
   // linearHDR (round 13): finish+HDR — the dome outputs LINEAR HDR so the sun
   // disc / stars / moon cross the bloom threshold (sky.js update uCurve=0 + uOutputSRGB=0);
@@ -374,7 +365,7 @@ export function createEnvironment(scene, settings) {
   }
   return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx,
     setSkyStyle, updateRealisticSky, realisticSky: () => realistic, getSkyStyle: () => skyStyle,
-    clouds: () => cloudLayer, setClouds, setCloudsRuntime };
+    clouds: () => cloudLayer, setClouds };
 }
 
 // ---------- bounds (vje/OFr) ----------

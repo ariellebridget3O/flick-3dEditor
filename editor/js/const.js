@@ -84,7 +84,7 @@ export const C = {
   // schema default 0.45 so the table values are the anchors at default coverage).
   CLOUD_COVERAGE_BY_WEATHER: { clear: 0.18, cloudy: 0.55, overcast: 0.85, rain: 0.9, fog: 0.95 },
   CLOUD_COVERAGE_DEFAULT: 0.45,          // schema light.clouds.coverage default
-  CLOUD_MODES: ['procedural', 'layered'],
+  CLOUD_MODES: ['layered'],              // r18: procedural removed (unusably slow)
   CLOUD_BUDGET_MS: 11,                   // auto-gate: plain+clouds − plain @1080p reference
   // round 13 (HDR): tone mapping + bloom (editor/js/bloom.js — UnrealBloomPass recipe port).
   // BLOOM_MIPS: the mip-chain depth (bright pass + 5 h/v blur levels, starting at ½ res).

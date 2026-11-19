@@ -386,7 +386,6 @@ function buildLightPopover(app) {
       <div class="lp-hint" id="lpSkyHint"></div>
       <div class="seg clouds" id="lpClouds">
         <button data-c="off">Off</button>
-        <button data-c="procedural">Procedural</button>
         <button data-c="layered">Layered</button>
       </div>
       <label class="lp-row" id="lpCovRow">Coverage<input id="lpCov" type="range" min="0" max="1" step="0.05"><span id="lpCovVal"></span></label>
@@ -474,8 +473,8 @@ function buildLightPopover(app) {
       ? 'Physically based atmosphere (Hillaire 2020) with stars and moon at night.'
       : 'flick daylight gradient (default).';
     // round 13 (P2): clouds — off by default; realistic-sky feature
-    const cl = l.clouds ?? { enabled: false, mode: 'procedural', coverage: C.CLOUD_COVERAGE_DEFAULT, density: 1, cirrus: 0.15, altitudeM: 2500, thicknessM: 1200 };
-    const cmode = cl.enabled ? (cl.mode === 'layered' ? 'layered' : 'procedural') : 'off';
+    const cl = l.clouds ?? { enabled: false, coverage: C.CLOUD_COVERAGE_DEFAULT, density: 1, cirrus: 0.15, altitudeM: 2500, thicknessM: 1200 };
+    const cmode = cl.enabled ? 'layered' : 'off';
     const cloudsUsable = l.skyStyle === 'realistic';     // clouds are a realistic-sky feature — classic stays byte-identical
     el.querySelectorAll('#lpClouds button').forEach(b => { b.classList.toggle('on', cloudsUsable && b.dataset.c === cmode); b.disabled = !cloudsUsable && b.dataset.c !== 'off'; });
     const cloudRows = [['lpCovRow', cl.enabled && cloudsUsable], ['lpDenRow', cl.enabled && cloudsUsable], ['lpCirRow', cl.enabled && cloudsUsable], ['lpCloudDims', cl.enabled && cloudsUsable]];
@@ -490,9 +489,7 @@ function buildLightPopover(app) {
     setVal($id('lpCThk'), cl.thicknessM ?? 1200);
     $id('lpCloudsHint').textContent = !cloudsUsable ? 'Clouds need the Realistic sky style (classic stays byte-identical).'
       : !cl.enabled ? 'Clear sky (default).'
-      : cmode === 'layered'
-        ? 'Fast parallax sheet clouds with sun-facing shading.'
-        : 'Ray-marched cloud layer lit by the sun and sky (MIT-technique, ~1-2 ms).';
+      : 'Parallax sheet clouds, weather-coupled (r18).';
     // round 13 (HDR): tone mapping + bloom — off by default (absence = classic look)
     const hdr = l.hdr ?? { enabled: false, ...C.HDR_DEFAULTS };
     el.querySelectorAll('#lpHdr button').forEach(b => b.classList.toggle('on', b.dataset.h === (hdr.enabled ? 'on' : 'off')));

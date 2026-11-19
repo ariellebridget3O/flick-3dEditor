@@ -191,7 +191,6 @@ function normLight(t) { // g6r/N8r/SDe — round 6: geo/weather/indoor/ambient/m
   if (l.clouds && typeof l.clouds === 'object' && l.clouds.enabled === true) {
     const c = {};
     c.enabled = true;
-    c.mode = l.clouds.mode === 'layered' ? 'layered' : 'procedural';
     if (Number.isFinite(l.clouds.coverage)) c.coverage = Math.min(1, Math.max(0, l.clouds.coverage));
     if (Number.isFinite(l.clouds.density)) c.density = Math.min(4, Math.max(0.25, l.clouds.density));
     if (Number.isFinite(l.clouds.altitudeM)) c.altitudeM = Math.min(8000, Math.max(500, l.clouds.altitudeM));

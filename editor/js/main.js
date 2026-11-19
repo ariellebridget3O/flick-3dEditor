@@ -123,8 +123,6 @@ export class App {
       this.finishNeedsMeasuring = false;
     }
     this._finishScheduler = createAutoMeasureScheduler();
-    this._cloudsGatePending = false;     // P2: clouds budget probe (one-shot per enable)
-    this._cloudsGateFrames = 0;
     this._frameCount = 0;
     this._pointerHeld = false;
     this._lastWheel = -Infinity;
@@ -173,8 +171,6 @@ export class App {
       const v = style === 'realistic' ? 'realistic' : 'classic';
       this.light = { ...this.light, skyStyle: v };
       this.env.setSkyStyle(v, this.light);
-      // P2: clouds are a realistic-sky feature — (re)enable through the app's own path + budget probe
-      if (v === 'realistic' && this.light.clouds?.enabled) { this._cloudsGatePending = true; this._cloudsGateFrames = 0; }
       this.markAutosave?.();
     };
     // round 13 (P2): cloud layer mutator — mirrors setSkyStyle (light object owns the state;
@@ -193,10 +189,8 @@ export class App {
       }
       this.env.setClouds(this.light);
       this.env.applyDaylight(this.light);
-      if (this.light.clouds?.enabled && !wasEnabled) { this._cloudsGatePending = true; this._cloudsGateFrames = 0; }
       this.markAutosave?.();
     };
-    this._cloudsGateBypassed = new URLSearchParams(location.search).get('cloudsGate') === '0';   // QA: SwiftShader always measures over budget — bypass for captures
     // round 13 (HDR): bloom chain (idle until hdr enables the finish path — no RTs, no cost)
     this._bloom = createBloom({ renderer: this.renderer });
     // round 13 (HDR): tone mapping + bloom mutator — mirrors setClouds (light.hdr owns the
@@ -551,7 +545,6 @@ export class App {
     this.light = normalizeLight(scene.light ?? null);
     this.env.setSkyStyle(this.light.skyStyle === 'realistic' ? 'realistic' : 'classic', this.light);
     // P2: a scene restored with clouds enabled goes through the same budget probe as a manual enable
-    if (this.light.clouds?.enabled && this.light.skyStyle === 'realistic') { this._cloudsGatePending = true; this._cloudsGateFrames = 0; }
     // review r13 P2: a scene restored with hdr enabled needs the SAME finish force-on as the
     // setHdr mutator — otherwise hdr loads into the plain+hdr fallback (no bloom + the ACES
     // wrapper scale), a materially different look than the authoring session.
@@ -1532,64 +1525,7 @@ export class App {
     if (finishOn) this._renderFinishWithHdr();
     else this.renderer.render(this.scene, this.camera);
     this._autoMeasure();
-    if (this._cloudsGatePending) this._tickCloudsGate();   // P2: one-shot clouds budget probe
     this.drawOverlays();
-  }
-
-  // ================= clouds auto-gate (P2, finish.js measureFinish pattern) =================
-  _tickCloudsGate() {
-    this._cloudsGateFrames++;
-    if (this._cloudsGateFrames < 30) return;               // settle: noise bake + LUT + IBL
-    if (this.page.playing || this._pointerHeld || performance.now() - this._lastWheel < 500) return;
-    this._cloudsGatePending = false;
-    this._measureCloudsBudget();
-  }
-
-  _measureCloudsBudget() {
-    if (this._cloudsGateBypassed) return;            // ?cloudsGate=0 — QA/pixel-oracle path (SwiftShader always over budget)
-    const cloud = this.env.clouds?.();
-    if (!cloud || !this.light.clouds?.enabled || !cloud.enabled) return;
-    const gl = this.renderer.getContext();
-    if (gl.isContextLost()) return;
-    const w = this.renderer.domElement.width, h = this.renderer.domElement.height;
-    const pixels = w * h;
-    if (!validMeasurementSize(pixels)) { this._cloudsGatePending = true; return; }
-    const mode = this.env.clouds()?.mode ?? this.light.clouds.mode ?? 'procedural';   // runtime tier
-    const px = new Uint8Array(4);
-    const gpu = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
-    const aidsHidden = this._hidePlanningAids();
-    let costMs = 0;
-    try {
-      const time = fn => { const t0 = performance.now(); fn(); gpu(); return performance.now() - t0; };
-      const drawWith = on => {                             // PLAIN path only (no finish composer)
-        cloud.mesh.visible = on;
-        this.env.updateRealisticSky(this.camera, true);
-        this.renderer.setRenderTarget(null);
-        this.renderer.render(this.scene, this.camera);
-      };
-      for (let i = 0; i < 2; i++) { time(() => drawWith(false)); time(() => drawWith(true)); }
-      const off = [], on = [];
-      for (let i = 0; i < 5; i++) { off.push(time(() => drawWith(false))); on.push(time(() => drawWith(true))); }
-      const median = a => a.sort((x, y) => x - y)[a.length >> 1];
-      costMs = Math.max(0, median(on) - median(off));
-    } finally {
-      aidsHidden();
-      cloud.mesh.visible = cloud.enabled;
-    }
-    const norm = costMs * Math.max(1, (1920 * 1080) / pixels);   // 1080p reference, like the finish gate
-    if (norm <= C.CLOUD_BUDGET_MS) {
-      console.info(`[clouds] ${mode} cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) within the ${C.CLOUD_BUDGET_MS} ms budget — kept`);
-      return;
-    }
-    const tier = this.env.clouds()?.mode ?? mode;   // runtime tier (may already be downgraded)
-    if (tier !== 'layered') {
-      console.info(`[clouds] procedural cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) exceeds the ${C.CLOUD_BUDGET_MS} ms budget — auto-fallback to layered (runtime)`);
-      this.env.setCloudsRuntime('layered');           // MESH-level only: light.clouds keeps the authored mode (no autosave)
-      this._cloudsGatePending = true; this._cloudsGateFrames = 0;   // re-probe the fallback tier
-    } else {
-      console.info(`[clouds] layered cost ${costMs.toFixed(2)} ms (norm ${norm.toFixed(2)} ms @1080p) still exceeds the ${C.CLOUD_BUDGET_MS} ms budget — clouds disabled (runtime; scene state unchanged)`);
-      this.env.setCloudsRuntime('off');
-    }
   }
 
   drawOverlays() {   // ae(): stroke ring THEN planning aids — both depth-test against scene depth

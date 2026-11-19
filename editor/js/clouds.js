@@ -1,4 +1,6 @@
-// clouds.js — sky-dome cloud layer (P2). Procedural thin-shell raymarch + layered fallback.
+// clouds.js — sky-dome cloud layer (P2), layered sheets only (r18: the procedural
+// thin-shell raymarch was removed — 'unusably slow' per user feedback; the budget
+// auto-gate went with it, its reason-to-exist being the procedural tier).
 //
 // Technique attribution (all MIT, clean-room ports — values/recipes, no source text vendored):
 //   - sebh/UnrealEngineSkyAtmosphere (© 2020 Epic Games, MIT) — planet frame, LUT parametrizations
@@ -31,25 +33,11 @@ import { C } from './const.js';
 // ---- file-private constants (CL_* = cloud layer) ----
 const CL_SHAPE_RES = 128;        // 3D noise texture edge (RGBA8)
 const CL_SHAPE_TILE_KM = 12.0;   // r13 fix: 40km made the whole sky sample one ~texel corner patch (12km -> cumulus-scale variety)   // world km covered by one noise tile (repeat-wrapped)
-const CL_SIGMA_K = 0.9;          // cloud extinction per unit density, 1/km (research §3.5)
-const CL_LIGHT_EXTINCT_K = 6.0;  // r14 tune: 3.0 left cov75 shaded lobes at ~198 display (flat bright deck, contrast p95-p10=35); x4 deepens lee-side/interior shading (extra tau ~0.43 on partial-mass paths => Tlight x0.65) while lit tops (nothing sunward, Tlight~1) are unchanged — real water clouds are tau>>10 optically; at SIGMA_K alone a 1.2km deck transmits ~16% of the sun and the overcast base glows white (measured luma 0.87 vs the 0.35-0.6 mid-gray target). x3 => tau~5, Tlight~0.006 through a full deck, ~0.1-0.3 through cumulus sides = real sun-side/lee-side shading.
-const CL_MS_OCTAVE = 0.22;       // r14: second-scatter octave weight (Nubis multi-scatter approximation — see the E term)
-const CL_AMB_OCCLUDE_K = 2.0;    // r14: ambient occlusion by local density (per-unit-rho exponent) — the un-occluded msAmb*5 term painted opaque interiors a uniform ~217 gray (the flat deck); real interiors attenuate sky light by the mass around them. rho~0.5 core -> x0.58, thin veil rho~0.15 -> x0.85.
-const CL_VIEW_EXTINCT_K = 3.0;   // r14: view-march extinction scale — the light march already had LIGHT_EXTINCT_K for sun rays; the VIEW march ran at raw SIGMA_K (0.9/km) so even a full-density 1.2km deck only reached tau~1.7 => Tview>=0.19 at cores, Tview~0.5-0.85 in the inter-billow veil — the composite displayed 20-85% BRIGHT SKY through the "cloud" = the flat bright deck the VLM flagged (lighting knobs moved it -2/255; density floors didn't move it at all). x3 => core tau~5 (Tview~0.007, truly opaque), veil tau~0.8-1.4 (reads as thin cloud, not sky). Real water clouds are tau>>10; the Frostbite integral is self-limiting (per-step <= E*ALBEDO) so cores emit ~E bounded.
-const CL_ALBEDO = 0.96;          // cloud scattering albedo (whiteness)
-const CL_TMAX_KM = 30.0;         // absolute slab clamp for grazing rays
-const CL_MARCH_SPAN_KM = 15.0;    // r13: marched span cap — keeps dt <= ~375m at 40 steps so shallow rays sample the noise field finely enough
-const CL_AERIAL_K = 0.05;        // aerial-perspective strength per km per unit density
 const CL_HORIZON_FADE = 0.09;   // r13 tune: cloud-alpha fade over the lowest ~5° of elevation (grazing rays: 15km of slab march saturates L and the alpha seam at the floor line reads as a blowout band)
 const CL_CIRRUS_KM = 7.0;        // cirrus sheet altitude (6-8 km band)
-const CL_DETAIL_FREQ = 9.0;      // erosion re-sample frequency multiplier (r13 tune: 6 under-eroded at 12km tiles — fat feathered edges)
-const CL_DETAIL_STRENGTH = 0.5; // erosion depth (Nubis) (r13 tune: 0.35 left edges mushy)
 const CL_SHEET_COUNT = 6;        // layered fallback sheets (4-6; atlas rows)
 const CL_SHEET_ATLAS_W = 256;
 const CL_SHEET_RELIEF = 1.8;     // layered normal strength (r13 tune: 1.4 read as a washed sheet — the VLM acceptance pass wanted more veil modulation)
-const CL_STEPS_MIN = 32;         // procedural primary march (32-48)
-const CL_STEPS_MAX = 48;
-const CL_STEPS_DEFAULT = 40;
 const CL_WIND_UV_PER_UNIT = 0.02; // windSpeed 0..3 -> uv drift per second
 
 const satJs = x => Math.min(1, Math.max(0, x));
@@ -137,7 +125,7 @@ const CL_NOISE_FRAG = /* glsl */`
 
 // =====================================================================================
 // GLSL — cloud dome material (GLSL3, xyww far-plane, same recipe as the sky dome).
-// uSteps > 0: procedural thin-shell march. uSteps == 0: layered sheet fallback.
+// r18: layered sheets only (the procedural march was removed).
 // =====================================================================================
 const CL_CLOUD_VERT = /* glsl */`
   out vec3 vDirection;
@@ -157,17 +145,6 @@ const CL_ATMOS_CHUNK = /* glsl */`
   #define SKYVIEW_H 108.0
   #define MS_RES_F 32.0
   #define SHAPE_TILE_KM ${CL_SHAPE_TILE_KM.toFixed(1)}
-  #define SIGMA_K ${CL_SIGMA_K.toFixed(4)}
-  #define LIGHT_EXTINCT_K ${CL_LIGHT_EXTINCT_K.toFixed(2)}
-  #define VIEW_EXTINCT_K ${CL_VIEW_EXTINCT_K.toFixed(2)}
-  #define AMB_OCCLUDE_K ${CL_AMB_OCCLUDE_K.toFixed(2)}
-  #define MS_OCTAVE ${CL_MS_OCTAVE.toFixed(2)}
-  #define ALBEDO ${CL_ALBEDO.toFixed(3)}
-  #define DETAIL_FREQ ${CL_DETAIL_FREQ.toFixed(1)}
-  #define DETAIL_STRENGTH ${CL_DETAIL_STRENGTH.toFixed(3)}
-  #define TMAX_KM ${CL_TMAX_KM.toFixed(1)}
-  #define MARCH_SPAN_KM ${CL_MARCH_SPAN_KM.toFixed(1)}
-  #define AERIAL_K ${CL_AERIAL_K.toFixed(4)}
   #define CIRRUS_KM ${CL_CIRRUS_KM.toFixed(2)}
   #define HORIZON_FADE ${CL_HORIZON_FADE.toFixed(3)}
 
@@ -233,7 +210,6 @@ ${CL_ATMOS_CHUNK}
   // ---- cloud state ----
   uniform highp sampler3D uShapeTex;     // 128^3 RGBA8: R perlin-worley, G/B/A worley fbm
   uniform sampler2D uTransmitTex;        // sky.js transmittance LUT (sun tint at cloud top)
-  uniform sampler2D uSkyViewLut;         // sky.js sky-view LUT (aerial haze / horizon convergence)
   uniform sampler2D uMultiScatTex;       // sky.js multi-scatter LUT (ambient)
   uniform sampler2D uSheetAtlas;         // layered fallback: CL_SHEET_COUNT rows, RGBA8
   uniform float uCoverage;               // 0..1 (weather-coupled user coverage)
@@ -244,10 +220,7 @@ ${CL_ATMOS_CHUNK}
   uniform vec2 uWindOffset;              // wind uv offset (CPU-animated; frozen when static)
   uniform float uNightAmount;            // 0 day .. 1 night (sun -> moon)
   uniform vec3 uMoonDir;
-  uniform int uSteps;                    // primary march steps (0 = layered path)
   uniform int uSheetCount;               // layered sheets
-  uniform float uPowderScale;            // powder term (defaults 1.0 / 4.0)
-  uniform float uPowderExponent;
   // ---- output/tone (mirror sky.js dome conventions exactly) ----
   uniform float uExposure;
   uniform vec3 uWhitePoint;
@@ -280,40 +253,6 @@ ${CL_ATMOS_CHUNK}
   // dual-lobe HG: base/back lobe g=0.6, forward lobe g=0.95 weighted by mu (silver lining)
   float phase2(float mu) { return mix(hg(mu, 0.6), hg(mu, 0.95), sat(mu * 0.5 + 0.5)); }
 
-  // density: coverage->threshold remap of the 3D fbm (perlin-worley minus worley fbm) x
-  // vertical profile; erosion from the same texture at DETAIL_FREQ (single-texture detail)
-  float sampleDensity(vec3 pKm) {
-    float h = length(pKm) - uBottomRadius;
-    float hn = sat((h - uBaseKm) / max(uHeightKm, 1e-4));
-    vec3 p = (pKm + vec3(uWindOffset.x, 0.0, uWindOffset.y) * SHAPE_TILE_KM) / SHAPE_TILE_KM
-    + vec3(0.37, 0.0, 0.63);            // r13 fix: deterministic origin offset — avoids the (0,~0.06,0) corner hole (RepeatWrapping makes any offset valid)
-    vec4 s = texture(uShapeTex, p);
-    float lowFreqFBM = s.g * 0.625 + s.b * 0.25 + s.a * 0.125;         // takram octave weights
-    float base = remap(s.r, lowFreqFBM - 1.0, 1.0, 0.0, 1.0);          // Nubis base+fbm
-    float covThr = pow(1.0 - uCoverage, 0.85);                         // r14 RE-ANCHOR: the r13 knee 1.15 was tuned under the SEMI-TRANSPARENT renderer (thin veil read as partial sky — user .5 looked 'partly cloudy' with 0% true gaps). With the opaque renderer (VIEW_EXTINCT_K + rho^1.35) the same knee rendered user .5 as a solid deck (VLM r14 FAIL: 0% blue gaps). k .85: eff .2125 -> thr .82 (cov .25 airier discrete cumulus), eff .425 -> .63 (~60/40 partly cloudy), eff .6375 -> .43 (broad deck), eff .72 -> .34 (overcast). The knee stays a single pow on (1-cov).
-    base = remap(base, covThr, 1.0, 0.0, 1.0);                         // Schneider coverage remap (pow-knee)
-    // vertical profile: cumulus (rounded top, tapered base) flattened toward stratus for thin decks
-    float stratusW = sat(1.0 - uHeightKm / 1.2);                       // thin slab -> flat deck
-    float cumulus = sat(remap(hn, 0.0, 0.12, 0.0, 1.0)) * sat(remap(hn, 1.0, 0.30, 0.0, 1.0));
-    float stratus = sat(remap(hn, 0.0, 0.05, 0.0, 1.0)) * sat(remap(hn, 1.0, 0.10, 0.0, 1.0));
-    float prof = mix(cumulus, stratus, stratusW);
-    vec3 dp = p * vec3(DETAIL_FREQ, DETAIL_FREQ * 3.5, DETAIL_FREQ);   // r13 tune: vertical anisotropy — a 1.2km slab sampled at one frequency reads as horizontal strata
-    vec4 d = texture(uShapeTex, dp);
-    float detailFBM = d.g * 0.625 + d.b * 0.25 + d.a * 0.125;
-    base = remap(base, detailFBM * DETAIL_STRENGTH, 1.0, 0.0, 1.0);    // billow erosion
-    return uDensity * base * prof;
-  }
-
-  // 2-step secondary sun march — density midpoints (NOT Beer shadow maps).
-  // r13 tune: reach 0.4/1.6 km toward the sun (scaled by deck thickness) — the old 0.12/0.36 km
-  // samples stayed inside one ~3km noise cell, so Tlight was near-constant and cloud bodies
-  // had no sun-side/lee-side shading at all. Same sample count (cost unchanged).
-  float lightMarch(vec3 p, vec3 Ld) {
-    float s = max(uHeightKm, 1.0) / 1.2;
-    float d1 = sampleDensity(p + Ld * (0.4 * s));
-    float d2 = sampleDensity(p + Ld * (1.6 * s));
-    return exp(-SIGMA_K * LIGHT_EXTINCT_K * (d1 * 0.4 + d2 * 1.2) * s);
-  }
 
   // shell [rBot, rTop] above the planet center — entry/exit along the ray;
   // both components < 0 when the ray misses
@@ -358,9 +297,6 @@ ${CL_ATMOS_CHUNK}
 
     vec3 L = vec3(0.0);
     float Tview = 1.0;
-    float densSum = 0.0;
-    float distMean = 0.0;
-    float layeredTier = 0.0;             // r14: set by the sheet fallback — gates the display-space cap
 
     // ---- cirrus: thin high sheet (6-8 km), pure fbm alpha, no march ----
     if (uCirrus > 0.001) {
@@ -382,41 +318,8 @@ ${CL_ATMOS_CHUNK}
       }
     }
 
-    if (uSteps > 0) {
-      // ---- procedural: distance-scaled thin-shell march ----
-      vec2 span = shellSpan(camPos, worldDir, uBottomRadius + uBaseKm, topH);
-      if (span.x >= 0.0 && span.y > 0.0) {
-        float spanCap = mix(2.0, MARCH_SPAN_KM, sat(worldDir.y * 6.6));            // r13 tune: near-horizontal rays march 2km (fog band + aerial carry the far field)
-        float t0 = span.x, t1 = min(span.y, t0 + spanCap);   // r13 fix: cap the marched span (not 30km) — shallow rays' dt would straddle the ~300m noise features
-        float nSteps = float(uSteps);
-        float dt = (t1 - t0) / nSteps;
-        float t = t0 + hash13(vec3(gl_FragCoord.xy, 0.0)) * dt;   // position-only dither (QA-safe)
-        for (int i = 0; i < uSteps; i++) {
-          vec3 p = camPos + worldDir * t;
-          float rho = sampleDensity(p);
-          if (rho > 1e-3) {
-            float hn = sat((length(p) - uBottomRadius - uBaseKm) / max(uHeightKm, 1e-4));
-            float sigmaT = SIGMA_K * VIEW_EXTINCT_K * pow(rho, 1.35);   // r14 it2: NONLINEAR in rho — the linear form made thin sub-threshold veil (rho .1-.25) read as solid deck: user cov .5 (eff .425) rendered 0% blue gaps (VLM r14 acceptance FAIL on the base arm). pow 1.35: rho .15 -> tau x .52 (gaps show through), rho .5 -> x .78, rho .8 -> x .91 — opaque cores unchanged, cov .25/.75 thresholds untouched (the knee is on base, not sigma)
-            float sigmaS = ALBEDO * sigmaT;
-            float Tlight = lightMarch(p, Ld);
-            float powder = 1.0 - uPowderScale * exp(-uPowderExponent * rho);   // r14 FIX: the old form multiplied rho by dt (~0.047km) — the optical-depth scale could never exceed ~0.17, so powder topped out at ~0.15 and mix(1,powder,sunFacing) crushed ALL sun-facing direct light to 15-30% (the r13 0.60 diffuse-base hack was fighting this). Standard Nubis form: the LOCAL density is the depth proxy — thin veil rho~0.2 -> 0.55, dense tops rho~0.7 -> 0.94.
-            vec3 E = Lc * (Tlight + MS_OCTAVE * sqrt(Tlight)) * (0.34 + 0.45 * phase2(mu)) * mix(1.0, powder, sat(mu * 0.5 + 0.5))   // r14 it3: Schneider multi-scatter octave — scatter2 at quarter extinction (pow .25) with weight MS_OCTAVE; the sunlit shell of a real cumulus glows from REPEATED scattering, which a single Tlight term cannot produce (the band integrates only ~25-50% of E — measured tops stuck at 224-231 across 3 base values). Base 0.50->0.38: the octave replaces the raw energy   // r13 fix: diffuse base like the cirrus/layered tiers (phase-only was ~30x too dark). r14: 0.60->0.45 — the r13 0.60 was compensating for the optically-thin deck (tops accumulated only ~66% of E); with VIEW_EXTINCT_K=3 cores are opaque and accumulate ~E — 0.60 would clip every sun-facing top
-                   + msAmb * 5.0 * (0.28 + 0.72 * hn)
-                     * mix(exp(-AMB_OCCLUDE_K * rho), 1.0, smoothstep(0.45, 0.90, hn));   // r14 it2: sky light enters from ABOVE — release the occlusion near the slab top (the sunlit band integrates only ~(1-e^-tau_band) ~25-50% of E, so its ambient must stay full or the tops read gray; depth/mid-slab keeps the full occlusion)   // r13 fix: MS-LUT values are transfer factors (~0.02) — a deck underside reads ~30/255 without the boost. r14: occlude by LOCAL density — v3 proved the un-occluded term IS the flat interior (measured L_lin 0.126 = msAmb*5*0.64 exactly); rho~0.5 cores -> ~160-170 display (the VLM shaded-lobe target), thin veil barely darkened
-            vec3 Sint = (E * sigmaS - E * sigmaS * exp(-sigmaT * dt)) / sigmaT;   // Frostbite slide-28
-            L += Tview * Sint;
-            Tview *= exp(-sigmaT * dt);
-            densSum += rho;
-            if (Tview < 0.02) break;                                          // early-out
-          }
-          t += dt;
-        }
-        distMean = 0.5 * (t0 + t1);
-        densSum = densSum / nSteps;
-      }
-    } else {
-      // ---- layered fallback: parallax alpha sheets (atlas rows), Lambert + HG-style glint ----
-      layeredTier = 1.0;
+    {
+      // ---- layered sheets: parallax alpha sheets (atlas rows), Lambert + HG-style glint ----
       for (int i = 0; i < ${CL_SHEET_COUNT}; i++) {
         if (i >= uSheetCount) break;
         float fi = (float(i) + 0.5) / float(uSheetCount);
@@ -438,24 +341,8 @@ ${CL_ATMOS_CHUNK}
         Tview *= 1.0 - aS;                               // depth-fade between sheets
         if (Tview < 0.02) break;
       }
-      distMean = max(distMean, uBaseKm + uHeightKm * 0.5);
     }
 
-    // ---- aerial perspective: blend toward the sky-view LUT sample of the same direction ----
-    // weight = 1 - exp(-distance * meanDensity): distant clouds converge into the sky/fog band
-    float aerial = min(0.82, 1.0 - exp(-min(distMean, 22.0) * densSum * AERIAL_K));   // r13 fix: clamp slant distance + weight — near-horizon rays march 150km+ of slant and the unclamped term erased the whole deck into sky
-    if (aerial > 0.001) {
-      float viewZenithCosAngle = dot(worldDir, upVector);
-      vec3 sideVector = normalize(cross(upVector, worldDir));
-      vec3 forwardVector = normalize(cross(sideVector, upVector));
-      vec2 lightOnPlane = normalize(vec2(dot(uSunDir, forwardVector), dot(uSunDir, sideVector)));
-      vec2 groundProbe = raySphereTwo(camPos, worldDir, uBottomRadius);
-      bool intersectGround = groundProbe.x >= 0.0;
-      vec2 uv;
-      skyViewLutParamsToUv(intersectGround, viewZenithCosAngle, lightOnPlane.x, viewHeight, uv);
-      vec3 skyBehind = texture(uSkyViewLut, uv).rgb;
-      L = mix(L, skyBehind, aerial);
-    }
     // r13 tune: horizon alpha fade — the lowest ~5° of the deck melts into the dome's fog band
     // instead of ending in a saturated white slab + hard seam where the floor line cuts it.
     // L scales by the same fade so hf=0 is exactly the dome (L=0, alpha=1).
@@ -476,7 +363,7 @@ ${CL_ATMOS_CHUNK}
     // below the 0.70 knee, asymptote 0.85 (237 display — just above the 235 fog band,
     // below the procedural tier's lit cores). Linear-HDR out (uCurve=0) and PMREM
     // (uToneMap=0) are exempt: ACES handles those (clouds_hdr_check.py verified).
-    if (layeredTier > 0.5 && uToneMap > 0.5 && uCurve > 0.5) {
+    if (uToneMap > 0.5 && uCurve > 0.5) {
       vec3 over = max(L - vec3(0.70), vec3(0.0));
       L = min(L, vec3(0.70)) + vec3(0.15) * over / (over + vec3(0.15));
     }
@@ -513,7 +400,6 @@ export function createCloudLayer({ renderer, sky }) {
     uTopRadius: su.uTopRadius,
     uShapeTex: { value: null },
     uTransmitTex: { value: null },
-    uSkyViewLut: { value: null },
     uMultiScatTex: { value: null },
     uSheetAtlas: { value: null },
     uCoverage: { value: 0.45 },
@@ -524,10 +410,7 @@ export function createCloudLayer({ renderer, sky }) {
     uWindOffset: { value: new THREE.Vector2(0, 0) },
     uNightAmount: { value: 0 },
     uMoonDir: { value: new THREE.Vector3(0, -1, 0) },
-    uSteps: { value: CL_STEPS_DEFAULT },
     uSheetCount: { value: CL_SHEET_COUNT },
-    uPowderScale: { value: 1.0 },
-    uPowderExponent: { value: 4.0 },
     uExposure: { value: C.SKY_EXPOSURE },
     uWhitePoint: { value: new THREE.Vector3(...C.SKY_WHITE_POINT) },
     uOutputSRGB: { value: 1 },
@@ -544,7 +427,6 @@ export function createCloudLayer({ renderer, sky }) {
   // clouds, no shading, aerial DARKENING). Texture objects are stable for the RT lifetime
   // (bake() renders into the same RTs; the dome's lazy bake always precedes the first frame).
   uniforms.uTransmitTex.value = sky.luts.transmittance.texture;
-  uniforms.uSkyViewLut.value = sky.luts.skyView.texture;
   uniforms.uMultiScatTex.value = sky.luts.multiscat.texture;
 
   const material = new THREE.ShaderMaterial({
@@ -674,10 +556,9 @@ export function createCloudLayer({ renderer, sky }) {
   }
 
   // ---- state ----
-  let enabled = false, staticMode = false, mode = 'procedural';
+  let enabled = false, staticMode = false;
   let paramKey = '', windClock = null, windSpeed = 0.2 * CL_WIND_UV_PER_UNIT;
   let sheetsKey = '';                                 // r13 audit P2: atlas bakes coverage/density — rebuild on change
-  let stepsRequested = CL_STEPS_DEFAULT;
   let geoAltitudeM = 0;
   const _cam = new THREE.Vector3();
 
@@ -694,14 +575,13 @@ export function createCloudLayer({ renderer, sky }) {
       darken: p.weatherDarken ?? u.uWeatherDarken.value,
       fogBlend: p.fogBlend ?? u.uFogBlend.value,
       exposure: p.exposure ?? u.uExposure.value,
-      steps: p.steps ?? stepsRequested,
       windSpeed: p.windSpeed ?? null,
       geoAltitudeM: p.geoAltitudeM ?? null,
     };
     const key = [next.coverage.toFixed(4), next.density.toFixed(4), next.cirrus.toFixed(4),
       next.baseKm.toFixed(3), next.heightKm.toFixed(3), next.nightAmt.toFixed(4),
       next.desat.toFixed(4), next.darken.toFixed(4), next.fogBlend.toFixed(4),
-      next.exposure.toFixed(3), String(next.steps)].join('|');
+      next.exposure.toFixed(3)].join('|');
     const changed = key !== paramKey;
     paramKey = key;
     u.uCoverage.value = next.coverage;
@@ -714,15 +594,13 @@ export function createCloudLayer({ renderer, sky }) {
     u.uWeatherDarken.value = next.darken;
     u.uFogBlend.value = next.fogBlend;
     u.uExposure.value = next.exposure;
-    stepsRequested = Math.round(Math.min(CL_STEPS_MAX, Math.max(CL_STEPS_MIN, next.steps)));
-    u.uSteps.value = mode === 'layered' ? 0 : stepsRequested;
     if (typeof next.windSpeed === 'number') windSpeed = Math.max(0, next.windSpeed) * CL_WIND_UV_PER_UNIT;
     if (typeof next.geoAltitudeM === 'number') geoAltitudeM = next.geoAltitudeM;
     if (p.fogColor) u.uFogColor.value.copy(p.fogColor);
     if (p.moonDir) u.uMoonDir.value.copy(p.moonDir);
     // r13 audit P2: the layered atlas bakes coverage/density at build time — rebuild when they
     // change in layered mode (CPU-side 256xN, ~2-5 ms; the sliders stay live)
-    if (enabled && mode === 'layered' && noiseCPU) {
+    if (enabled && noiseCPU) {
       const sk = next.coverage.toFixed(4) + '|' + next.density.toFixed(4);
       if (sk !== sheetsKey) { sheetsKey = sk; buildSheets(); }
     }
@@ -746,18 +624,6 @@ export function createCloudLayer({ renderer, sky }) {
     }
     if (enabled) windClock = performance.now(); // wind animates only while enabled
     else windClock = null;
-  }
-
-  function setMode(m) {
-    mode = m === 'layered' ? 'layered' : 'procedural';
-    u_stepsApply();
-    if (enabled && mode === 'layered' && noiseCPU) {   // entering layered: atlas must match current params
-      const sk = uniforms.uCoverage.value.toFixed(4) + '|' + uniforms.uDensity.value.toFixed(4);
-      if (sk !== sheetsKey) { sheetsKey = sk; buildSheets(); }
-    }
-  }
-  function u_stepsApply() {
-    uniforms.uSteps.value = mode === 'layered' ? 0 : stepsRequested;
   }
 
   function update(camera, outputSRGB, linearHDR = false) {
@@ -793,9 +659,8 @@ export function createCloudLayer({ renderer, sky }) {
   }
 
   return {
-    mesh, twinMesh, setParams, setCamera, update, setEnabled, setMode, setStatic,
+    mesh, twinMesh, setParams, setCamera, update, setEnabled, setStatic,
     dispose, dumpWeather,
-    get mode() { return mode; },
     get enabled() { return enabled; },
     materials: { cloud: material },
     _debug: { get shapeTex() { return shapeTex; }, get noiseCPU() { return noiseCPU; }, uniforms },
