@@ -105,20 +105,29 @@ export const C = {
   HDR_SHADOW_BOOST_FILL_K: 0.30,         // fillK     = 1 − 0.30·shadowBoost (0.5 → ×0.85, hemi + ambient)
   HDR_SHADOW_BOOST_RADIUS_K: 0.75,       // sun.shadow.radius = C.SUN_RADIUS × (1 + 0.75·shadowBoost)
   HDR_EMISSIVE_BOOST: 4,                 // lantern glow ×4 — night lamps cross the bloom threshold
-  // r18 (user feedback #3 'the sky is NOT part of the high illumination area'): the sky's
-  // linear luminance must sit ABOVE the default bloom threshold 1.0 (measured: it stopped
-  // blooming between thr 0.6 and 1.0 — just below). Lift 1.48 puts the classic dome at
-  // ~1.13-1.29 linear ~= 1.0-1.4x sunlit white (audit P1-5: NOT 2.0 — that re-created the
-  // 242-243 flat-lid band). Gated hdr && finishOn (P0-2: the plain+HDR fallback has no ACES
-  // on the raw dome shader — a lift >= 1.25 clips to white there).
-  HDR_SKY_LIFT: 1.48,
+  // r19 (user feedback recalibration — supersedes the r18 whole-sky lift): HDR = range +
+  // bloom on TRUE highlights + ACES flatten, NOT a blanket sky lift. The sky BODY sits just
+  // BELOW the bloom threshold (worst classic horizon luma 0.828 x 1.06 = 0.878 < 1.0) so the
+  // general sky does NOT bloom; the TRUE highlights do: sun disc (30xT), MOON disc core
+  // (3.2, r19 L3), the classic sun FLARE region (x1.8 below — the glow around the sun),
+  // night lamps (EMISSIVE_BOOST). The 1.06 is mild ACES scale-keeping (the displayed sky is
+  // ~6-10% deeper under HDR than SDR — the visible HDR-ness the feedback asked for, NOT a
+  // brightness match; do not chase display parity with a bigger lift — that re-creates the
+  // r18 whole-sky bloom). Gated hdr && finishOn (the plain+HDR fallback has no ACES).
+  HDR_SKY_LIFT: 1.06,
+  // r19 L4: the classic dome's FLARE (sun glow) term only — puts the region right around the
+  // sun ABOVE the bloom threshold (peak body 0.88 + flare ~1.0 = ~1.9) so the sun glows
+  // naturally while the far sky stays quiet. Same hdr && finishOn gate as the body lift.
+  HDR_CLASSIC_FLARE_LIFT: 1.8,
   // r18 (feedback #1): the realistic-sky PMREM IBL is a PURE ADDITION on the unchanged hemi —
   // switching classic<->realistic moved interiors by mean|d| 8.5-10.4/255 (p95 23). Scaling the
   // IBL term (scene.environmentIntensity) is a PROPORTIONAL correction — delta_new = k x delta_old
   // at every elevation/weather/indoor state (audit P0-3); 0.30 takes the measured 8.95 -> ~2.7.
   SKY_IBL_INTENSITY: 0.30,
-  HDR_REALISTIC_GAIN: 1.7,               // the realistic LUT sky body is dimmer than the classic
-                                         // table — calibrate to the same 1.1-1.3 linear target
+  HDR_REALISTIC_GAIN: 1.22,              // r19 L4: body-sub-threshold calibration (raw LUT body
+                                         // luma ~0.76-0.81 x 1.22 = 0.93-0.99 < 1.0; numeric gate:
+                                         // body luma p95 < 0.98 — see r19 E2E). The sun disc (30xT)
+                                         // and the moon core (3.2) still tower over the threshold.
   HDR_CLASSIC_SKY_LIFT_LEGACY: 1.10,     // (kept for reference; superseded by HDR_SKY_LIFT)
                                          // sky (≤1.15 linear) survives ACES at exposure 1 (§4.6)
   // sun presets (TQr/AQr light popover) — ELEVATION ONLY, azimuth preserved (audit P1-13: the

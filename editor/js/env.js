@@ -339,11 +339,18 @@ export function createEnvironment(scene, settings) {
     u.horizon.value.copy(g.horizon).multiplyScalar((1 - w.darken) * lift); desat(u.horizon.value, w.desat);
     scene.fog.color.copy(g.horizon); desat(scene.fog.color, w.desat);   // fog matches the weathered horizon
     scene.fog.color.multiplyScalar(lift);
-    u.flare.value.copy(g.sunColor).multiplyScalar(g.flare * w.flare * lift);
+    // r19 L4: the flare (sun glow) gets its OWN lift under hdr+finish — the region around the
+    // sun crosses the bloom threshold while the body stays below (audit P0: gated like the
+    // body lift; ungated it would clip a broad cone of sky to white on the plain+HDR fallback).
+    const flareLift = light.hdr?.enabled && _finishOn ? C.HDR_CLASSIC_FLARE_LIFT : 1;
+    u.flare.value.copy(g.sunColor).multiplyScalar(g.flare * w.flare * lift * flareLift);
     if (skyStyle === 'realistic') {
       // r18 (feedback #1): keep the IBL's directional/color character at a reduced magnitude so
-      // the total indirect stays ~continuous with classic (the hemi is identical in both styles)
-      scene.environmentIntensity = C.SKY_IBL_INTENSITY;
+      // the total indirect stays ~continuous with classic (the hemi is identical in both styles).
+      // r19 L5 (feedback #2): OUTDOOR ONLY — indoor drops the IBL entirely (0): the sun/moon
+      // shafts through windows + the warm ambient carry the interior, and the through-walls
+      // fake bounce goes away (classic indoor has no IBL either -> style-switch delta ~0).
+      scene.environmentIntensity = indoor ? 0 : C.SKY_IBL_INTENSITY;
       const sp = buildSkyParams(light, scene.fog.color, g);
       realistic.setParams(sp);
       // P2: cloud params ride the same daylight pass; changed params rebake the IBL only
@@ -394,7 +401,9 @@ export function createEnvironment(scene, settings) {
     // r18 review P1-1: resetting to 1 here + the 0.30 restore living inside applyDaylight's
     // memoized branch left the IBL at 1.0 when a key-identical applyDaylight followed (clicking
     // the active style seg, re-opening the same scene). Set the STYLE-correct value directly.
-    scene.environmentIntensity = skyStyle === 'realistic' ? C.SKY_IBL_INTENSITY : 1;
+    // r19 L5 (audit P0): the value must also read INDOOR (0) or the style re-click clobbers it.
+    scene.environmentIntensity = skyStyle === 'realistic'
+      ? ((light ?? _lastLight)?.indoor ? 0 : C.SKY_IBL_INTENSITY) : 1;
     realistic.setEnabled(skyStyle === 'realistic');
     // P2: clouds are a realistic-sky feature — classic look stays byte-identical (mesh hidden,
     // twin removed, dome.renderOrder restored to -1 by setCloudTwin(null))
@@ -422,7 +431,11 @@ export function createEnvironment(scene, settings) {
   // crossfades deck and dome — they must share the output space or the deck blows out).
   function updateRealisticSky(camera, outputSRGB, linearHDR = false) {
     if (skyStyle !== 'realistic') return;
-    realistic.update(camera, outputSRGB, scene, linearHDR);
+    // r19 L5: indoor skips the PMREM rebake entirely (the IBL contributes 0 there; the stale
+    // texture stays bound at intensity 0 — no material recompiles on toggle). pmremPending is
+    // left set, so the FIRST outdoor frame rebakes fresh.
+    const indoor = !!(_lastLight?.indoor);
+    realistic.update(camera, outputSRGB, scene, linearHDR, !indoor);
     if (cloudLayer.enabled) cloudLayer.update(camera, outputSRGB, linearHDR);   // P2: wind drift + camera + sRGB gate
   }
   return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx, keyDirection: _keyDir,

@@ -530,15 +530,18 @@ ${GLSL_COMMON}
       float star = step(0.955, h) * smoothstep(0.12, 0.0, d) * (0.25 + 0.75 * hash13(id + 1.3));
       vec3 starCol = vec3(0.85, 0.9, 1.0) + vec3(0.15, 0.02, -0.1) * hash13(id + 2.6);
       L += visible * uNightAmount * horizonFade * star * starCol * 0.9;
-      // moon: r18 enlarged disc (~0.87 deg radius, x1.9 area x3.6 — anchors the location for
-      // previz; a larger moon is the aesthetic preference) + widened halo; gentle limb
-      // darkening so the bigger disc reads as a sphere, not a sticker. Anti-solar full moon.
+      // moon: r19 tune (user feedback) — disc slightly bigger than r18's 0.87deg (now ~1.03deg
+      // radius), halo MUCH tighter (pow 700 vs 140 — a rim glow ~3 disc radii, not a broad wash),
+      // and the disc core lifted to 3.2 so the moon takes its bloom naturally like the sun disc
+      // (the highest-illumination members bloom; the r18 0.62 sat below the threshold and never
+      // glowed). Limb darkening keeps the bigger disc spherical; the disc tone is shared with the
+      // night key light (env.js MOON_TONE). Anti-solar full moon.
       float moonCos = dot(worldDir, uMoonDir);
-      float disc = smoothstep(cos(0.0182), cos(0.0152), moonCos);
-      float r2 = clamp((1.0 - moonCos) / (1.0 - cos(0.0152)), 0.0, 1.0);   // 0 center .. 1 limb
+      float disc = smoothstep(cos(0.0215), cos(0.0180), moonCos);
+      float r2 = clamp((1.0 - moonCos) / (1.0 - cos(0.0180)), 0.0, 1.0);   // 0 center .. 1 limb
       float limb = 1.0 - 0.18 * (r2 * r2);
-      float halo = pow(max(moonCos, 0.0), 140.0) * 0.15;
-      L += visible * uNightAmount * horizonFade * vec3(0.86, 0.88, 0.95) * (disc * 0.62 * limb + halo);
+      float halo = pow(max(moonCos, 0.0), 700.0) * 0.10;
+      L += visible * uNightAmount * horizonFade * vec3(0.86, 0.88, 0.95) * (disc * 3.2 * limb + halo);
     }
 
     L *= uHdrGain;   // r18: finish+HDR visible path — the sky body crosses the bloom threshold
@@ -789,7 +792,7 @@ export function createRealisticSky({ renderer }) {
   // linearHDR (round 13, optional): finish+HDR composites ACES downstream — the dome outputs
   // LINEAR HDR (uCurve = 0, uOutputSRGB = 0) so the sun disc / stars / moon cross the bloom
   // threshold. Default false = byte-identical legacy behavior (demo curve on the visible dome).
-  function update(camera, outputSRGB, scene, linearHDR = false) {
+  function update(camera, outputSRGB, scene, linearHDR = false, iblOn = true) {
     if (!enabled) return null;
     setCamera(camera);
     domeMat.uniforms.uOutputSRGB.value = outputSRGB ? 1 : 0;
@@ -800,7 +803,7 @@ export function createRealisticSky({ renderer }) {
     if ((lutDirty || svDirty) && now - lastBakeAt >= REBAKE_MIN_MS) {
       if (lutDirty) bake(); else bakeSkyView();
     }
-    if (pmremPending && now - lastPmremAt >= PMREM_MIN_MS) bakePMREM();
+    if (iblOn && pmremPending && now - lastPmremAt >= PMREM_MIN_MS) bakePMREM();   // r19 L5: skip indoor
     if (scene && scene.environment !== (pmremRT?.texture ?? null)) {
       scene.environment = pmremRT ? pmremRT.texture : null;
     }
