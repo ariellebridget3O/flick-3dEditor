@@ -117,6 +117,21 @@ export function sunDirection(light) {
   return new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
 }
 
+// r19 L2: TRUE sun direction (no EL_REMAP) and the moon direction — SHARED by the visible
+// disc (buildSkyParams) and the night key-light blend (applyDaylight) so the hard light can
+// never desync from the sky visuals again (one formula, one place).
+export function trueSunDirection(light, out = new THREE.Vector3()) {
+  const az = light.azimuthDeg * DEG, el = light.elevationDeg * DEG;
+  return out.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
+}
+export function moonDirection(sunDir, out = new THREE.Vector3()) {
+  out.copy(sunDir).multiplyScalar(-1);       // anti-solar full moon
+  _moonRight.set(-sunDir.z, 0, sunDir.x).normalize();
+  out.addScaledVector(_moonRight, 0.25).normalize();
+  return out;
+}
+const MOON_TONE = new THREE.Color(0.86, 0.88, 0.95);   // = the disc tone in sky.js (shared)
+
 // round 10 (skybox P1): realistic-sky parameter bundle from the light state.
 // Sun direction follows sunDirection(light) so the disc, shadows and flare always agree;
 // the atmosphere illuminance is reference-normalized (1.0) with a mild daylight sun tint.
@@ -130,15 +145,12 @@ function buildSkyParams(light, fogColor, g) {
   // TRUE sun direction for the atmosphere (no EL_REMAP): the sky is physical — the disc sets
   // below the horizon. Scene lighting keeps the classic remapped sunDirection (P1 design:
   // object lighting identical to classic; at night sun.intensity is 0 so no disagreement).
-  const azT = light.azimuthDeg * DEG, elT = light.elevationDeg * DEG;
-  const sunDir = new THREE.Vector3(Math.sin(azT) * Math.cos(elT), Math.sin(elT), -Math.cos(azT) * Math.cos(elT));
+  const sunDir = trueSunDirection(light);
   _tint.copy(gg.sunColor);
   const mx = Math.max(_tint.r, _tint.g, _tint.b, 1e-6);
   _tint.multiplyScalar(1 / mx).lerp(_white, 0.5);          // hue only, halved toward white
   const nightAmt = Math.min(1, Math.max(0, (-light.elevationDeg - 3) / 11));
-  const moonDir = sunDir.clone().multiplyScalar(-1);       // anti-solar full moon
-  _moonRight.set(-sunDir.z, 0, sunDir.x).normalize();
-  moonDir.addScaledVector(_moonRight, 0.25).normalize();
+  const moonDir = moonDirection(sunDir);
   return {
     sunDir,
     sunIlluminance: [_tint.r, _tint.g, _tint.b],
@@ -247,6 +259,7 @@ export function createEnvironment(scene, settings) {
   let skyStyle = 'classic';
   let _finishOn = false;                   // r18 P0-2: the HDR sky lift is gated hdr && finishOn
   let _lastLight = null;
+  const _keyDir = new THREE.Vector3(0, 1, 0);   // r19 L2: effective hard-light dir (see applyDaylight)
   scene.fog = new THREE.FogExp2(0xffffff, 0);
   const hemi = new THREE.HemisphereLight();
   scene.add(hemi);
@@ -299,14 +312,21 @@ export function createEnvironment(scene, settings) {
     const sb = light.hdr?.enabled ? (light.hdr.shadowBoost ?? C.HDR_DEFAULTS.shadowBoost) : 0;
     const sunBoostK = 1 + C.HDR_SHADOW_BOOST_SUN_K * sb;
     const fillK = 1 - C.HDR_SHADOW_BOOST_FILL_K * sb;
-    // sun (key light): table × weather × altitude × indoor (indoor kills it + hides the shadow pass) × hdr sunBoost
+    // sun (key light): table × weather × altitude × hdr sunBoost.
+    // r19 L1 (user feedback): indoor NO LONGER kills the sun — walls block it via the shadow
+    // map and windows pass real shafts that follow the time-of-day. The warm ambient stays as
+    // the indirect base; a real shaft through a window IS full sun (attenuating it here would
+    // re-create the dead-room look the feedback was about — the shadow map is the attenuation).
     sun.color.copy(g.sunColor);
-    sun.intensity = g.sun * w.sun * altK * (indoor ? 0 : 1) * sunBoostK;
+    sun.intensity = g.sun * w.sun * altK * sunBoostK;
     sun.visible = sun.intensity > 0;
     sun.shadow.radius = C.SUN_RADIUS * (1 + C.HDR_SHADOW_BOOST_RADIUS_K * sb);   // softer penumbra under hdr
-    // hemi = sky-light GI (sky dome above, ground bounce below): table × weather, indoor ×1.2 × hdr fillK
-    hemi.intensity = g.fill * w.hemi * (indoor ? 1.2 : 1) * fillK;
-    // ambient (D7): SINGLE scale — intensity = ambientLevel; warm neutral (window light is the hemi's job)
+    // hemi = sky-light GI (sky dome above, ground bounce below): table × weather × hdr fillK.
+    // r19 L1: the old ×1.2 indoor boost was sized for a DEAD sun (D7 'window light is the
+    // hemi's job') — with real shafts through windows it double-dipped; indoor is now the
+    // same sky GI as outdoor (audit P1-1).
+    hemi.intensity = g.fill * w.hemi * fillK;
+    // ambient (D7): SINGLE scale — intensity = ambientLevel; warm neutral bounce base
     ambient.intensity = indoor ? (light.ambientLevel ?? 0.35) * fillK : 0;
     // weather color ops: desat fillSky/fillGround/zenith/horizon/fog; darken the sky dome
     // (§4.6 classic lift ×1.10 under hdr: sRGB-derived dome values ≤1.15 would otherwise sit
@@ -333,6 +353,26 @@ export function createEnvironment(scene, settings) {
     }
     const az = light.azimuthDeg * DEG, el = Math.max(light.elevationDeg, 0) * DEG;
     u.flareDirection.value.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
+    // r19 L2: the HARD light direction. Classic keeps the live-exact remapped sunDirection
+    // (byte-identity; the classic dome has no disc to contradict it). Realistic style syncs
+    // to what is VISIBLE: the true sun disc by day, sliding to the moon (anti-solar + 0.25
+    // right — the exact uMoonDir the dome renders) as nightAmt 0→1. The slide happens inside
+    // the table's intensity trough (g.sun ≈ 0 near el −8) so the swing is masked; the y-floor
+    // keeps the shadow camera above ground when the disc sits at/below the horizon. The
+    // color slides sunColor → the moon tone so lit surfaces and the disc agree.
+    _keyDir.copy(sunDirection(light));
+    if (skyStyle === 'realistic') {
+      const nightAmt = Math.min(1, Math.max(0, (-light.elevationDeg - 3) / 11));
+      if (nightAmt > 0) {
+        const _tsd = trueSunDirection(light), _md = moonDirection(_tsd);
+        _keyDir.lerp(_md, nightAmt);
+        _keyDir.y = Math.max(_keyDir.y, 0.05);
+        _keyDir.normalize();
+        sun.color.copy(g.sunColor).lerp(MOON_TONE, nightAmt);
+      } else {
+        _keyDir.copy(trueSunDirection(light));   // day: match the visible disc, not the remap
+      }
+    }
     glow = g.glow * (light.hdr?.enabled ? C.HDR_EMISSIVE_BOOST : 1);   // §4.5: night lamps cross the bloom threshold
     return glowAmount();
   }
@@ -385,7 +425,7 @@ export function createEnvironment(scene, settings) {
     realistic.update(camera, outputSRGB, scene, linearHDR);
     if (cloudLayer.enabled) cloudLayer.update(camera, outputSRGB, linearHDR);   // P2: wind drift + camera + sRGB gate
   }
-  return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx,
+  return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx, keyDirection: _keyDir,
     setSkyStyle, updateRealisticSky, realisticSky: () => realistic, getSkyStyle: () => skyStyle,
     setFinishOn: v => { _finishOn = !!v; }, getFinishOn: () => _finishOn,
     clouds: () => cloudLayer, setClouds };
@@ -463,7 +503,7 @@ export function createFogNearFar({ getMeshes, camera, scene, renderer, getLight 
 }
 
 // ---------- shadow fingerprint + fit (TOr/kOr/Bat) ----------
-export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, meshById }) {
+export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, meshById, keyDirection }) {
   let buf = new Float64Array(4096), n = 0, dirty = true, lastN = -1;
   const push = v => {
     if (n === buf.length) { const b = new Float64Array(buf.length * 2); b.set(buf); buf = b; }
@@ -529,7 +569,7 @@ export function createShadowFit({ sun, applyDaylight, getLight, bounds, roots, m
       else { focus.copy(sphere.center); v = sphere.radius; }
     }
     const w = Math.min(texelWorld, Math.max(C.SHADOW_MIN_EXTENT, Math.ceil(v / C.SHADOW_SNAP) * C.SHADOW_SNAP));
-    dir.copy(sunDirection(getLight()));
+    dir.copy(keyDirection ?? sunDirection(getLight()));   // r19 L2: blended effective dir
     snapToGrid(focus, dir, 2 * w / mapSize);
     const S = w * 2;
     sun.target.position.copy(focus); sun.target.updateMatrixWorld();

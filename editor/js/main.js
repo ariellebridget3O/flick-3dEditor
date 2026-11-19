@@ -5,7 +5,7 @@ import { OrbitControls } from './vendor/controls/OrbitControls.js';
 import { TransformControls } from './vendor/controls/TransformControls.js';
 import { GLTFLoader } from './vendor/loaders/GLTFLoader.js';
 import { C, CLIPS } from './const.js';
-import { createEnvironment, createFogNearFar, createShadowFit, normalizeLight, sunDirection, geoToSceneLight } from './env.js';
+import { createEnvironment, createFogNearFar, createShadowFit, normalizeLight, geoToSceneLight } from './env.js';
 import { ObjectManager } from './objects.js';
 import { SelectionTracker, HoverDisc } from './selection.js';
 import { ObjectStore, ShowStore, PageStore } from './store.js';
@@ -233,6 +233,7 @@ export class App {
     this.fogNearFar = createFogNearFar({ getMeshes: () => this.objectManager.meshById.values(), camera: this.camera, scene: this.scene, renderer: this.renderer, getLight: () => this.light });
     this.shadowFit = createShadowFit({
       sun: this.env.sun, applyDaylight: this.env.applyDaylight,
+      keyDirection: this.env.keyDirection,   // r19 L2: blended hard-light dir (moonlight sync)
       getLight: () => this.light,
       bounds: () => this.fogNearFar.bounds(),
       roots: () => this.objectManager ? this.objectManager.roots() : [],
