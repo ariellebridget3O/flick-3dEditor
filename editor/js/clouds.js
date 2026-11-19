@@ -228,6 +228,7 @@ ${CL_ATMOS_CHUNK}
   uniform float uWeatherSun;             // r18: cloud direct light follows the scene weather sun
   uniform float uWeatherHemi;            // r18: cloud ambient follows the scene weather hemi
   uniform float uCloudDarken;            // r18: residual per-weather cloud darken (gray-lid look)
+  uniform float uHdrGain;                // r18 (P1-6): deck gains with the sky under finish+HDR
   uniform float uNightAmount;            // 0 day .. 1 night (sun -> moon)
   uniform vec3 uMoonDir;
   uniform int uSheetCount;               // layered sheets
