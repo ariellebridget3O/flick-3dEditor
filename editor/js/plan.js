@@ -19,6 +19,7 @@
 // + per-tick seekPerformance (show plays while drawing).
 import * as THREE from 'three';
 import { C } from './const.js';
+import { COMPONENT_MIME } from './components.js';   // r17: V6 — plan-canvas component drop
 import { polylineOf, buildTangents, arcLength, pointAtDistance, heightAt } from './curves.js';   // nx / mT / MR (round-2 exact)
 import { camTransformKeysAt } from './tracks.js';                      // cZt (round-2 exact)
 import { itemDuration, packItems } from './schema.js';
@@ -1494,6 +1495,27 @@ export class PlanCanvas {
       if (e.button === 0) this._finish();
     });
     Z.addEventListener('pointercancel', () => { this._panPx = null; this._finish(); });
+    // ---- r17 seam: plan-canvas component drop (verbatim @5498370..5498530) ----
+    // onDragOver: V6 payload + not drawing → preventDefault + dropEffect copy
+    // onDrop: dropComponentAt({x,z}) @5866170 — draggingComponent → facade addComponent([x,z]);
+    //         a refused add (bad prop/...) falls back to showComponentList
+    Z.addEventListener('contextmenu', e => e.preventDefault());
+    Z.addEventListener('dragover', e => {
+      if (this.store.drawing()) return;
+      if (!e.dataTransfer.types.includes(COMPONENT_MIME)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    Z.addEventListener('drop', e => {
+      if (this.store.drawing()) return;
+      if (!e.dataTransfer.types.includes(COMPONENT_MIME)) return;
+      e.preventDefault();
+      const spec = this.app.objects.draggingComponent;
+      if (!spec) return;
+      const at = S1(this.w.view, dye(this.canvas, e));   // screen px → plan world (x, z)
+      const ok = this.app.addComponent(spec, [at.x, at.z]);
+      if (!ok) this.app.showComponentList?.();
+    });
     Z.addEventListener('wheel', e => {                                                // NLr (RZt router not needed: no scrollables)
       if (!this.shown()) return;
       e.preventDefault(); e.stopPropagation();

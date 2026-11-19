@@ -25,6 +25,24 @@ export function forwardOfEuler(euler) {
   return [v.x, v.y, v.z];
 }
 
+// r17 seam: the rotation multi-turn snap (GA/ybe @3923339..3923470 + the objectChange
+// handler @5641135): during a rotate drag, every objectChange snaps each euler axis to the
+// nearest 2π-multiple relative to the RUNNING base (drag-start rotation), also trying the
+// π-flip equivalent (t+π, π−t1, t2+π) and keeping whichever lands closer — rotation values
+// stay near the base instead of accumulating ±4π turns across long spins.
+const TWO_PI = Math.PI * 2;                                       // Ntt
+const snapAxisTo = (t, e) => t - Math.round((t - e) / TWO_PI) * TWO_PI;   // ybe
+function snapRotation(t, e) {                                     // GA
+  const candidates = [t, [t[0] + Math.PI, Math.PI - t[1], t[2] + Math.PI]];
+  let r = e, best = Infinity;
+  for (const a of candidates) {
+    const o = [snapAxisTo(a[0], e[0]), snapAxisTo(a[1], e[1]), snapAxisTo(a[2], e[2])];
+    const l = Math.abs(o[0] - e[0]) + Math.abs(o[1] - e[1]) + Math.abs(o[2] - e[2]);
+    if (l < best) { best = l; r = o; }
+  }
+  return r;
+}
+
 export class Manipulator {
   constructor(app) {
     this.app = app;
@@ -63,6 +81,9 @@ export class Manipulator {
       this.dragging = e.value;
       app.orbit.enabled = !e.value;
       const obj = this.transform.object;
+      // rotation-snap base (live y): drag start seeds it from the object's rotation; end clears
+      this._rotSnapBase = e.value && obj && !(obj instanceof THREE.Bone)
+        ? [obj.rotation.x, obj.rotation.y, obj.rotation.z] : null;
       // ---- rig branches (live order: BEFORE the generic object-drag path; no
       // beginEditGesture — the capture's addRigKeyframe self-brackets) ----
       if (e.value && obj === this._jointHandle) {          // multi-joint drag start
@@ -121,6 +142,11 @@ export class Manipulator {
     // restores to clipLocal then applies these — the offset absorbs the TC write)
     this.transform.addEventListener('objectChange', () => {
       const obj = this.transform.object;
+      // rotation snap FIRST (live order @5641135): bones and the joint handle are exempt
+      if (this._rotSnapBase && obj && !(obj instanceof THREE.Bone) && obj !== this._jointHandle) {
+        this._rotSnapBase = snapRotation([obj.rotation.x, obj.rotation.y, obj.rotation.z], this._rotSnapBase);
+        obj.rotation.set(this._rotSnapBase[0], this._rotSnapBase[1], this._rotSnapBase[2]);
+      }
       if (this._rigDragSingle && obj instanceof THREE.Bone) {
         const v = this._rigDragSingle;
         app.setLiveRigDrag({ objectId: v.objectId, offsets: { [v.joint]: this._rigOffsetOf(v.objectId, v.joint, obj) } });
