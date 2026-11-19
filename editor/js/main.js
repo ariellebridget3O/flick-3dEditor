@@ -59,11 +59,19 @@ import {
   createAutoMeasureScheduler,
 } from './finish.js';
 import { createBloom } from './bloom.js';   // round 13 (HDR): UnrealBloomPass recipe port
-import { shakeOffsets, applyShakePose } from './shake.js';   // r15 shake family (Dzt/cL; rigShake ships dormant — no cameraRig state)
+import { shakeOffsets, applyShakePose, rigShake } from './shake.js';   // r15 Dzt/cL + r17 the rig path (oEr) wakes in camera mode
+import { RigStore, rigWithWeight, cycleRigKey, stepSpeed, carrySpeeds, isRigKey } from './rigs.js';   // r17 kIr state subset + helpers
+import { createDrive, createLook, springStep } from './drive.js';   // r17 en/szr families
 import { strokeRing } from './stroke.js';
-import { createNavBall } from './navball.js';
+import { createNavBall, moveByStick } from './navball.js';
 
 const PLANNING_LAYER = 1;   // aye
+
+// r17 zoom log map (jCr/ICr/OGt @5184395..5184572): focal 14..200 ↔ t 0..1 (log scale)
+const ZOOM_LOG_RANGE = Math.log(C.FOCAL_MM_MAX / C.FOCAL_MM_MIN);   // OGt
+const clamp01 = t => Math.min(1, Math.max(0, t));                   // Vhe
+const zoomMm = t => C.FOCAL_MM_MIN * Math.exp(clamp01(t) * ZOOM_LOG_RANGE);   // jCr
+const zoomLog = t => clamp01(Math.log(t / C.FOCAL_MM_MIN) / ZOOM_LOG_RANGE);  // ICr
 const _bufSize = new THREE.Vector2();
 const _q1 = new THREE.Quaternion();   // scratch quaternion (poser _camHie)
 
@@ -293,6 +301,24 @@ export class App {
     this.playbackClips = new Map();   // id → {clip, timeS}
     this.pendingPoses = new Map();    // facade pendingPoses @5793128 — id → pose awaiting skeleton
     this._shakeT = 0;                 // mqr shake clock (T+=dt, Y @5722298) — advances every frame
+    // ---- r17 camera mode (kIr/eIr/$e/Ma port) ----
+    this.rigs = new RigStore();               // kIr state subset (rig/speeds/weights + stage-rig-weights)
+    this.filmingCameraId = null;              // filmingCameraId (startFilming sets; setMode edit clears)
+    this._manualFlight = null;                // {trackId,itemId} while a manual-flight session is armed
+    this._draft = null;                       // phoneDraft equivalent: the auto-created track/item on film-entry
+    this._lastFlight = null;                  // lastFlight (set only after real samples — always null offline)
+    this._editorPoseSave = null;              // $e 'se': editor camera pose saved on camera-mode entry
+    this._driveAim = new THREE.Object3D();    // H: yaw/pitch holder (mouse-look writes it)
+    this._driveCam = new THREE.Object3D();    // l: the drive camera (yaw/pitch springs + roll)
+    this._drive = createDrive(this._driveAim, this._driveCam);
+    this._look = null;                        // rzr port — created once the canvas exists
+    this._shakeApply = null;                  // Y: the current editor-camera shake pose (A)
+    this._shakeSaved = false;                 // I: pose saved (N/P) awaiting restoreShake
+    this._shakeSavePos = new THREE.Vector3();
+    this._shakeSaveQuat = new THREE.Quaternion();
+    this._stridePhase = 0;                    // E: oEr stride-phase carry
+    this._shakeGroundPos = null;              // j: last editor-camera position (ground-speed delta)
+    this._zoom = null; this._zoomKeys = new Set(); this._zoomFrame = 0; this._zoomLastMs = 0;  // eIr zoom state
     this._restEval = false;           // live performanceSeekS model: seek-posed rest keeps evaluating (pinned)
     this._posedCams = new Set();      // live mqr Q(): camera ids posed by a previous frame (v set)
     this._restSeekPending = false;    // a seek was observed at rest — pose it even when t is unchanged
@@ -319,7 +345,50 @@ export class App {
         this._seenSeekEpoch = this.page.seekEpoch;
         if (!this.page.playing) this._restSeekPending = true;
       }
+      // r17 $e applyMode: mode transitions (edit ↔ camera) re-pose/restore the editor camera
+      if (this.page.mode !== this._appliedMode) { this._appliedMode = this.page.mode; this.applyMode(); }
     });
+    this._appliedMode = this.page.mode;   // initial state — no transition on boot
+    // eIr keymap @5232092 (camera mode only — pageLive ≡ true offline; typing gate = ix()):
+    // Tab cycles rig, Z/X step speed, [/] step weight, O/P held-key zoom. Escape: menu first,
+    // then exit (pointer-locked → the browser unlocks first).
+    this._camModeKeyDown = e => {
+      const k = e.key.toLowerCase();
+      const typing = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
+      if (typing || this.page.mode !== 'camera' || this.page.keyboardOwner !== 'stage') return;
+      if (k === 'escape') {
+        if (this._monitorMenuOpen) { e.preventDefault(); this._monitorMenuOpen = null; this.page.changed(); return; }
+        if (!document.pointerLockElement) { e.preventDefault(); this.exitCameraMode(); }
+        return;
+      }
+      if (k === 'tab') {
+        if (this._monitorMenuOpen) return;
+        e.preventDefault();
+        if (!e.repeat) this.cycleRig(e.shiftKey ? -1 : 1);
+        return;
+      }
+      if (!e.repeat) {
+        if (k === 'z') this.changeSpeed(-1);
+        else if (k === 'x') this.changeSpeed(1);
+        else if (k === '[') this.stepWeight(-1);
+        else if (k === ']') this.stepWeight(1);
+      }
+      if (k === 'o' || k === 'p') { this._zoomKeys.add(k); this._startZoom(); e.preventDefault(); }
+    };
+    this._camModeKeyUp = e => {
+      const k = e.key.toLowerCase();
+      if (k === 'o' || k === 'p') this._zoomKeys.delete(k);
+    };
+    window.addEventListener('keydown', this._camModeKeyDown);
+    window.addEventListener('keyup', this._camModeKeyUp);
+    // eIr controller ops (cycleRig/changeSpeed/cycleSpeed/stepWeight @5231937..5232109)
+    this.cycleRig = (dir = 1) => {
+      const n = cycleRigKey(this.rigs.rig, dir);
+      this.rigs.setRig(n, carrySpeeds(n, this.rigs.peekSpeeds()));
+    };
+    this.changeSpeed = dir => { this.rigs.setRig(this.rigs.rig, stepSpeed(this.rigs.rig, this.rigs.peekSpeeds(), dir)); };
+    this.cycleSpeed = () => { this.rigs.setRig(this.rigs.rig, stepSpeed(this.rigs.rig, this.rigs.peekSpeeds(), 1, true)); };
+    this.stepWeight = dir => { this.rigs.setWeight(this.rigs.weight + dir * C.RIG_WEIGHT_STEP); };
     // live AWr: objects-store mutation → b() — UNCONDITIONAL (live qt(()=>{objects.get(), b()})):
     // always consults the current playbackClips map, so pinned playback state survives edits
     // (mid-playback object edits don't restart clips) and rest-state records apply immediately.
@@ -1144,7 +1213,7 @@ export class App {
   // evaluated pose (evalPose set every frame by updateCameraMarkers). Orbit disabled while
   // active; fov keeps the record-aspect frame-guide value (updateFrameGuide).
   updateCameraThroughLens() {
-    const inCam = this.page.stageView === 'cameras';
+    const inCam = this.page.stageView === 'cameras' && this.page.mode !== 'camera';   // camera mode owns the editor camera (review P1)
     if (this.orbit) this.orbit.enabled = !inCam;
     const id = this.objects.selectedId;
     const obj = id ? this.objects.get(id) : null;
@@ -1288,7 +1357,7 @@ export class App {
   _frame() {
     const dt = Math.min(0.1, this.clock.getDelta());
     const now = performance.now();
-    this._shakeT += dt;               // mqr tickShake clock (Y @5722298) — every frame
+    // (r17: the shake clock moved into tickShake — one increment, after the mode branch)
 
     // --- update ticks (D2.7 order) ---
     // 1. rig tick: restore → mixer → rig offsets (ghost head-look merged: bundle O @5790417 — rigOffsets rebuilt every frame, no accumulation)
@@ -1390,7 +1459,10 @@ export class App {
       this.planView?.tick(performance.now());
       return;
     }
-    this.renderFrame();
+    // r17 Y/re @5722298/@5722357: the editor-camera shake brackets the render (apply → render →
+    // restore). In camera mode this is the RIG shake (oEr — the dormant r15 family wakes here).
+    this.tickShake(dt);
+    try { this.renderFrame(); } finally { this.restoreShake(); }
   }
 
   finishOn() {   // m(): capability && pref
@@ -1593,6 +1665,12 @@ export class App {
   }
 
   _navTick(dt) {
+    // Ma @5663138: camera mode → the rig drive owns the editor camera (orbit/nav-ball idle);
+    // the floor clamp + polar recompute run ONLY in edit view (live C()&&Uit, review P1)
+    if (this.page.mode === 'camera') {
+      this.driveTick(dt);
+      return;
+    }
     this.navBall?.driveTick(dt);   // Ye: nav ball pad drag drives the camera
     // orbit
     if (this.orbit.enabled) this.orbit.update();
@@ -1607,27 +1685,297 @@ export class App {
     this._wasd(dt);
   }
 
-  _wasd(dt) {
-    // live `ne()` gate: default control mode + edit + no play session (keyboardOwner = stage
-    // equivalent); in unreal mode WASD only works while pointer-locked free-look (not ported)
-    if (!this._keys || this.page.mode !== 'edit' || this.page.keyboardOwner !== 'stage') return;
-    if (this.page.controlMode !== 'default') return;
-    const k = this._keys;
-    let f = 0, s = 0, u = 0;
-    if (k.has('w')) f += 1; if (k.has('s')) f -= 1;
-    if (k.has('a')) s -= 1; if (k.has('d')) s += 1;
-    if (k.has('e')) u += 1; if (k.has('q')) u -= 1;
-    if (!f && !s && !u) return;
-    const speed = C.FLY_SPEED * (k.has('shift') ? C.FLY_SPRINT : 1) * dt;
-    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-    const move = new THREE.Vector3().addScaledVector(fwd, f).addScaledVector(right, s);
-    move.y += u;
-    if (move.lengthSq() > 0) {
-      move.normalize().multiplyScalar(speed);
-      this.camera.position.add(move);
-      this.orbit.target.add(move);
+
+  // ================= r17 camera mode (kIr/eIr/$e/filmWithPhone port) =================
+  // setMode @5809963 VERBATIM (recording gate dropped — no recording offline):
+  // non-edit → editInteraction idle + stop playback; camera→edit → clearFilmingCamera +
+  // finishManualFlight([]) draft cleanup; camera → clearSelection.
+  setMode(m) {
+    if (m !== 'edit') {
+      if (this.page.editInteraction !== 'idle') this.page.setEditInteraction('idle');
+      if (this.page.playing) this.page.stop();
     }
+    const wasCamera = this.page.mode === 'camera' && m === 'edit';
+    if (m === 'camera') this.objects.select([]);
+    else this.filmingCameraId = null;
+    this.page.mode = m;
+    this.page.changed();
+    if (wasCamera && this._manualFlight) this.finishManualFlight([]);
+    if (m === 'edit') this._lastFlight = null;
+  }
+
+  // startFilming @5143823: filmingCameraId + mode camera (gate: kind camera)
+  startFilming(id) {
+    const n = id ?? this.activeCameraId();
+    if (!n || this.objects.get(n)?.kind !== 'camera') return;
+    this.filmingCameraId = n;
+    this.setMode('camera');
+  }
+
+  // exitCameraMode @5143990: recording → toggleRecording (N/A offline); else back to edit
+  exitCameraMode() {
+    if (this.page.mode === 'camera') this.setMode('edit');
+  }
+
+  // activeCameraId @5143008: filming ?? selected-is-camera ?? first camera
+  activeCameraId() {
+    if (this.filmingCameraId) return this.filmingCameraId;
+    const sel = this.objects.get(this.objects.selectedId);
+    if (sel?.kind === 'camera') return this.objects.selectedId;
+    for (const [id, o] of Object.entries(this.objects.all())) if (o.kind === 'camera') return id;
+    return null;
+  }
+
+  // armPhoneFlight @5800667 non-phone body (r17): find-or-create the camera's track, add a
+  // cam-manual item at the playhead, record the draft, start the manual flight. The whole
+  // arm→cleanup span holds ONE gesture bracket (live history.holdEntry) so an un-recorded
+  // enter/exit leaves no undo entry and no scene residue.
+  armManualFlight(cameraId) {
+    if (this.objects.get(cameraId)?.kind !== 'camera') return false;
+    const existing = this.show.tracks.find(t => t.characterId === cameraId)?.id;
+    this.show.beginEditGesture();          // held until finishManualFlight
+    const trackId = existing ?? this.show.addPerformanceTrack(cameraId);
+    const itemId = trackId && this.show.addCameraItem(trackId, 'manual', this.page.playheadS, null);
+    if (!trackId || !itemId) { this.show.endEditGesture(); return false; }
+    this._draft = { trackId, itemId, madeTrack: !existing };
+    return this.startManualFlight(trackId, itemId) !== null;
+  }
+
+  // startManualFlight @5531164: validate cam-manual on a camera; stop playback; arm the session
+  startManualFlight(trackId, itemId) {
+    const tr = this.show.tracks.find(t => t.id === trackId);
+    const it = tr?.items.find(i => i.id === itemId);
+    if (!tr || it?.kind !== 'cam-manual' || this.objects.get(tr.characterId)?.kind !== 'camera') return null;
+    if (this.page.playing) this.page.stop();
+    this._manualFlight = { trackId, itemId };
+    return tr.characterId;
+  }
+
+  // finishManualFlight @5799950 (app level): clears the session; NO samples offline → the
+  // draft track/item is REMOVED (madeTrack → whole track; else the item) and a selectedSegment
+  // pointing at it clears. With samples (filming arc, future) the item keeps them.
+  finishManualFlight(samples) {
+    const draft = this._draft;
+    this._draft = null;
+    const session = this._manualFlight;
+    try {
+      // performanceStore.finishManualFlight @5800128: samples land in the cam-manual item
+      if (session && samples.length > 0) {
+        this.show.updateTrackItems(session.trackId, items => items.map(it =>
+          it.id === session.itemId && it.kind === 'cam-manual'
+            ? { ...it, samples, durationS: samples.length / 30, shakeBaked: true }
+            : it));
+        this._lastFlight = session;
+      }
+      if (!draft || samples.length > 0 || session?.itemId !== draft.itemId) return;
+      // draft cleanup — the un-recorded entry leaves no residue
+      draft.madeTrack ? this.show.removeTrack(draft.trackId)
+        : this.show.removePerformanceItem(draft.trackId, draft.itemId);
+      if (this.page.selectedSegment?.itemId === draft.itemId) {
+        this.page.selectedSegment = null;
+        this.page.changed();
+      }
+    } finally {
+      if (draft) this.show.endEditGesture();   // history.releaseEntry — the held arm bracket
+    }
+  }
+
+  // $e applyMode @5655928: mode transitions. camera → save editor pose (once), gizmo detach,
+  // orbit off, takeOver the filming camera mesh pose (vZt @5445932; fallback floor guard),
+  // camera-mode fov, drive cam seeded + reset. edit → restore pose, orbit on, fov FP,
+  // gizmo reattach, updateFrameGuide.
+  applyMode() {
+    const m = this.page.mode;
+    if (m === 'edit') {
+      if (this._look?.isLocked) this._look.unlock();
+      if (this._editorPoseSave) {
+        this.camera.position.copy(this._editorPoseSave.position);
+        this.camera.quaternion.copy(this._editorPoseSave.quaternion);
+        this.orbit.target.copy(this._editorPoseSave.target);
+        this._editorPoseSave = null;
+      }
+      this.orbit.enabled = true;
+      this.camera.fov = C.EDITOR_FOV;
+      this.camera.updateProjectionMatrix();
+      this._stopZoom();                        // eIr: mode change stops held-key zoom
+      this._restoreCameraMeshForMonitor();
+    } else if (m === 'camera') {
+      // port-model: our through-the-lens drives the editor camera (the live's feed wall uses
+      // separate render cameras) — leave the cameras view FIRST so the lens restore + takeOver
+      // compose in the right order (live parity of OBSERVABLE: the monitor owns the viewport)
+      if (this.page.stageView === 'cameras') {
+        this.page.stageView = 'editor';
+        this.updateCameraThroughLens();   // runs the lens restore branch (inCam now false)
+      }
+      this.manipulator?.transform?.detach();
+      this.orbit.enabled = false;
+      if (!this._editorPoseSave) {
+        this._editorPoseSave = {
+          position: this.camera.position.clone(),
+          quaternion: this.camera.quaternion.clone(),
+          target: this.orbit.target.clone(),
+        };
+      }
+      // vZt takeOver: the filming camera mesh's world pose
+      const mesh = this.meshById.get(this.filmingCameraId ?? this.activeCameraId() ?? '');
+      if (mesh) {
+        mesh.getWorldPosition(this.camera.position);
+        mesh.getWorldQuaternion(this.camera.quaternion);
+      } else {
+        this.camera.position.y = Math.max(this.camera.position.y, C.CAM_FLOOR_GUARD);
+      }
+      this.applyCameraModeFov();
+      this._driveCam.position.copy(this.camera.position);
+      this._driveCam.quaternion.copy(this.camera.quaternion);
+      this._drive.reset();                     // G @5649455 — springs seeded from the takeOver pose
+      this._hideCameraMeshForMonitor();
+    }
+    this.updateFrameGuide?.();
+  }
+
+  // BU @5444685: camera-mode fov = Z_(focalLengthMm, recordAspect) — the filming camera's
+  // focal (derived F8+Hv default 50) at the record aspect
+  applyCameraModeFov() {
+    // BU @5444685: fov = Z_(focalLengthMm, recordAspect) — the filming camera's focal at the
+    // RECORD aspect (the viewfinder shows the recorded framing, not the viewport's)
+    const focal = this.focalLengthMm;
+    this.camera.fov = fovFromFocal(focal, C.ASPECTS[this.page.recordAspect] ?? 16 / 9);
+    this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+    this.camera.updateProjectionMatrix();
+  }
+
+  // setFocalLengthMm @5150107: writes the ACTIVE CAMERA OBJECT (zoom persists into the scene)
+  setFocalLengthMm(v) {
+    const id = this.activeCameraId();
+    if (id) { this.objects.update(id, { focalLengthMm: v }); this.objects.changed(); }
+  }
+  get focalLengthMm() {   // derived read side (focalLengthMm signal)
+    return this.objects.get(this.activeCameraId())?.focalLengthMm ?? 50;
+  }
+
+  // Ma camera branch + en @5664174: the rig-physics drive owns the editor camera
+  driveTick(dt) {
+    const k = this._keys;
+    const has = key => k?.has(key) ? 1 : 0;
+    const rig = rigWithWeight(C.CAMERA_RIGS[this.rigs.rig], this.rigs.weight);
+    this._drive.tick(dt, {
+      rig,
+      stickX: has('d') - has('a'),
+      stickY: has('w') - has('s'),
+      vertical: has('e') - has('q'),
+      shift: !!k?.has('shift'),
+      speedMps: this.rigs.speedMps,
+      panDegPerS: this.rigs.panDegPerS,
+    });
+    this.camera.position.copy(this._driveCam.position);
+    this.camera.quaternion.copy(this._driveCam.quaternion);
+    // held-key zoom runs its own rAF loop (tickZoom) — wheel handled in attachWheel
+  }
+
+  // Y @5722298: the editor-camera shake pose. Camera mode → the rig shake (oEr with the
+  // ground speed from the position delta); edit mode → the filming camera's obj.shake (the
+  // live's A is only consumed by camera-mode surfaces — ae/be belong to the filming arc).
+  tickShake(dt) {
+    this._shakeT += dt;
+    if (this.page.mode === 'camera') {
+      this._shakeApply = this._rigShakePose(dt);
+    } else {
+      this._shakeGroundPos = null;
+      this._shakeApply = null;
+    }
+    if (this._shakeApply) {
+      this._shakeSavePos.copy(this.camera.position);
+      this._shakeSaveQuat.copy(this.camera.quaternion);
+      this._shakeSaved = true;
+      applyShakePose(this.camera, this._shakeApply);
+    }
+  }
+  // q @5722035: ground speed from the editor-camera position delta → oEr (the dormant r15 family)
+  _rigShakePose(dt) {
+    let speed = 0;
+    if (this._shakeGroundPos && dt > 0) {
+      const dx = this.camera.position.x - this._shakeGroundPos.x;
+      const dz = this.camera.position.z - this._shakeGroundPos.z;
+      speed = Math.hypot(dx, dz) / dt;
+    }
+    (this._shakeGroundPos ??= new THREE.Vector3()).copy(this.camera.position);
+    const rig = C.CAMERA_RIGS[this.rigs.rig];
+    const r = rigShake({ rig, t: this._shakeT, stridePhase: this._stridePhase, groundSpeedMps: speed, dtS: dt });
+    this._stridePhase = r.stridePhase;
+    return r.pose;
+  }
+  // re @5722357: restore the saved pose after the render (the drive re-poses next tick anyway)
+  restoreShake() {
+    if (!this._shakeSaved) return;
+    this.camera.position.copy(this._shakeSavePos);
+    this.camera.quaternion.copy(this._shakeSaveQuat);
+    this._shakeSaved = false;
+  }
+
+  // ---- eIr zoom family @5232040 (bEr/yEr/vEr/xEr + jCr/ICr log map) ----
+  _startZoom() {
+    if (!this._zoom) this._zoom = { targetT: zoomLog(this.focalLengthMm), lens: { value: zoomLog(this.focalLengthMm), rate: 0 } };
+    if (!this._zoomFrame) { this._zoomLastMs = performance.now(); this._zoomFrame = requestAnimationFrame(this._onZoomFrame); }
+  }
+  _onZoomFrame = e => {
+    const n = Math.min(C.ZOOM_DT_MAX, (e - this._zoomLastMs) / 1e3);
+    this._zoomLastMs = e;
+    this._tickZoom(Math.max(0, n));
+    this._zoomFrame = this._zoom ? requestAnimationFrame(this._onZoomFrame) : 0;
+  };
+  _tickZoom(dt) {
+    if (!this._zoom) return;
+    const dir = (this._zoomKeys.has('p') ? 1 : 0) - (this._zoomKeys.has('o') ? 1 : 0);
+    // yEr: target steps by dir·pEr·dt (clamped 0..1); lens springs toward it (fEr tau)
+    this._zoom.targetT = Math.min(1, Math.max(0, this._zoom.targetT + dir * C.ZOOM_STEP * dt));
+    this._zoom.lens = springStep(this._zoom.lens, this._zoom.targetT, C.ZOOM_LENS_TAU, dt);
+    this.setFocalLengthMm(zoomMm(this._zoom.lens.value));
+    if (dir === 0 && Math.abs(this._zoom.lens.value - this._zoom.targetT) < 1e-4 && Math.abs(this._zoom.lens.rate) < .001) {
+      this._zoom = null;   // xEr — settled
+    }
+  }
+  _stopZoom() { this._zoomKeys.clear(); this._zoom = null; if (this._zoomFrame) cancelAnimationFrame(this._zoomFrame); this._zoomFrame = 0; }
+  // zoomByWheel @5232085 (vEr): wheel target -= deltaY·mEr (deltaMode 1 → ÷gEr)
+  zoomByWheel(e, n) {
+    if (this.page.mode !== 'camera') return;
+    this._startZoom();
+    const r = e * (n === 1 ? C.ZOOM_WHEEL_DIV : 1);
+    this._zoom = { ...this._zoom, targetT: Math.min(1, Math.max(0, this._zoom.targetT - r * C.ZOOM_WHEEL_RATE)) };
+  }
+
+  // ---- monitor helpers ----
+  // the filming camera's own mesh would clip the viewfinder — hide it for the session
+  // (divergence: the live renders through it with the capture renderer; we hide + restore)
+  _hideCameraMeshForMonitor() {
+    const id = this.filmingCameraId ?? this.activeCameraId();
+    const mesh = id ? this.meshById.get(id) : null;
+    if (!mesh) return;
+    this._monitorHidden = mesh;
+    mesh.visible = false;
+  }
+  _restoreCameraMeshForMonitor() {
+    if (this._monitorHidden) { this._monitorHidden.visible = true; this._monitorHidden = null; }
+  }
+
+  _wasd(dt) {
+    // ha @5663200 VERBATIM (r17): edit-mode WASD = the nav-ball bot drive + q/e vertical +
+    // pan nav-progress. Gates (ne() live): default control mode + edit + no playback +
+    // plan hidden + no gizmo drag. (The live also gates !sceneNodeOpen — no scene nodes offline.)
+    const keys = this._keys;
+    const ne = () => this.page.controlMode === 'default' && this.page.mode === 'edit' &&
+      !this.page.playing && this.page.viewportMode !== 'plan' && !this.manipulator?.transform?.dragging;
+    if (!ne() || !keys) return;
+    const f = Number(keys.has('w')) - Number(keys.has('s'));
+    const r = Number(keys.has('d')) - Number(keys.has('a'));
+    const u = Number(keys.has('e')) - Number(keys.has('q'));
+    if (f === 0 && r === 0 && u === 0) return;
+    const shift = keys.has('shift') ? C.EDIT_DRIVE_SPRINT : 1;
+    const dist = C.EDIT_DRIVE_SPEED * shift * dt;
+    moveByStick({ forward: f, strafe: r }, dist, this.camera.position, this.camera.quaternion, this.orbit.target);
+    this.camera.position.y += u * dist;
+    this.orbit.target.y += u * dist;
+    const d = this.camera.position.distanceTo(this.orbit.target);
+    d > 0 && this.page.addNavProgress('pan', dist / d);   // addNavProgress @5788885
   }
 
   // custom wheel zoom (Vzr/Dqr): classify zoom vs nav; zoom = pos *= exp(deltaY*k) around orbit target
@@ -1635,6 +1983,8 @@ export class App {
     const el = this.renderer.domElement;
     el.addEventListener('wheel', e => {
       e.preventDefault();
+      // xe @5651667: camera mode → the monitor wheel zoom (before the edit-mode classification)
+      if (this.page.mode === 'camera') { this.zoomByWheel(e.deltaY, e.deltaMode); return; }
       const isZoom = e.ctrlKey || e.deltaMode !== 0 ||
         (Math.abs(e.deltaY) >= 50 && e.deltaY % 120 === 0 && e.deltaX === 0);
       if (isZoom) {

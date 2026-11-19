@@ -874,6 +874,22 @@ export class ShowStore extends StoreBase {
       t.items[i] = { ...t.items[i], keys: moveKey(t.items[i].keys ?? [], fromTS, toTS) };
     });
   }
+  // deleteSelectedKeyframe @5537847 — dispatch by the containing item's kind
+  deleteSelectedKeyframe() {
+    const e = this._hooks?.page?.selectedSegment;
+    if (!e || e.tS == null) return;
+    const n = this.findItem(e);
+    if (n?.kind === 'rig-transform') this.removeRigKeyframe(e.trackId, e.itemId, e.tS);
+    else if (n?.kind === 'transform') this.removeTransformKeyframe(e.trackId, e.itemId, e.tS);
+    else if (n?.kind === 'cam-transform') this.removeCameraKeyframe(e.trackId, e.itemId, e.tS);
+  }
+
+  // selectTrack @5538187 — a lane-head click selects the track and clears the segment selection
+  selectTrack(trackId) {
+    const page = this._hooks?.page;
+    if (page) { page.selectedSegment = null; page.selectedTrack = { trackId }; page.changed(); }
+  }
+
   findItem(seg) {
     return this.show.tracks.find(t => t.id === seg.trackId)?.items.find(i => i.id === seg.itemId);
   }
@@ -1112,11 +1128,17 @@ export class PageStore extends StoreBase {
     this.playStartS = 0;
     this.paint = null;                   // {trackId, itemId, selectedAnchor} while path painting
     this.selectedSegment = null;         // {trackId, itemId[, tS]} for timeline block/keyframe selection
+    this.selectedTrack = null;          // {trackId} — lane-head click (tCr); feeds deleteFocused's track branch
     this.keyboardOwner = 'stage';
     this.finishEnabled = false;
     this.editInteraction = 'idle';      // idle | editingPath | lasso
     this.lassoRect = null;              // {x,y,w,h} canvas-relative px while lasso-dragging
     this.navBallVector = null;          // {forward, strafe} -1..1 while dragging the nav ball
+    this.navProgress = { orbit: 0, pan: 0, zoom: 0 };   // navProgress @5788885 — pure accumulator
+  }
+  addNavProgress(kind, amount) {        // onboarding progress signal (consumers arrive with a future round)
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    this.navProgress = { ...this.navProgress, [kind]: this.navProgress[kind] + amount };
   }
   toggleLasso() { this.editInteraction = this.editInteraction === 'lasso' ? 'idle' : 'lasso'; this.changed(); }
   setEditInteraction(v) { this.editInteraction = v; this.changed(); }

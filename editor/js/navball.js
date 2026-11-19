@@ -55,7 +55,7 @@ function rollFromMotion(motion, camQ, speed, out) {
 function yawSpin(t, out) { return out.setFromAxisAngle(_Y, t * YAW_GAIN); }
 
 // bot — move pos + target along camera-relative forward/strafe
-function moveByStick(stick, dist, pos, quat, target) {
+export function moveByStick(stick, dist, pos, quat, target) {
   _fwd.set(0, 0, -1).applyQuaternion(quat);
   _right.crossVectors(_fwd, _UP).normalize();
   _move.set(0, 0, 0).addScaledVector(_fwd, stick.forward * dist).addScaledVector(_right, stick.strafe * dist);

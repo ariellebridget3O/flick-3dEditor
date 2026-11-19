@@ -804,17 +804,30 @@ export class Manipulator {
         if (res && res.ok && res.partial) app.toast('Grouped ' + res.grouped + ' object' + (res.grouped > 1 ? 's' : '') + ' (' + res.skipped + ' already in a group — skipped)');
       }
       else if (k === 'delete' || k === 'backspace') {
+        // live @5638595: path editing → deletePathAnchor(selectedAnchor); else deleteFocused
+        // @5811133 cascade: keyframe → segment item → track → selected objects
         if (app.page.paint) {
-          // live keymap: path editing → deletePathAnchor(selectedAnchor)
           const p = app.page.paint;
           if (p.selectedAnchor !== null && p.selectedAnchor !== undefined) {
             app.show.deletePathAnchor(p.trackId, p.itemId, p.selectedAnchor);
             app.pathEditor.selectAnchor(null);
           }
         } else {
-          app.show.beginEditGesture();
-          try { deleteObjects(app, app.objects.selectedIds); }
-          finally { app.show.endEditGesture(); }
+          const seg = app.page.selectedSegment;
+          if (seg?.tS != null) { app.show.deleteSelectedKeyframe(); }
+          else if (seg) {
+            app.show.beginEditGesture();
+            try { app.show.removePerformanceItem(seg.trackId, seg.itemId); }
+            finally { app.show.endEditGesture(); }
+          } else if (app.page.selectedTrack) {
+            app.show.beginEditGesture();
+            try { app.show.removeTrack(app.page.selectedTrack.trackId); app.page.selectedTrack = null; app.page.changed(); }
+            finally { app.show.endEditGesture(); }
+          } else {
+            app.show.beginEditGesture();
+            try { deleteObjects(app, app.objects.selectedIds); }
+            finally { app.show.endEditGesture(); }
+          }
         }
       }
       else if (k === 'escape') {

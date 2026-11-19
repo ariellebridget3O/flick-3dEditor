@@ -1277,10 +1277,11 @@ export function refreshTimeline(app) {
     const obj = app.objects.get(tr.characterId);
     const name = obj ? (obj.name ?? obj.kind) : '?';
     const isWalker = isPersonKindO(obj?.kind);
+    const trackSel = app.page.selectedTrack?.trackId === tr.trackId;
     const blocks = tr.items.map(u => blockHTML(app, u, tr, pps, isWalker)).join('');
     const addLeft = maxEnd(tr.items.map(u => u.item)) * pps;
     return `<div class="lane ${obj?.kind === 'camera' ? 'cam' : ''}" data-track="${tr.trackId}">
-      <div class="lane-head">${escAttr(name)}<button class="lane-del" data-track="${tr.trackId}">✕</button></div>
+      <div class="lane-head${trackSel ? ' track-sel' : ''}">${escAttr(name)}<button class="lane-del" data-track="${tr.trackId}">✕</button></div>
       <div class="lane-body" data-track-id="${tr.trackId}" data-char="${tr.characterId}">${blocks}
         <button class="lane-add" data-track="${tr.trackId}" data-char="${tr.characterId}" style="left:${addLeft}px">＋</button>
       </div></div>`;
@@ -1317,6 +1318,21 @@ function wireTimelineInteractions(app, lanes, pps, magnet, layout) {
     e.stopPropagation();
     app.show.removeTrack(b.dataset.track);
     refreshTimeline(app);
+  });
+  // tCr @5538187 (r17): lane-head click → selectTrack (clears segment selection); the selected
+  // track feeds deleteFocused's track branch. dblclick → focus the owning object.
+  lanes.querySelectorAll('.lane-head').forEach(h => {
+    h.addEventListener('click', e => {
+      if (e.target.closest('.lane-del')) return;
+      const tr = app.show.tracks.find(t => t.id === h.parentElement.dataset.track);
+      if (!tr) return;
+      app.show.selectTrack(tr.id);
+      refreshTimeline(app);
+    });
+    h.addEventListener('dblclick', e => {
+      const tr = app.show.tracks.find(t => t.id === h.parentElement.dataset.track);
+      if (tr) app.focusObject(tr.characterId);
+    });
   });
   lanes.querySelectorAll('.lane-add').forEach(b => b.onclick = e => {
     e.stopPropagation();
