@@ -529,11 +529,15 @@ ${GLSL_COMMON}
       float star = step(0.955, h) * smoothstep(0.12, 0.0, d) * (0.25 + 0.75 * hash13(id + 1.3));
       vec3 starCol = vec3(0.85, 0.9, 1.0) + vec3(0.15, 0.02, -0.1) * hash13(id + 2.6);
       L += visible * uNightAmount * horizonFade * star * starCol * 0.9;
-      // moon: ~0.55 deg disc + halo, opposite the sun
+      // moon: r18 enlarged disc (~0.87 deg radius, x1.9 area x3.6 — anchors the location for
+      // previz; a larger moon is the aesthetic preference) + widened halo; gentle limb
+      // darkening so the bigger disc reads as a sphere, not a sticker. Anti-solar full moon.
       float moonCos = dot(worldDir, uMoonDir);
-      float disc = smoothstep(cos(0.0096), cos(0.0080), moonCos);
-      float halo = pow(max(moonCos, 0.0), 700.0) * 0.12;
-      L += visible * uNightAmount * horizonFade * vec3(0.86, 0.88, 0.95) * (disc * 0.55 + halo);
+      float disc = smoothstep(cos(0.0182), cos(0.0152), moonCos);
+      float r2 = clamp((1.0 - moonCos) / (1.0 - cos(0.0152)), 0.0, 1.0);   // 0 center .. 1 limb
+      float limb = 1.0 - 0.18 * (r2 * r2);
+      float halo = pow(max(moonCos, 0.0), 140.0) * 0.15;
+      L += visible * uNightAmount * horizonFade * vec3(0.86, 0.88, 0.95) * (disc * 0.62 * limb + halo);
     }
 
     // --- weather mood (same Rec.601 desat + darken as the classic dome) ---
