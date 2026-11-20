@@ -125,12 +125,17 @@ export function yawOf(state) { // ztt
 export function gazeSplit(bodyYawRad, ownAim, target) {
   const dx = target[0] - ownAim[0], dy = target[1] - ownAim[1], dz = target[2] - ownAim[2];
   const flat = Math.hypot(dx, dz);
+  // GUARD 1 (HM @5482972): target (nearly) straight above/below → return the input pose
+  // unchanged — no yaw-to-0, no pitch
+  if (flat < 1e-6) return { bodyYawRad: bodyYawRad, headYawRad: 0, headPitchRad: 0 };
   const pitch = Math.atan2(dy, flat);
   const yaw = Math.atan2(-dx, -dz);
-  let dYaw = wrapPi(yaw - bodyYawRad);
-  const headYaw = Math.max(-C.HEAD_YAW_LIMIT, Math.min(C.HEAD_YAW_LIMIT, dYaw));
-  dYaw = wrapPi(dYaw - headYaw);
-  const bodyYaw = wrapPi(bodyYawRad + dYaw);
+  const dYaw = wrapPi(yaw - bodyYawRad);
+  // GUARD 2: the π−|Δ| term — for |Δ| > 110° the head takes π−|Δ| (< 70°) and the body
+  // the rest; total gaze identical, head pose different (behind-target look: less head,
+  // more body). Ours previously clamped at ±70° only → over-yawed the head there.
+  const headYaw = Math.sign(dYaw) * Math.min(Math.abs(dYaw), C.HEAD_YAW_LIMIT, Math.PI - Math.abs(dYaw));
+  const bodyYaw = wrapPi(bodyYawRad + dYaw - headYaw);
   const headPitch = Math.max(-C.HEAD_PITCH_LIMIT, Math.min(C.HEAD_PITCH_LIMIT, pitch));
   return { bodyYawRad: bodyYaw, headYawRad: headYaw, headPitchRad: headPitch };
 }
