@@ -694,10 +694,10 @@ export class Manipulator {
       if (app.page.editInteraction === 'lasso') {
         if (this._orbitWasEnabled === undefined) this._orbitWasEnabled = app.orbit.enabled;
         app.orbit.enabled = false;
-        app.container.style.cursor = lassoCursor;
+        el.style.cursor = lassoCursor;   // r20 L5: write on the 3D CANVAS (live @3880923 u.style.cursor) — container writes leaked cursor:none into the 2D plan view
       } else if (this._orbitWasEnabled !== undefined) {
         app.orbit.enabled = this._orbitWasEnabled;
-        app.container.style.cursor = '';
+        el.style.cursor = '';
         this._orbitWasEnabled = undefined;
         this._lasso = null;
         app.page.lassoRect = null;
@@ -738,7 +738,7 @@ export class Manipulator {
           app.hoverNormal = new THREE.Vector3(0, 1, 0);
           app.hoverId = null;
         } else { app.hoverPoint = null; app.hoverNormal = null; app.hoverId = null; }
-        app.container.style.cursor = pick?.type === 'object' ? 'none' : '';
+        el.style.cursor = pick?.type === 'object' ? 'none' : '';   // r20 L5: canvas-scoped (live: u.style.cursor=a&&!l?"none":"") — the plan canvas inherits from the container, so a container 'none' survived the 2D switch
       }
     });
     el.addEventListener('pointerup', e => {
