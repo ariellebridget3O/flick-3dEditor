@@ -191,8 +191,8 @@ export class App {
       } else {
         this.light = { ...this.light, clouds: next };
       }
-      this.env.setClouds(this.light);
-      this.env.applyDaylight(this.light);   // r18 T2/T3/T4 read stats synchronously — KEEP (L2a-1)
+      this.env.setClouds(this.effLight ? this.effLight() : this.light);
+      this.env.applyDaylight(this.effLight ? this.effLight() : this.light);   // r18 T2/T3/T4 read stats synchronously — KEEP (L2a-1); r20 review P2-4: effLight — no one-frame sun snap during Daylight playback
       this.markAutosave?.();
     };
     // round 13 (HDR): bloom chain (idle until hdr enables the finish path — no RTs, no cost)
@@ -221,7 +221,7 @@ export class App {
       this.markAutosave?.();
     };
     this.setIndoor = indoor => { this.light = { ...this.light, indoor: !!indoor }; this.markAutosave?.(); };
-    this.setAmbient = v => { this.light = { ...this.light, ambientLevel: Math.min(1, Math.max(0, v)) }; this.env.applyDaylight(this.light); this.markAutosave?.(); };
+    this.setAmbient = v => { this.light = { ...this.light, ambientLevel: Math.min(1, Math.max(0, v)) }; this.env.applyDaylight(this.effLight ? this.effLight() : this.light); this.markAutosave?.(); };   // r20 review P2-4
     this.recomputeGeoLight = () => this.setLightGeo({});
     // r20 L3: night lamps — ONE writer shared by the light popover and the Daylight
     // segment inspector (schema parity: false is stored, absence = on).
@@ -1112,16 +1112,29 @@ export class App {
   // elevation) and the knob never jumps at dragstart. The store value then stays the
   // live source for effLight until endLightGesture.
   beginLightGesture() {
+    // r20 review P2-3: the effLight ADOPTION is now GESTURE-LOCAL — the persisted scene
+    // light is stashed and restored by endLightGesture, so a no-move gesture leaves the
+    // scene byte-unchanged (the old snap mutated this.light silently). The adoption exists
+    // so a one-axis drag preserves the animated other axis through the capture.
     const ctx = this.lightSegment();
-    let eff = null;
-    if (ctx) {
-      this._lightLive = false;   // pre-live read (defensive: re-entrant gestures)
-      eff = this.effLight();
-    }
+    if (!ctx) return;
+    this._lightLive = false;   // pre-live read (defensive: re-entrant gestures)
+    const eff = this.effLight();
     this._lightLive = true;
-    if (ctx) this.light = { ...this.light, azimuthDeg: eff.azimuthDeg, elevationDeg: eff.elevationDeg };
+    this._lightAdoptSave = this.light;
+    this._lightAdopted = this.light = { ...this.light, azimuthDeg: eff.azimuthDeg, elevationDeg: eff.elevationDeg };
   }
-  endLightGesture() { this._lightLive = false; }
+  endLightGesture() {
+    // r20 review P2-3: restore the pre-adoption scene light ONLY when no user write landed
+    // (a no-move gesture is a byte-clean no-op). A real drag called setLightCustom which
+    // REPLACED this.light with a new object — the adoption object is then stale and the
+    // user's edit must survive.
+    if (this._lightAdoptSave) {
+      if (this.light === this._lightAdopted) this.light = this._lightAdoptSave;
+      this._lightAdoptSave = null; this._lightAdopted = null;
+    }
+    this._lightLive = false;
+  }
 
   // captureLightKey (the endEditGesture half, the captureFocusedCameraPose @5562520
   // pattern): write the CURRENT effective light as a key at performanceTimeS −
@@ -1329,7 +1342,7 @@ export class App {
   // pixel-oracle m1/m5 geometry, finish pipeline included); N>1 = per-tile scissor monitor
   // feeds; 0 = the empty grid + pager. Tile click = select + focus + back to the editor view
   // (@5882274). The wall hides in camera mode and RETURNS on exit (the live's ne @5873244).
-  camWallActive() { return this.page.stageView === 'cameras' && this.page.mode === 'edit'; }
+  camWallActive() { return this.page.stageView === 'cameras' && this.page.mode === 'edit' && this.page.viewportMode !== 'plan'; }   // r20 review P1-2: the plan canvas owns the viewport (no wall chrome over it)
 
   updateCamWall() {
     const active = this.camWallActive();
@@ -1494,26 +1507,14 @@ export class App {
     }
     const _tc = this.manipulator?.transform;
     if (_tc?.visible) { _tc.visible = false; _hidden.push(_tc); }
-    // 1. dark gap rects: per cell, the area around the record-aspect tile
+    // 1. full-canvas dark clear (r20 review P1-1: replaces the per-cell band math — the
+    // tile-less cells of a partial grid (4-5 cameras in a 3x2) now also clear, and the
+    // fractional-scissor 1px seam risk is gone)
     r.setClearColor(0x0a0d14, 1);
-    const cellW = size.x / (wall.tiles.length <= 2 ? Math.min(2, wall.tiles.length) : 3);
-    const cols = wall.tiles.length <= 2 ? Math.min(2, wall.tiles.length) : 3;
-    const rows = Math.ceil(wall.tiles.length / cols);
-    const cellH = size.y / rows;
-    for (const t of wall.tiles) {
-      const cx = Math.floor((t.x + t.w / 2) / cellW) * cellW, cy = Math.floor((t.y + t.h / 2) / cellH) * cellH;
-      const gaps = [
-        [cx, cy, cellW, t.y - cy],                                  // top band
-        [cx, t.y + t.h, cellW, cy + cellH - (t.y + t.h)],           // bottom band
-        [cx, t.y, t.x - cx, t.h],                                   // left band
-        [t.x + t.w, t.y, cx + cellW - (t.x + t.w), t.h],            // right band
-      ];
-      for (const [gx, gy, gw, gh] of gaps) {
-        if (gw <= 0 || gh <= 0) continue;
-        r.setScissor(gx, size.y - gy - gh, gw, gh);
-        r.clear(true, false, false);
-      }
-    }
+    r.setScissor(0, 0, size.x, size.y);
+    r.clear(true, false, false);
+    try {   // r20 review P1-3: exception-safe — every renderer state + the hidden set
+           // restore even if a tile render throws
     // 2. the feeds
     const recA = this._recordAspect();
     for (const t of wall.tiles) {
@@ -1528,11 +1529,13 @@ export class App {
       r.render(this.scene, cam);
       if (mesh) mesh.visible = wasVisible;
     }
+    } finally {
     r.setScissorTest(false);
     r.setViewport(0, 0, size.x, size.y);
     r.setClearColor(prevClear, 1);
     r.toneMapping = prevTone; r.toneMappingExposure = prevExp;
     for (const s of _hidden) s.visible = true;
+    }
   }
 
   // ================= camera marker evaluation (edit mode) =================

@@ -255,9 +255,11 @@ export function rigJointsAtTime(items, timeS) { // T2r — latest rig-transform 
 // ---------- r20 L3: light-transform keys (the Daylight lane) ----------
 // lightAtTime — the MKt analogue, PURE (oracle-testable): first-key hold before, last-key
 // hold after, per-field lerp with SHORTEST-ARC azimuth (wrapPi on the degree delta),
-// nightLights STEPS at the later key (a key that omits it doesn't control it — the
-// caller's base value shows through). null only for an empty key list (the segment is
-// an inert shell; effLight falls back to the scene light).
+// nightLights STEPS AT THE LATER KEY's OWN TIME (r20 review P2-1: a key's nightLights
+// takes effect when the playhead REACHES it — never retroactively across the interval;
+// a key that omits it doesn't control it — the caller's base value shows through). null
+// only for an empty key list (the segment is an inert shell; effLight falls back to the
+// scene light).
 export function lightAtTime(keys, tS) {
   if (!keys || keys.length === 0) return null;
   const held = k => ({ azimuthDeg: k.azimuthDeg, elevationDeg: k.elevationDeg, ...(k.nightLights !== undefined ? { nightLights: k.nightLights } : {}) });
@@ -272,7 +274,10 @@ export function lightAtTime(keys, tS) {
   return {
     azimuthDeg: ((a.azimuthDeg + azDelta * f) % 360 + 360) % 360,
     elevationDeg: a.elevationDeg + (b.elevationDeg - a.elevationDeg) * f,
-    ...(b.nightLights !== undefined ? { nightLights: b.nightLights } : {}),
+    // P2-1: the step happens at b's own tS (strict <) — mid-interval the PREVIOUS key's
+    // value (or the base, when a omits it) holds, exactly like a step function
+    ...(tS < b.tS && a.nightLights !== undefined ? { nightLights: a.nightLights } : {}),
+    ...(tS >= b.tS && b.nightLights !== undefined ? { nightLights: b.nightLights } : {}),
   };
 }
 
