@@ -411,6 +411,13 @@ button.small { padding: 2px 8px; font-size: 12px; }
 /* ---- take-range tool (live _1q91z module: drawSurface/box/grip/gripTab/ghost/snapGuide/label) ---- */
 .range-btn { padding: 2px 8px; }
 .range-btn.on { border-color: var(--accent2); color: var(--accent2); }
+
+/* r20 L3: the Daylight add-track entry (tl-header, after the take-range button) + the
+   sun lane's warm head tint (characterId 'sun' — no owning object, the one special case) */
+.daylight-btn { padding: 2px 8px; }
+.daylight-btn:hover { border-color: #d9a441; color: #e8b95d; }
+.lane.sun .lane-head { color: #e0b36a; }
+.lane.sun .blk.cat-obj { background: #4a3d24; border-color: #7a6432; }   /* warm dusk block */
 .tr-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
 .tr-draw { position: absolute; top: 0; bottom: 0; right: 0; pointer-events: auto; }
 .tr-box {

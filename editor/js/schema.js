@@ -3,6 +3,11 @@
 import { C } from './const.js';
 import { buildTangents, polylineOf, arcLength } from './curves.js';
 
+// r20 L3 (audit L3-3): the light-track bump is v12 → v13. The version constant moves HERE —
+// const.js (the old home, still 12) is off-limits this round; every writer (emptyScene,
+// currentSceneJSON) imports this one. loadScene checks raw numbers, never C.SCHEMA_V.
+export const SCHEMA_V = 13;   // round 20: light-transform track items (the Daylight lane)
+
 export const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
   : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = Math.random() * 16 | 0;
@@ -162,6 +167,7 @@ function validHeightCurve(c) { // Kzt — len>=2, u 0..1 strictly increasing w/ 
   }
   return true;
 }
+const LIGHT_KEY_DEDUPE_S = 0.01;   // r20 L3: tS-tolerance dedupe on load (audit L3-6)
 function normItems(t) { // b6r
   const ids = new Set(Object.keys(t.objects ?? {}));
   const tracks = (t.show?.tracks ?? []).map(tr => ({
@@ -171,6 +177,31 @@ function normItems(t) { // b6r
       if (out.pace !== undefined && !validPace(out.pace)) delete out.pace;
       if (out.heightCurve !== undefined && !validHeightCurve(out.heightCurve)) delete out.heightCurve;
       if (out.kind === 'cam-still' && out.subjectId && !ids.has(out.subjectId)) delete out.subjectId;
+      // r20 L3: light-transform keys — fUr/dHe imitation: az mod 360, el clamp −30..90,
+      // tS finite ≥ 0, nightLights boolean; sorted by tS, deduped within 0.01 s. Keys
+      // survive with ANY count (0 = inert shell, 1 = hold — "≥2 to animate" is an
+      // evaluation property, not a validity gate; lightAtTime holds the single key).
+      if (out.kind === 'light-transform') {
+        const keys = [];
+        for (const k of Array.isArray(out.keys) ? out.keys : []) {
+          if (!k || typeof k !== 'object' || !Number.isFinite(k.tS)
+            || !Number.isFinite(k.azimuthDeg) || !Number.isFinite(k.elevationDeg)) continue;
+          const key = {
+            tS: Math.max(0, k.tS),
+            azimuthDeg: ((k.azimuthDeg % 360) + 360) % 360,
+            elevationDeg: Math.min(C.ELEV_MAX, Math.max(C.ELEV_MIN, k.elevationDeg)),
+          };
+          if (typeof k.nightLights === 'boolean') key.nightLights = k.nightLights;
+          keys.push(key);
+        }
+        keys.sort((a, b) => a.tS - b.tS);
+        const dedup = [];   // later key of a ≤0.01 s cluster wins (the capture-replace order)
+        for (const k of keys) {
+          if (dedup.length && k.tS - dedup[dedup.length - 1].tS <= LIGHT_KEY_DEDUPE_S) dedup[dedup.length - 1] = k;
+          else dedup.push(k);
+        }
+        out.keys = dedup;
+      }
       return out;
     }),
   }));
@@ -258,7 +289,8 @@ export function loadScene(input, propCatalog = {}) {
   if (!t || typeof t !== 'object') return null;
   try {
     if (t.v === 11) return normalizeScene(v11to12(deepCopy(t)), propCatalog);   // bump in-memory v too (review P3-8)
-    if (t.v === 12) return normalizeScene(deepCopy(t), propCatalog);
+    if (t.v === 12) return normalizeScene(v12to13(deepCopy(t)), propCatalog);   // r20 L3: the light-track bump
+    if (t.v === 13) return normalizeScene(deepCopy(t), propCatalog);
     let n = deepCopy(t);
     if (n.v === 1) { if (!n.performances) return null; n = v1to2(n); }
     if (n.v === 2) n = { ...n, v: 3, show: v2to3(n.show) };
@@ -271,7 +303,8 @@ export function loadScene(input, propCatalog = {}) {
     if (n.v === 9) n = { ...n, v: 10 };
     if (n.v === 10) n = v10to11(n);
     if (n.v === 11) n = v11to12(n);
-    return n.v === 12 ? normalizeScene(n, propCatalog) : null;
+    if (n.v === 12) n = v12to13(n);
+    return n.v === 13 ? normalizeScene(n, propCatalog) : null;
   } catch (e) {
     console.error('Stage: scene migration failed, refusing the row', e);
     return null;
@@ -300,6 +333,13 @@ function v11to12(n) {
   return { ...n, v: 12 };
 }
 
+// round 20 (L3): v12→v13 — light-transform track items (the Daylight lane). No data
+// migration: the new kind is additive (normItems validates it; older loaders that lack
+// the kind simply never see one). Scenes without the track re-light exactly as before.
+function v12to13(n) {
+  return { ...n, v: 13 };
+}
+
 // ---- save: strip undefined + pack items (lje sequential bumping) ----
 export function saveScene(scene) {
   const out = JSON.parse(JSON.stringify(scene, (k, v) => v === undefined ? undefined : v));
@@ -316,5 +356,5 @@ export function packItems(items) { // lje: sort by startS, bump overlaps
 }
 
 export function emptyScene() {
-  return { v: C.SCHEMA_V, objects: {}, show: { name: 'Show', tracks: [] }, recordAspect: '16:9' };
+  return { v: SCHEMA_V, objects: {}, show: { name: 'Show', tracks: [] }, recordAspect: '16:9' };
 }

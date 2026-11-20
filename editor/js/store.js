@@ -434,6 +434,17 @@ export class ShowStore extends StoreBase {
     if (!tr) { tr = { id: uuid(), characterId, items: [] }; this.show.tracks.push(tr); this.changed(); }
     return tr;
   }
+  // r20 L3 (audit L3-5): the Daylight pseudo-track — characterId 'sun', NO objects-store
+  // row at all. The track is naturally inert in both eval passes (character pass skips
+  // missing owners, object pass `if (!obj) continue`), never enters objectManager sync,
+  // plan items, the hierarchy or pickers, and the r16 drag/dup family auto-refuses the
+  // unknown owner (duplicateSegment/dropSegmentOnObject → canDuplicateOnto(undefined)).
+  // Singleton: at most one 'sun' track ever (the lane ✕ may delete; re-add re-creates).
+  ensureLightTrack() {
+    let tr = this.show.tracks.find(t => t.characterId === 'sun');
+    if (!tr) { tr = { id: uuid(), characterId: 'sun', items: [] }; this.show.tracks.push(tr); this.changed(); }
+    return tr;
+  }
   removeTrack(trackId) {
     this.show.tracks = this.show.tracks.filter(t => t.id !== trackId);
     this.changed();
@@ -843,6 +854,20 @@ export class ShowStore extends StoreBase {
   addRigKeyframe(trackId, itemId, key) {         // rig keys merge joints at the same tS
     this._commit(trackId, this._replaceKeyAt(itemId, key, ['rig-transform'], { mergeJoints: true }));
   }
+  // r20 L3: light-transform keys ({tS, azimuthDeg, elevationDeg, nightLights?}) — the
+  // captureFocusedCameraPose pattern: replace-within-tolerance (ym), sorted, duration
+  // auto-extends to the last key (all inherited from _replaceKeyAt). Validation here is
+  // the single writer's gate (fUr/dHe): az mod 360, el clamp −30..90, nightLights boolean
+  // passthrough (omitted = the key doesn't control it — effLight keeps the scene value).
+  addLightKeyframe(trackId, itemId, key) {
+    const k = {
+      tS: key.tS,
+      azimuthDeg: ((key.azimuthDeg % 360) + 360) % 360,
+      elevationDeg: Math.min(C.ELEV_MAX, Math.max(C.ELEV_MIN, key.elevationDeg)),
+    };
+    if (typeof key.nightLights === 'boolean') k.nightLights = key.nightLights;
+    this._commit(trackId, this._replaceKeyAt(itemId, k, ['light-transform']));
+  }
   // addSampledRigKeyframe (verbatim @5536122): sample the rig-transform eval at
   // item.startS + tS (the LATEST rig item at that time — T2r semantics) and merge the
   // captured `extra` joints over it, so a partial capture keeps the other joints' state.
@@ -863,10 +888,12 @@ export class ShowStore extends StoreBase {
   removeTransformKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['transform'])); }
   removeCameraKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['cam-transform'])); }
   removeRigKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['rig-transform'])); }
+  removeLightKeyframe(trackId, itemId, tS) { this._commit(trackId, this._removeKeyAt(itemId, tS, ['light-transform'])); }   // r20 L3
   // xbe — move the key at fromTS to toTS
   moveTransformKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['transform']); }
   moveCameraKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['cam-transform']); }
   moveRigKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['rig-transform']); }
+  moveLightKeyframe(trackId, itemId, fromTS, toTS) { this._moveKeyAt(trackId, itemId, fromTS, toTS, ['light-transform']); }   // r20 L3
   _moveKeyAt(trackId, itemId, fromTS, toTS, kinds) {
     this._commit(trackId, t => {
       const i = t.items.findIndex(x => x.id === itemId);
@@ -882,6 +909,7 @@ export class ShowStore extends StoreBase {
     if (n?.kind === 'rig-transform') this.removeRigKeyframe(e.trackId, e.itemId, e.tS);
     else if (n?.kind === 'transform') this.removeTransformKeyframe(e.trackId, e.itemId, e.tS);
     else if (n?.kind === 'cam-transform') this.removeCameraKeyframe(e.trackId, e.itemId, e.tS);
+    else if (n?.kind === 'light-transform') this.removeLightKeyframe(e.trackId, e.itemId, e.tS);   // r20 L3
   }
 
   // selectTrack @5538187 — a lane-head click selects the track and clears the segment selection

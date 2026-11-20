@@ -9,11 +9,11 @@ import { createEnvironment, createFogNearFar, createShadowFit, normalizeLight, g
 import { ObjectManager } from './objects.js';
 import { SelectionTracker, HoverDisc } from './selection.js';
 import { ObjectStore, ShowStore, PageStore } from './store.js';
-import { loadScene, saveScene, itemDuration } from './schema.js';
+import { loadScene, saveScene, itemDuration, SCHEMA_V } from './schema.js';
 import {
   showLayout, evalCharacterTrack, yawOf, gazeSplit, approachAngle, stepClamp,
   evalCameraObject, rigJointsAtTime, evalObjectItems, fovFromFocal, itemsOfTrack, isPersonKind, itemAtTime,
-  pathStateAt, pathRotation, keyedHeadRotation,
+  pathStateAt, pathRotation, keyedHeadRotation, lightAtTime, lightKeysAt,
 } from './tracks.js';
 import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation, ezHeadRotation, isMajorJoint, sampleBonePose, diffRigPose } from './figures.js';
 const _hoeV = new THREE.Vector3(), _hoeE = new THREE.Euler(), _hoeQ = new THREE.Quaternion(), _hoePQ = new THREE.Quaternion(); // hoe scratch (verbatim units, SKILL #46)
@@ -223,6 +223,15 @@ export class App {
     this.setIndoor = indoor => { this.light = { ...this.light, indoor: !!indoor }; this.markAutosave?.(); };
     this.setAmbient = v => { this.light = { ...this.light, ambientLevel: Math.min(1, Math.max(0, v)) }; this.env.applyDaylight(this.light); this.markAutosave?.(); };
     this.recomputeGeoLight = () => this.setLightGeo({});
+    // r20 L3: night lamps — ONE writer shared by the light popover and the Daylight
+    // segment inspector (schema parity: false is stored, absence = on).
+    this.setNightLights = on => {
+      const l = { ...this.light };
+      if (on) delete l.nightLights; else l.nightLights = false;
+      this.light = l;
+      this.env.applyDaylight(this.light);
+      this.markAutosave?.();
+    };
 
     // ---- orbit controls ----
     this.orbit = new OrbitControls(this.camera, this.renderer.domElement);
@@ -239,7 +248,7 @@ export class App {
     this.shadowFit = createShadowFit({
       sun: this.env.sun, applyDaylight: this.env.applyDaylight,
       keyDirection: this.env.keyDirection,   // r19 L2: blended hard-light dir (moonlight sync)
-      getLight: () => this.light,
+      getLight: () => this.effLight(),        // r20 L3: fit() re-applies daylight memo-gated — the EFFECTIVE light (audit L3-1)
       bounds: () => this.fogNearFar.bounds(),
       roots: () => this.objectManager ? this.objectManager.roots() : [],
       meshById: this.meshById,
@@ -316,6 +325,7 @@ export class App {
     this._shakeGroundPos = null;              // j: last editor-camera position (ground-speed delta)
     this._zoom = null; this._zoomKeys = new Set(); this._zoomFrame = 0; this._zoomLastMs = 0;  // eIr zoom state
     this._restEval = false;           // live performanceSeekS model: seek-posed rest keeps evaluating (pinned)
+    this._lightLive = false;          // r20 L3: a light-edit gesture is active — effLight defers to this.light
     this._posedCams = new Set();      // live mqr Q(): camera ids posed by a previous frame (v set)
     this._restSeekPending = false;    // a seek was observed at rest — pose it even when t is unchanged
     this._seenSeekEpoch = 0;          // last PageStore.seekEpoch consumed
@@ -571,7 +581,7 @@ export class App {
   }
   currentSceneJSON() {
     return saveScene({
-      v: C.SCHEMA_V,
+      v: SCHEMA_V,          // r20 L3: v13 (schema.js owns the constant — audit L3-3)
       objects: this.objects.all(),
       show: this.show.show,
       recordAspect: this.page.recordAspect,
@@ -1059,6 +1069,91 @@ export class App {
     const tS = this.page.playheadS - item.startS;
     if (tS < 0 || tS > itemDuration(item)) return;
     this.show.addSampledRigKeyframe(seg.trackId, seg.itemId, tS, offsets);
+  }
+
+  // ================= r20 L3: the Daylight track — effLight pipeline (audit L3-1/L3-2, P0) =================
+  // effLight: the light the stage RENDERS with. The light-transform track NEVER writes
+  // this.light (the persisted scene light — currentSceneJSON serializes it); the frame
+  // loop's applyDaylight, the shadow fit and the light popover all read THIS evaluated
+  // value instead. Semantics (audit L3-2): the track value at the playhead applies while
+  // the show is being evaluated there — playing / scrubbing / rest-eval after a seek —
+  // exactly the gates evaluateAt uses for meshes, so the sun moves like any performer;
+  // steady rest and stop/load revert to the scene light automatically (nothing to reset —
+  // this.light was never touched by playback). A live light-edit gesture wins over the
+  // track (the isMeshDragged analogy — the pointer never fights the keyframes). Track
+  // evaluation is a PURE read: no markAutosave, no applyDaylight of its own (the frame
+  // loop is the single apply path — audit checklist J).
+  effLight() {
+    if (!this._lightLive) {
+      if (this.page.playing || this.manipulator?.scrubbing || this._restEval) {
+        const span = lightKeysAt(this.layout(), this.page.playheadS);
+        if (span) {
+          const l = lightAtTime(span.keys, this.page.playheadS - span.startS);
+          if (l) return { ...this.light, ...l };
+        }
+      }
+    }
+    return this.light;
+  }
+
+  // The selected light-transform segment, if any (the capture context).
+  lightSegment() {
+    const seg = this.page.selectedSegment;
+    if (!seg) return null;
+    const track = this.show.show.tracks.find(t => t.id === seg.trackId);
+    const item = track?.items.find(x => x.id === seg.itemId);
+    return item?.kind === 'light-transform' ? { seg, track, item } : null;
+  }
+
+  // beginLightGesture (the dragStart half): while a light-transform segment is selected,
+  // the store light first ADOPTS the effective value — read PRE-live (the track value at
+  // the playhead under effLight's own rest gate, i.e. exactly what the controls display)
+  // so a capture-drag preserves the animated axes (dragging the disc keeps the track's
+  // elevation) and the knob never jumps at dragstart. The store value then stays the
+  // live source for effLight until endLightGesture.
+  beginLightGesture() {
+    const ctx = this.lightSegment();
+    let eff = null;
+    if (ctx) {
+      this._lightLive = false;   // pre-live read (defensive: re-entrant gestures)
+      eff = this.effLight();
+    }
+    this._lightLive = true;
+    if (ctx) this.light = { ...this.light, azimuthDeg: eff.azimuthDeg, elevationDeg: eff.elevationDeg };
+  }
+  endLightGesture() { this._lightLive = false; }
+
+  // captureLightKey (the endEditGesture half, the captureFocusedCameraPose @5562520
+  // pattern): write the CURRENT effective light as a key at performanceTimeS −
+  // item.startS into the SELECTED light-transform segment — ONE key per gesture, tS
+  // clamped to [0, durationS], replace-within-tolerance dedupe (ym, inside addLightKeyframe).
+  // No-op (false) when no light-transform segment is selected. Undo rides the caller's
+  // gesture bracket (the key write's _commit nests inside it — audit L3-8).
+  captureLightKey() {
+    const ctx = this.lightSegment();
+    if (!ctx) return false;
+    const tS = Math.min(itemDuration(ctx.item), Math.max(0, this.page.playheadS - ctx.item.startS));
+    const l = this.effLight();
+    this.show.addLightKeyframe(ctx.seg.trackId, ctx.seg.itemId, {
+      tS, azimuthDeg: l.azimuthDeg, elevationDeg: l.elevationDeg,
+      nightLights: l.nightLights !== false,   // explicit on the captured key (steps at it)
+    });
+    return true;
+  }
+
+  // The Daylight lane entry (audit L3-7): the singleton 'sun' track (store) plus a first
+  // light-transform segment when the lane is empty — the lane "+" can't add one (the
+  // actions palette resolves payloads through the OWNING object, and 'sun' deliberately
+  // has none). Duration 4 (Jae) like every keyed kind; keys arrive via capture/◆.
+  ensureLightTrack() {
+    const tr = this.show.ensureLightTrack();
+    let item = tr.items.find(x => x.kind === 'light-transform');
+    if (!item) {
+      item = this.show.addItem('sun', { kind: 'light-transform', durationS: 4, keys: [] });
+      this.page.selectedSegment = { trackId: tr.id, itemId: item.id };
+      this.page.changed();
+    }
+    return tr;
   }
 
   // ---- xqr joint-sphere overlay (verbatim @5731200) ----
@@ -1556,7 +1651,10 @@ export class App {
     // 4. nav/controls
     this._navTick(dt);
     // 5. env
-    this.env.applyDaylight(this.light);
+    // r20 L3 (audit L3-1, P0): the frame loop applies the EFFECTIVE light — the Daylight
+    // track's value at the playhead while the show is evaluated there, the scene light
+    // otherwise. This stays the SINGLE apply path (the L3 hook itself never applies).
+    this.env.applyDaylight(this.effLight());
     // 6. camera markers (UGr.v-equivalent: page focal + record aspect + target aim)
     this.updateCameraMarkers();
     // 6a. camera mesh poser (live mqr Q @5720949, tickPreview — runs after the marker tick
@@ -1655,7 +1753,7 @@ export class App {
     const finishOn = this.finishOn();
     // r18 (P0-2): the env's HDR sky lift is gated on hdr && finishOn — sync on every frame
     // (finishPref changes at boot, setHdr, and the auto-measure; one memoized recompute).
-    if (this.env.getFinishOn() !== finishOn) { this.env.setFinishOn(finishOn); this.env.applyDaylight(this.light); }
+    if (this.env.getFinishOn() !== finishOn) { this.env.setFinishOn(finishOn); this.env.applyDaylight(this.effLight()); }
     // round 13 (HDR): plain fallback — three injects the tone map ONLY when drawing to the
     // canvas (vendor three.module.js WebGLPrograms.getParameters: toneMapping applies when
     // `currentRenderTarget === null`), so while hdr is on and finish is off the renderer

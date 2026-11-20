@@ -252,6 +252,46 @@ export function rigJointsAtTime(items, timeS) { // T2r — latest rig-transform 
   return joints;
 }
 
+// ---------- r20 L3: light-transform keys (the Daylight lane) ----------
+// lightAtTime — the MKt analogue, PURE (oracle-testable): first-key hold before, last-key
+// hold after, per-field lerp with SHORTEST-ARC azimuth (wrapPi on the degree delta),
+// nightLights STEPS at the later key (a key that omits it doesn't control it — the
+// caller's base value shows through). null only for an empty key list (the segment is
+// an inert shell; effLight falls back to the scene light).
+export function lightAtTime(keys, tS) {
+  if (!keys || keys.length === 0) return null;
+  const held = k => ({ azimuthDeg: k.azimuthDeg, elevationDeg: k.elevationDeg, ...(k.nightLights !== undefined ? { nightLights: k.nightLights } : {}) });
+  const first = keys[0];
+  if (keys.length === 1 || tS <= first.tS) return held(first);
+  const last = keys[keys.length - 1];
+  if (tS >= last.tS) return held(last);
+  let i = keys.findIndex(k => k.tS >= tS); if (i <= 0) i = 1;
+  const a = keys[i - 1], b = keys[i];
+  const f = (b.tS - a.tS) <= 0 ? 0 : (tS - a.tS) / (b.tS - a.tS);
+  const azDelta = wrapPi((b.azimuthDeg - a.azimuthDeg) * Math.PI / 180) * 180 / Math.PI;   // shortest arc
+  return {
+    azimuthDeg: ((a.azimuthDeg + azDelta * f) % 360 + 360) % 360,
+    elevationDeg: a.elevationDeg + (b.elevationDeg - a.elevationDeg) * f,
+    ...(b.nightLights !== undefined ? { nightLights: b.nightLights } : {}),
+  };
+}
+
+// lightKeysAt — the layout lookup for the 'sun' track: the light-transform item covering
+// / last-started at timeS (the itemAtTime semantics — persists after the item's end, which
+// IS the last-key hold). Null when the track/item/keys don't exist (before the first item
+// or an empty shell) — effLight then applies the scene light.
+export function lightKeysAt(layout, timeS) {
+  const tr = (layout?.tracks ?? []).find(t => t.characterId === 'sun');
+  if (!tr) return null;
+  let n = null;
+  for (const u of tr.items) {
+    if (timeS < u.startS) break;
+    if (u.item.kind === 'light-transform') n = u;
+    if (timeS < u.endS) break;
+  }
+  return n && (n.item.keys?.length ?? 0) > 0 ? { keys: n.item.keys, startS: n.startS } : null;
+}
+
 // ---------- fov (Z_) ----------
 export const sensorV = aspect => C.SENSOR_W / Math.max(aspect, 1); // XCe
 export const fovFromFocal = (focalLengthMm, aspect = 16 / 9) =>
@@ -544,7 +584,7 @@ export function evalObjectItems(track, timeS, foldMode, resolvers, base) { // Q 
 // ---------- item display names ----------
 export const ITEM_LABELS = {
   path: 'Walk', play: 'Play', clip: 'Clip', transform: 'Transform', 'rig-transform': 'Rig Transform',
-  rotate: 'Rotate', revolve: 'Revolve', scale: 'Scale',
+  rotate: 'Rotate', revolve: 'Revolve', scale: 'Scale', 'light-transform': 'Daylight',
   'cam-still': 'Still', 'cam-move': 'Move', 'cam-path': 'Path', 'cam-follow': 'Follow',
   'cam-transform': 'Transform', 'cam-manual': 'Manual',
 };

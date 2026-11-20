@@ -477,7 +477,11 @@ function buildLightPopover(app) {
   };
 
   function render() {
-    const l = app.light;
+    // r20 L3: the disc/rail/readout mirror the EFFECTIVE light — the Daylight track's
+    // value at the playhead while one is selected/evaluated (required for capture: the
+    // controls must show what a key at this playhead would hold); the scene light
+    // otherwise. Scene-level fields (geo/weather/clouds/hdr) ride the merged object.
+    const l = app.effLight();
     const now = performance.now();
     const yaw = adoptYaw(now);
     const night = l.elevationDeg <= MOON_EL;
@@ -585,13 +589,38 @@ function buildLightPopover(app) {
 
   const commit = fn => { app.show.beginEditGesture(); try { fn(); } finally { app.show.endEditGesture(); } };
 
+  // r20 L3 (audit L3-6): the az/el capture wrapper — disc/rail/presets/arrow keys land
+  // ONE key per gesture at performanceTimeS − item.startS inside the SELECTED
+  // light-transform segment (the transform-kind commit pattern; tS clamp + ym dedupe
+  // live in app.captureLightKey). beginLightGesture snaps the store light to the
+  // effective value first so a drag preserves the animated other axis. With no
+  // light-transform segment selected the capture is a no-op — the plain scene edit.
+  const commitLight = fn => {
+    app.beginLightGesture?.();
+    app.show.beginEditGesture();
+    try { fn(); } finally {
+      app.captureLightKey?.();
+      app.endLightGesture?.();
+      app.show.endEditGesture();
+    }
+    render();
+  };
+
   // ---- r20 L2b: direction disc + height rail drags → custom mode ----
   const dragStart = (which, e) => {
     dragging = which;
+    app.beginLightGesture?.();   // r20 L3: live-pose + capture base (see commitLight)
     app.show.beginEditGesture();
     try { (which === 'dir' ? disc : rail).setPointerCapture(e.pointerId); } catch (_) {}
   };
-  const dragEnd = () => { if (dragging) { dragging = null; app.show.endEditGesture(); } };
+  const dragEnd = () => {
+    if (!dragging) return;
+    dragging = null;
+    app.captureLightKey?.();     // r20 L3: ONE key per drag, while the store light is still live
+    app.endLightGesture?.();
+    app.show.endEditGesture();
+    render();
+  };
 
   disc.addEventListener('pointerdown', e => { if (e.button === 0) dragStart('dir', e); });
   disc.addEventListener('pointermove', e => {
@@ -622,23 +651,20 @@ function buildLightPopover(app) {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
     const d = e.key === 'ArrowLeft' ? -10 : 10;
-    commit(() => app.setLightCustom(app.light.azimuthDeg + d, app.light.elevationDeg));
-    render();
+    commitLight(() => app.setLightCustom(app.light.azimuthDeg + d, app.light.elevationDeg));
   });
   rail.addEventListener('keydown', e => {
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
     e.preventDefault();
     const d = e.key === 'ArrowUp' ? 5 : -5;
-    commit(() => app.setLightCustom(app.light.azimuthDeg, app.light.elevationDeg + d));
-    render();
+    commitLight(() => app.setLightCustom(app.light.azimuthDeg, app.light.elevationDeg + d));
   });
 
   // ---- presets: ELEVATION ONLY (az preserved — audit P1-13) → custom mode ----
   el.querySelectorAll('.presets button').forEach(b => b.onclick = () => {
     const p = C.LIGHT_PRESETS[+b.dataset.i];
-    commit(() => app.setLightCustom(app.light.azimuthDeg, p.elevationDeg));
+    commitLight(() => app.setLightCustom(app.light.azimuthDeg, p.elevationDeg));
     dirKnob.classList.add('gliding'); railHandle.classList.add('gliding');   // CSS glide; cleared on transitionend/pointerdown
-    render();
   });
   for (const n of [dirKnob, railHandle]) n.addEventListener('transitionend', () => n.classList.remove('gliding'));
 
@@ -720,11 +746,7 @@ function buildLightPopover(app) {
   amb.addEventListener('pointerdown', () => app.show.beginEditGesture());
   amb.addEventListener('pointerup', () => app.show.endEditGesture());
   amb.addEventListener('input', () => { app.setAmbient(+amb.value); $id('lpAmbVal').textContent = (+amb.value).toFixed(2); });
-  $id('lpNight').onchange = () => {
-    app.light = { ...app.light, nightLights: $id('lpNight').checked ? undefined : false };
-    if (!$id('lpNight').checked) app.light.nightLights = false; else delete app.light.nightLights;
-    app.env.applyDaylight(app.light); app.markAutosave?.(); render();
-  };
+  $id('lpNight').onchange = () => { app.setNightLights?.($id('lpNight').checked); render(); };   // scene-level (r20 L3: the track-side control is the segment inspector's checkbox)
 
   document.addEventListener('click', e => {
     if (!el.contains(e.target) && e.target !== document.getElementById('btnLight')) el.classList.remove('open');
@@ -1044,10 +1066,24 @@ function renderActionSection(app, body) {
       <label class="row">Speed °/s<input type="number" data-actf="deg" step="15" value="${it.degPerS ?? 60}"></label>`;
   }
   if (it.kind === 'scale') html += `<label class="row">Factor<input type="number" data-actf="factor" min="0.1" step="0.1" value="${it.factor ?? 2}"></label>`;
-  if (it.kind === 'transform' || it.kind === 'cam-transform' || it.kind === 'rig-transform') {
+  // r20 L3: the Daylight segment — Azimuth°/Elevation°/Night lamps at THE PLAYHEAD (the
+  // ev/vh row vocabulary: step 5 / 0..360 and step 1 / −30..90). Edits run the capture
+  // path (ONE key per edit at performanceTimeS − item.startS, the popover-equivalent of
+  // the transform kinds' "drag the object" capture); the ◀ ◆ ▶ cluster navigates keys.
+  if (it.kind === 'light-transform') {
+    const eff = app.effLight();
+    html += `<div class="hint">Sun at the playhead — these fields, the presets and the sun popover capture a key here</div>
+      <label class="row">Azimuth°<input type="number" data-actf="laz" step="5" min="0" max="360" value="${fmt(eff.azimuthDeg)}"></label>
+      <label class="row">Elevation°<input type="number" data-actf="lel" step="1" min="-30" max="90" value="${fmt(eff.elevationDeg)}"></label>
+      <label class="row">Night lamps<input type="checkbox" data-actf="lnight"${eff.nightLights !== false ? ' checked' : ''}></label>`;
+  }
+  if (it.kind === 'transform' || it.kind === 'cam-transform' || it.kind === 'rig-transform' || it.kind === 'light-transform') {
     const keys = it.keys ?? [];
     const selectedTS = seg.tS;
-    html += `<div class="hint">${keys.length} keys · drag the object while this action is selected to capture a key at the playhead</div>
+    const hint = it.kind === 'light-transform'
+      ? `${keys.length} keys · drag the sun controls (or edit the fields above) to capture a key at the playhead`
+      : `${keys.length} keys · drag the object while this action is selected to capture a key at the playhead`;
+    html += `<div class="hint">${hint}</div>
       <div class="kf-cluster">
         <button data-actf="kprev" title="Previous key">◀</button>
         <button data-actf="ktoggle" title="Add or remove a key at the playhead">◆ Key</button>
@@ -1066,6 +1102,18 @@ function renderActionSection(app, body) {
   body.insertAdjacentHTML('beforeend', html);
 
   const root = document.getElementById('actionSection');
+  // r20 L3: the Daylight fields' capture bracket — identical shape to the popover's
+  // commitLight (snap → write → capture → end), localized to the Action section.
+  const lightKeyOp = fn => {
+    app.beginLightGesture?.();
+    app.show.beginEditGesture();
+    try { fn(); } finally {
+      app.captureLightKey?.();
+      app.endLightGesture?.();
+      app.show.endEditGesture();
+    }
+    refreshTimeline(app); refreshInspector(app);
+  };
   root.querySelectorAll('[data-actf]').forEach(el => {
     const f = el.dataset.actf;
     if (f === 'gait') el.onchange = e => patch({ gait: e.target.value });
@@ -1106,6 +1154,28 @@ function renderActionSection(app, body) {
     if (f === 'axis') el.onchange = e => patch({ axis: e.target.value });
     if (f === 'deg') el.onchange = e => { const v = +e.target.value; if (!Number.isNaN(v)) patch({ degPerS: v }); };
     if (f === 'factor') el.onchange = e => { const v = +e.target.value; if (!Number.isNaN(v) && v > 0) patch({ factor: v }); };
+    // r20 L3: the Daylight fields — the capture path (same bracket as the popover's
+    // commitLight: snap → write → capture at the playhead → end). beginLightGesture's
+    // snap makes app.light carry the track's axes, so each field preserves the other.
+    if (f === 'laz') el.onchange = e => {
+      const v = clampNum(+e.target.value || 0, 0, 360);
+      lightKeyOp(() => app.setLightCustom(v, app.light.elevationDeg));
+    };
+    if (f === 'lel') el.onchange = e => {
+      const v = clampNum(+e.target.value || 0, C.ELEV_MIN, C.ELEV_MAX);
+      lightKeyOp(() => app.setLightCustom(app.light.azimuthDeg, v));
+    };
+    if (f === 'lnight') el.onchange = e => {
+      // scene value first (the popover mirrors it), then the captured key carries it
+      app.show.beginEditGesture();
+      try {
+        app.setNightLights?.(e.target.checked);
+        app.beginLightGesture?.();
+        app.captureLightKey?.();
+        app.endLightGesture?.();
+      } finally { app.show.endEditGesture(); }
+      refreshTimeline(app); refreshInspector(app);
+    };
     if (f === 'remove') el.onclick = () => { app.show.removeItem(seg.trackId, seg.itemId); app.page.selectedSegment = null; refreshTimeline(app); refreshInspector(app); };
     if (f === 'kprev') el.onclick = () => {
       const keys = (it.keys ?? []).map(k => k.tS).sort((a, b) => a - b);
@@ -1125,8 +1195,13 @@ function renderActionSection(app, body) {
       if (existing) {  // remove at playhead
         if (it.kind === 'rig-transform') app.show.removeRigKeyframe(seg.trackId, seg.itemId, existing.tS);
         else if (it.kind === 'cam-transform') app.show.removeCameraKeyframe(seg.trackId, seg.itemId, existing.tS);
+        else if (it.kind === 'light-transform') app.show.removeLightKeyframe(seg.trackId, seg.itemId, existing.tS);   // r20 L3
         else app.show.removeTransformKeyframe(seg.trackId, seg.itemId, existing.tS);
         if (seg.tS !== undefined && Math.abs(seg.tS - existing.tS) <= KEY_EPS) app.page.selectedSegment = { trackId: seg.trackId, itemId: seg.itemId };
+      } else if (it.kind === 'light-transform') {   // r20 L3: capture the effective sun
+        app.beginLightGesture?.();
+        app.show.beginEditGesture();
+        try { app.captureLightKey?.(); } finally { app.endLightGesture?.(); app.show.endEditGesture(); }
       } else {         // capture at playhead (captureFocused*Pose)
         const char = tr.characterId;
         const o = app.objects.get(char);
@@ -1159,6 +1234,7 @@ function renderActionSection(app, body) {
     const tS = +b.dataset.ts;
     if (it.kind === 'rig-transform') app.show.removeRigKeyframe(seg.trackId, seg.itemId, tS);
     else if (it.kind === 'cam-transform') app.show.removeCameraKeyframe(seg.trackId, seg.itemId, tS);
+    else if (it.kind === 'light-transform') app.show.removeLightKeyframe(seg.trackId, seg.itemId, tS);   // r20 L3
     else app.show.removeTransformKeyframe(seg.trackId, seg.itemId, tS);
     const sel2 = app.page.selectedSegment;
     if (sel2?.tS !== undefined && Math.abs(sel2.tS - tS) <= KEY_EPS) app.page.selectedSegment = { trackId: seg.trackId, itemId: seg.itemId };
@@ -1273,9 +1349,9 @@ const KF_DRAG_THRESH_PX = 3;   // kCr
 const KF_MARGIN_PX = 7;        // f2e
 const KEY_EPS = 0.001;         // ym
 
-const OBJECT_ITEM_KINDS = new Set(['rotate', 'revolve', 'scale', 'transform', 'rig-transform']); // $2r (aN)
+const OBJECT_ITEM_KINDS = new Set(['rotate', 'revolve', 'scale', 'transform', 'rig-transform', 'light-transform']); // $2r (aN) + r20 L3 (cat-obj styling + trimmable)
 const CAMERA_ITEM_KINDS = new Set(['cam-still', 'cam-move', 'cam-path', 'cam-follow', 'cam-transform', 'cam-manual']); // V2r (Fp)
-const KF_KINDS = new Set(['transform', 'rig-transform', 'cam-transform']); // Zzt
+const KF_KINDS = new Set(['transform', 'rig-transform', 'cam-transform', 'light-transform']); // Zzt + r20 L3 (generic diamonds on it.keys)
 
 function buildTimeline(app) {
   app._tl = { pps: 60, magnet: true, interaction: null, rangeTool: createRangeTool() };
@@ -1341,6 +1417,22 @@ function buildTimeline(app) {
   };
   magBtn.after(rangeBtn);
 
+  // r20 L3 (audit L3-7): the Daylight add-track entry. The +Track menu lists OWNING
+  // objects only, and the Daylight lane deliberately has none (L3-5) — this header
+  // entry is the only way in. app.ensureLightTrack: singleton 'sun' track + a first
+  // light-transform segment when the lane is empty (re-add after a lane ✕ re-creates).
+  const dayBtn = document.createElement('button');
+  dayBtn.id = 'btnDaylight';
+  dayBtn.className = 'ghost small daylight-btn';
+  dayBtn.textContent = '☀ Daylight';
+  dayBtn.title = 'Add the Daylight lane — animate the sun (azimuth / elevation) on the timeline';
+  dayBtn.onclick = () => {
+    app.ensureLightTrack();
+    refreshTimeline(app);
+    refreshInspector(app);
+  };
+  rangeBtn.after(dayBtn);
+
   // round 6 A2: live rCr Add-track dropdown (search + every object WITHOUT a track —
   // all animatable kinds incl. groups; the old silent first-candidate add felt like a no-op)
   $('btnAddTrack').onclick = () => {
@@ -1382,6 +1474,7 @@ function blockLabel(it, isWalker) {
     case 'scale': return (it.factor ?? 1) >= 1 ? 'Scale up' : 'Scale down';
     case 'transform': return 'Transform';
     case 'rig-transform': return 'Pose';
+    case 'light-transform': return 'Daylight';   // r20 L3
     case 'cam-still': return 'Camera still';
     case 'cam-move': return it.move ?? 'move';
     case 'cam-path': return 'Camera path';
@@ -1446,15 +1539,20 @@ export function refreshTimeline(app) {
   lanes.style.width = `${W + gutter}px`;   // match the ruler (last-tick room)
   lanes.innerHTML = layout.tracks.map(tr => {
     const obj = app.objects.get(tr.characterId);
-    const name = obj ? (obj.name ?? obj.kind) : '?';
+    // r20 L3 (audit L3-5): the Daylight pseudo-track has NO objects row — the ONE
+    // lane-head special case; every other lane reads the owning object's name.
+    const isSun = tr.characterId === 'sun';
+    const name = isSun ? '☀ Daylight' : (obj ? (obj.name ?? obj.kind) : '?');
     const isWalker = isPersonKindO(obj?.kind);
     const trackSel = app.page.selectedTrack?.trackId === tr.trackId;
     const blocks = tr.items.map(u => blockHTML(app, u, tr, pps, isWalker)).join('');
     const addLeft = maxEnd(tr.items.map(u => u.item)) * pps;
-    return `<div class="lane ${obj?.kind === 'camera' ? 'cam' : ''}" data-track="${tr.trackId}">
+    // the sun lane carries no ＋ (the actions palette resolves payloads through the
+    // OWNING object — 'sun' deliberately has none; keys arrive via capture/◆ instead)
+    return `<div class="lane${obj?.kind === 'camera' ? ' cam' : ''}${isSun ? ' sun' : ''}" data-track="${tr.trackId}">
       <div class="lane-head${trackSel ? ' track-sel' : ''}">${escAttr(name)}<button class="lane-del" data-track="${tr.trackId}">✕</button></div>
       <div class="lane-body" data-track-id="${tr.trackId}" data-char="${tr.characterId}">${blocks}
-        <button class="lane-add" data-track="${tr.trackId}" data-char="${tr.characterId}" style="left:${addLeft}px">＋</button>
+        ${isSun ? '' : `<button class="lane-add" data-track="${tr.trackId}" data-char="${tr.characterId}" style="left:${addLeft}px">＋</button>`}
       </div></div>`;
   }).join('') || '<div class="hint">No tracks — select a Human/Camera and add actions from Properties</div>';
 
@@ -1896,6 +1994,7 @@ function wireBlock(app, blockEl, pps, magnet, layout, lanes) {
         if (moved) {
           if (it.kind === 'cam-transform') app.show.moveCameraKeyframe(trackId, itemId, fromTS, previewTS);
           else if (it.kind === 'rig-transform') app.show.moveRigKeyframe(trackId, itemId, fromTS, previewTS);
+          else if (it.kind === 'light-transform') app.show.moveLightKeyframe(trackId, itemId, fromTS, previewTS);   // r20 L3
           else app.show.moveTransformKeyframe(trackId, itemId, fromTS, previewTS);
         } else {
           app.page.selectedSegment = { trackId, itemId, tS: fromTS };   // selectKeyframe
