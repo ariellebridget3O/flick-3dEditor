@@ -42,7 +42,7 @@ import ab
 
 S = "r20wl"
 BASE = "http://localhost:3000/editor/index.html"
-URL = BASE + "?scene=samples/synthetic_tracks.json&noAutosave=1&v=r20wlE2E"
+URL = BASE + "?scene=samples/synthetic_tracks.json&noAutosave=1&v=r20wlE2E2"
 TMP = "/tmp/r20wl"
 os.makedirs(TMP, exist_ok=True)
 PASS, FAIL = [], []
