@@ -945,6 +945,24 @@ function renderObjectSection(app, body) {
 }
 
 // ---------- Action section (live fVr — the ONLY clip editor; renders INSIDE the Properties panel) ----------
+// KKt @5482208 — subject options for the Look-at combobox: every object EXCEPT cameras,
+// spotlights and targets paired to a camera (Qu @4918560), with per-kind numbered
+// fallback labels; the caller additionally filters out the track owner (uWr @5632461).
+const LOOK_KIND_LABELS = { cube: 'Cube', sphere: 'Sphere', cylinder: 'Cylinder', humanoid: 'Human', simple_figure: 'Figure', target: 'Target' };
+function lookSubjectOptions(app, ownerId) {
+  const all = app.objects.all();
+  const counts = new Map();
+  const out = [];
+  for (const [id, o] of Object.entries(all)) {
+    if (o.kind === 'camera' || o.kind === 'spotlight') continue;
+    if (o.kind === 'target' && Object.values(all).some(c => c.kind === 'camera' && c.targetId === id)) continue;
+    if (id === ownerId) continue;
+    const n = (counts.get(o.kind) ?? 0) + 1;
+    counts.set(o.kind, n);
+    out.push({ id, label: o.name ?? `${LOOK_KIND_LABELS[o.kind] ?? o.kind} ${n}` });
+  }
+  return out;
+}
 function renderActionSection(app, body) {
   const seg = app.page.selectedSegment;
   if (!seg) return;
@@ -960,15 +978,30 @@ function renderActionSection(app, body) {
     <div class="act-title">${film} Action</div>
     <div class="kind-row"><span class="k-tag">${ITEM_LABELS[it.kind] ?? it.kind}</span><span>on</span><b>${charName}</b></div>`;
   if (it.kind === 'path') {
+    // ONE "Look at" combobox (live Gzr path rows @5594148): Travel + [locked, non-persons
+    // only] + KKt-filtered subjects. Picking a subject writes {aim:'subject', subjectId}
+    // ATOMICALLY via updatePathItemAim — the old split Aim/Subject pair could leave the
+    // dead half-states {aim:'travel',subjectId} / {aim:'subject'} (no subjectId), both of
+    // which gate the look OFF (pathLookAt) — the "look is locked" complaint.
+    const walksPath = isPersonKindO(app.objects.get(tr.characterId)?.kind);
+    const subj = lookSubjectOptions(app, tr.characterId);
+    const lookVal = it.aim === 'subject' ? it.subjectId ?? '' : walksPath ? 'travel' : it.aim ?? 'travel';
     html += `<label class="row">Gait<select data-actf="gait">${C.GAITS.map(g => `<option ${it.gait === g ? 'selected' : ''}>${g}</option>`).join('')}</select></label>
-      <label class="row">Aim<select data-actf="aim">${['travel', 'subject', 'locked'].map(a => `<option ${it.aim === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
-      <label class="row">Subject<select data-actf="subject"><option value="">—</option>${objOpts(it.subjectId)}</select></label>
+      <label class="row">Look at<select data-actf="lookat"><option value="travel" ${lookVal === 'travel' ? 'selected' : ''}>Travel direction</option>${walksPath ? '' : `<option value="locked" ${lookVal === 'locked' ? 'selected' : ''}>Locked</option>`}${subj.map(o => `<option value="${o.id}" ${lookVal === o.id ? 'selected' : ''}>${escAttr(o.label)}</option>`).join('')}</select></label>
       <label class="row">Speed<input type="number" data-actf="speed" min="0.2" step="0.1" value="${it.speedUnitsPerS ?? 1.4}"></label>
       <button class="primary small" data-actf="edit">Edit path</button>`;
   }
   if (it.kind === 'cam-path') {
-    html += `<label class="row">Aim<select data-actf="aim">${['travel', 'subject', 'locked'].map(a => `<option ${it.aim === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
-      <label class="row">Subject<select data-actf="subject"><option value="">—</option>${objOpts(it.subjectId)}</select></label>
+    // cam-path rows @5598816: same combined control (locked allowed — cameras aren't
+    // persons) PLUS the paired-target option (value "" → aim at the camera's target
+    // marker, label = its name) and the Tot Frame-offset stepper (@5591676, −15..15
+    // step .1, aim!=='locked' only — was missing entirely).
+    const camObj = app.objects.get(tr.characterId);
+    const subj = lookSubjectOptions(app, tr.characterId);
+    const tLabel = (camObj?.targetId ? app.objects.get(camObj.targetId)?.name : undefined) || 'Target marker';
+    const lookVal = it.aim === 'subject' ? it.subjectId ?? '' : it.aim;
+    html += `<label class="row">Look at<select data-actf="lookat"><option value="travel" ${lookVal === 'travel' ? 'selected' : ''}>Travel direction</option><option value="locked" ${lookVal === 'locked' ? 'selected' : ''}>Locked</option><option value="" ${lookVal === '' ? 'selected' : ''}>${escAttr(tLabel)}</option>${subj.map(o => `<option value="${o.id}" ${lookVal === o.id ? 'selected' : ''}>${escAttr(o.label)}</option>`).join('')}</select></label>
+      ${it.aim !== 'locked' ? `<label class="row">Frame offset<input type="number" data-actf="aimoffset" step="0.1" min="-15" max="15" value="${it.aimOffsetUnits ?? 0}"></label>` : ''}
       <label class="row">Speed<input type="number" data-actf="speed" min="0.2" step="0.1" value="${it.speedUnitsPerS ?? 2}"></label>
       <button class="primary small" data-actf="edit">Edit path</button>`;
   }
@@ -1020,8 +1053,21 @@ function renderActionSection(app, body) {
   root.querySelectorAll('[data-actf]').forEach(el => {
     const f = el.dataset.actf;
     if (f === 'gait') el.onchange = e => patch({ gait: e.target.value });
-    if (f === 'aim') el.onchange = e => patch({ aim: e.target.value });
-    if (f === 'subject') el.onchange = e => patch({ subjectId: e.target.value || null });
+    // Look at (live Gzr onChange @5594148/@5598816): travel/locked write aim only (the
+    // store keeps the old subjectId on travel — updatePathItemAim @5571824 semantics);
+    // a subject writes {aim:'subject', subjectId} in ONE patch — the atomic write that
+    // kills the dead half-states. cam-path writes via patchItem (the live's A /
+    // setCameraItemFields path — updatePathItemAim is path-kind-only in the live too).
+    if (f === 'lookat') el.onchange = e => {
+      const v = e.target.value;
+      if (it.kind === 'path') {
+        app.show.updatePathItemAim(seg.trackId, seg.itemId, v === 'travel' || v === 'locked' ? v : 'subject', v || null);
+        refreshTimeline(app); refreshInspector(app);
+      } else {
+        patch(v === 'travel' || v === 'locked' ? { aim: v } : { aim: 'subject', subjectId: v || null });
+      }
+    };
+    if (f === 'aimoffset') el.onchange = e => { const v = +e.target.value; if (!Number.isNaN(v)) patch({ aimOffsetUnits: clampNum(v, -15, 15) }); };
     if (f === 'follow') el.onchange = e => patch({ objectId: e.target.value || null });
     if (f === 'center') el.onchange = e => patch({ centerObjectId: e.target.value || null });
     if (f === 'speed') el.onchange = e => patch({ speedUnitsPerS: Math.max(0.2, +e.target.value || 0.2) });
