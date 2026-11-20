@@ -380,10 +380,13 @@ r = ev_file("t6", r'''
   const out = {};
   // aim the walker path at SubjectFig again (the UI path is proven in T1)
   show.updatePathItemAim(%s, %s, 'subject', %s);
-  // (1) rig-transform segment SELECTED at rest → seek inside the path → gate skips the merge
+  // (1) rig-transform segment SELECTED at rest → seek to t=17 (INSIDE the rig item 16-20;
+  // the walk path 0-10 is finished but its CARRY branch keeps the lookAt active — NEe
+  // returns Pnt in the finished branch too) → gate skips the head-look merge, the keyed
+  // DEF-neck pose survives alone
   a.page.selectedSegment = { trackId: %s, itemId: %s };
   a._ui.refreshInspector();
-  a.page.seek(5);
+  a.page.seek(17);
   await new Promise(r => setTimeout(r, 400));
   const gated = a.rigOffsets.get(%s);
   out.gatedNeck = gated && gated['DEF-neck'] ? gated['DEF-neck'].rotation.map(v => +v.toFixed(4)) : null;
@@ -391,7 +394,7 @@ r = ev_file("t6", r'''
   // (2) deselect → seek again → the look engages (control)
   a.page.selectedSegment = null;
   a._ui.refreshInspector();
-  a.page.seek(5.5);
+  a.page.seek(17.5);
   await new Promise(r => setTimeout(r, 400));
   const open = a.rigOffsets.get(%s);
   out.openNeck = open && open['DEF-neck'] ? open['DEF-neck'].rotation.map(v => +v.toFixed(4)) : null;

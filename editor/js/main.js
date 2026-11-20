@@ -870,8 +870,14 @@ export class App {
       const ownAim = [pos.x, pos.y + C.EYE_HEIGHT_K * (obj.scale?.[1] ?? 1), pos.z];
       const split = gazeSplit(curYaw, ownAim, look.target);
       if (obj.kind === 'humanoid') {
-        const merged = mergeRigOffsets(this.rigOffsets.get(id), headLookOffsets(split));   // IZt additive
-        this.rigOffsets.set(id, merged);
+        // D4 (O loop @~5728740: Ce !== e.rigPoseObjectId() && Ae.set(...)): while this
+        // character is the active rig-pose object (a rig-transform segment selected at the
+        // playhead, at rest — the getter is null while playing), SKIP the head-look merge
+        // so the manual rig edit isn't stomped by a subject-aimed walk on the same character
+        if (id !== this.rigPoseObjectId) {
+          const merged = mergeRigOffsets(this.rigOffsets.get(id), headLookOffsets(split));   // IZt additive
+          this.rigOffsets.set(id, merged);
+        }
         continue;
       }
       const track = this.layout().tracks.find(t => t.characterId === id);
