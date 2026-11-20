@@ -1210,11 +1210,22 @@ function dye(t, e) {                                                            
 const easeCubicOut = Te => 1 - (1 - Te) ** 3;
 
 // ---- height-curve editor panel (eFr @5439371 verbatim constants + interaction model) ----
+// r20 L6: re-hosted from the plan-canvas floating popout to the TIMELINE strip docked under
+// the selected cam-path's lane. The SVG guts stay the r8 verbatim MOr port; the re-host
+// changes (audit L6-2): (a) the render gate DROPS viewportMode==='plan' AND !playing — the
+// strip is visible from any view and stays visible while playing (the original `locked`
+// DISABLE semantics: grayed via data-disabled, never hidden); (b) the u-domain maps the
+// item's BLOCK SPAN on the lane (u ↔ laneX + u·blockW, the SegmentKeyframes @5192233
+// coordinate frame) instead of the panel's own width; (c) the per-frame playhead tick
+// piggybacks updatePlayhead (ui.js) instead of a rAF loop.
 const hRuler = 14, hChart = 64, hPad = 8, hPointHit = 8, hHandleHit = 7, hRes = 160;   // r8/A5/Lg/QRr/JRr/fat
 
-export function buildCurvePanel(host, store, app) {
+// lane gutter width (must match --lane-gutter in CSS — same copy as takerange.js)
+const tlLaneGutter = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lane-gutter')) || 110;
+
+export function buildHeightStrip(host, store, app) {
   const panel = document.createElement('div');
-  panel.className = 'curve-panel';
+  panel.className = 'tl-curve-strip';
   panel.style.display = 'none';
   panel.innerHTML = `<div class="curve-head"><span>Height</span><span class="curve-max"></span></div>`;
   const NS = 'http://www.w3.org/2000/svg';
@@ -1228,15 +1239,16 @@ export function buildCurvePanel(host, store, app) {
   let drag = null;           // 'scrub' | 'curve'
   let selIdx = null;
   let width = 0;
+  let laneX = 0, blockW = 0;   // u-domain frame: the item's block span on the lane
 
-  const xOf = u => hPad + u * (width - 2 * hPad);
+  const xOf = u => laneX + u * blockW;   // u=0 → block left edge, u=1 → block right edge
   const yOf = (h, maxM) => hRuler + hChart - hPad - (h / maxM) * (hChart - 2 * hPad);
   const toPx = e => {
     const r = svg.getBoundingClientRect();
     return { x: (e.clientX - r.left) * (svg.clientWidth / (r.width || 1)), y: (e.clientY - r.top) * (svg.clientHeight / (r.height || 1)) };
   };
   const toCurve = (px, maxM) => ({
-    u: Math.min(1, Math.max(0, (px.x - hPad) / (width - 2 * hPad))),
+    u: Math.min(1, Math.max(0, (px.x - laneX) / (blockW || 1))),
     heightM: (hRuler + hChart - hPad - px.y) / (hChart - 2 * hPad) * maxM,
   });
   const hitPoint = (px, curve, maxM) => curve.findIndex(p => Math.hypot(px.x - xOf(p.u), px.y - yOf(p.heightM, maxM)) <= hPointHit);
@@ -1250,13 +1262,20 @@ export function buildCurvePanel(host, store, app) {
     }
     return null;
   };
+  // the u-domain from the item's block span (pps zoom + gutter aware — recomputed per render/tick)
+  const spanOf = hm => {
+    const pps = app._tl?.pps ?? 60;
+    laneX = tlLaneGutter() + hm.startS * pps;
+    blockW = Math.max(2, hm.durationS * pps);
+  };
 
   function render() {
     const hm = store.heightMove();
-    const show = !!hm && app.page.viewportMode === 'plan' && app.page.mode === 'edit' && !app.page.playing;
+    const show = !!hm && app.page.mode === 'edit';   // r20 L6-2a: viewportMode + !playing gates DROPPED (audit L6-2)
     panel.style.display = show ? 'flex' : 'none';
     if (!show || !hm) { svg.innerHTML = ''; return; }
     const { curve, maxM, startS, durationS, drawn } = hm;
+    spanOf(hm);
     width = svg.clientWidth || 320;
     svg.setAttribute('viewBox', `0 0 ${width} ${hRuler + hChart}`);
     svg.setAttribute('width', width);
@@ -1330,10 +1349,13 @@ export function buildCurvePanel(host, store, app) {
     if (hit > 0 && hit < hm.curve.length - 1) { selIdx = null; store.removeCurvePoint(hit); render(); }
   });
 
-  function tick() {   // review P2-7: per-frame update touches ONLY the playhead line
+  function tick() {   // review P2-7: per-frame update touches ONLY the playhead line + the disabled flag
     if (panel.style.display === 'none') return;
     const hm = store.heightMove();
     if (!hm) return;
+    spanOf(hm);   // pps may have changed since the last full render (ctrl+wheel zoom)
+    if (store.locked()) svg.dataset.disabled = '';
+    else svg.removeAttribute('data-disabled');
     let line = svg.querySelector('.curve-playhead');
     const u = hm.durationS > 0 ? (app.page.playheadS - hm.startS) / hm.durationS : -1;
     if (u >= 0 && u <= 1) {
@@ -1343,7 +1365,7 @@ export function buildCurvePanel(host, store, app) {
     } else if (line) line.remove();
   }
 
-  return { render, tick };
+  return { render, tick, panel };
 }
 
 export class PlanCanvas {
@@ -1367,17 +1389,18 @@ export class PlanCanvas {
     this._tip = null;                  // tap-or-draw focus tooltip
     this._bar = null; this._camChip = null;
     this._buildBar();
-    this._curve = buildCurvePanel(this.host, store, app);   // r8-2: height-curve editor (eFr port)
+    // r20 L6: the plan-canvas floating height-curve popout is REMOVED — the height editor
+    // now lives as the timeline strip (ui.js renderHeightStrip + buildHeightStrip). The
+    // plan-side drag-to-set-height gesture + the Height slider are untouched.
     this._wire();
     this._wireEscape();
     app.onViewportMode = () => this._syncShown();
-    if (app.page?.subscribe) app.page.subscribe(() => { this._syncShown(); if (this.shown()) this._syncCurvePanel(); });
-    if (app.objects?.subscribe) app.objects.subscribe(() => { if (this.shown()) { this._syncBar(true); this._syncCurvePanel(); } });
-    if (app.show?.subscribe) app.show.subscribe(() => { if (this.shown()) { this._syncBar(true); this._syncCurvePanel(); } });
+    if (app.page?.subscribe) app.page.subscribe(() => { this._syncShown(); });
+    if (app.objects?.subscribe) app.objects.subscribe(() => { if (this.shown()) this._syncBar(true); });
+    if (app.show?.subscribe) app.show.subscribe(() => { if (this.shown()) this._syncBar(true); });
     this._onStrokeClock = this._onTip = null;
     store._onZoomPercent = v => { this._zoomPct = v; this._syncZoomBar(); };
     store._onStrokeClock = c => this._syncTimer(c);
-    this._curveTick = () => this._curve && this.shown() && this._curve.render();
     store._onTip = on => this._syncBar();
     store._onDrawingChange = () => this._syncBar();   // P2-3: Esc/selection changes refresh the Finish pill
     this.setVisible(app.page?.viewportMode === 'plan');
@@ -1393,7 +1416,6 @@ export class PlanCanvas {
     if (tb) tb.style.display = on ? 'none' : (this.app.objects?.selectedIds?.length ? 'flex' : 'none');
   }
   setVisible(v) { this.canvas.style.display = v ? 'block' : 'none'; if (v) { this.w = OLr(this.w); } }
-  _syncCurvePanel() { if (this._curve) this._curve.render(); }   // r8-2: height-curve panel
 
   // ---- deps snapshot for reducers ($()) ----
   _deps() {
@@ -1412,7 +1434,6 @@ export class PlanCanvas {
     const re = window.devicePixelRatio || 1, ae = Math.round(q * re), ie = Math.round(Y * re);
     (Z.width !== ae || Z.height !== ie) && (Z.width = ae, Z.height = ie);
     const Ee = this.store.drawFrame(nowMs);                                     // ticks the stroke + {stroke, dimPathOf, focus}
-    if (this.shown()) this._curve?.tick();                                      // r8-2: playhead-only update (review P2-7: no full innerHTML churn per rAF)
     this._items = this.store.items();
     this.w = ILr(jLr(this.w, q, Y), this._items);                               // resize keeps world center; fit once
     const xe = this._lastFrameMs === null ? 0 : nowMs - this._lastFrameMs; this._lastFrameMs = nowMs;

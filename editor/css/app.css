@@ -573,13 +573,17 @@ button.small { padding: 2px 8px; font-size: 12px; }
 /* lane drop state (nCr: laneDropActive + ghost reuse) */
 .lane-body.lane-drop { background: rgba(140,165,255,.07); box-shadow: inset 0 0 0 1px rgba(140,165,255,.3); }
 
-/* ---- height-curve editor (r8-2 eFr port) ---- */
-.curve-panel {
-  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 55;
-  width: 340px; display: flex; flex-direction: column; gap: 2px;
-  background: var(--hud, rgba(23,26,34,.88)); backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px 10px;
-  color: var(--text); pointer-events: auto;
+/* ---- height-curve editor (r8-2 eFr port; r20 L6: re-hosted as the TIMELINE strip) ---- */
+/* the strip: a persistent absolutely-positioned overlay in .tl-body, docked right below
+   the selected cam-path's lane — an overlay row (take-range pattern), NEVER layout space
+   (the stage canvas geometry stays selection-independent). z6: below the sticky lane-heads
+   (z7) so lower lanes' heads still paint + click through the strip band. */
+.tl-curve-strip {
+  position: absolute; left: 0; z-index: 6; height: 110px; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--hud, rgba(23, 26, 34, .88)); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 5px 10px 4px; color: var(--text); pointer-events: auto;
 }
 .curve-head { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); padding: 0 2px 4px; }
 .curve-head span:first-child { font-weight: 700; text-transform: uppercase; letter-spacing: .6px; }

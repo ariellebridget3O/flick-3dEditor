@@ -10,6 +10,7 @@ import { MAGNET_PX, maxEnd, placeAvoiding, repackSequential, planMove, moveItemT
 import { ACTION_MIME, parseActionPayload, defaultDurationFor, revealActionsFor } from './palette.js';
 import { COMPONENT_MIME, serializeComponent } from './components.js';
 import { createRangeTool, renderTakeRange, wireRangeToolGlobal } from './takerange.js';
+import { buildHeightStrip } from './plan.js';   // r20 L6: the height-curve timeline strip
 import { stickFromDelta } from './navball.js';
 
 const $ = id => document.getElementById(id);
@@ -1351,6 +1352,15 @@ function buildTimeline(app) {
   };
   app.onTimeline = () => refreshTimeline(app);
   app._ui = { refreshInspector: () => refreshInspector(app), refreshTimeline: () => refreshTimeline(app) };
+
+  // r20 L6: the height-curve STRIP — a persistent overlay in .tl-body (OUTSIDE the rebuilt
+  // #tlLanes innerHTML, audit L6-1) docked under the selected cam-path's lane. The panel
+  // element + its drag state (selIdx, pointer capture) survive every lanes rebuild.
+  app._heightStrip = buildHeightStrip($('tlBody'), app.plan, app);
+  app._ui.refreshHeightStrip = () => renderHeightStrip(app);
+  // page-state transitions re-render the strip (mode flips, play/stop — the disabled flag
+  // + reveal gate; the playhead sweep itself piggybacks updatePlayhead's tick)
+  app.page.subscribe(() => renderHeightStrip(app));
 }
 
 const isPersonKindO = k => k === 'humanoid' || k === 'simple_figure';
@@ -1401,7 +1411,10 @@ export function refreshTimeline(app) {
   const ruler = document.getElementById('tlRuler');
   if (!lanes || !app.show) return;
   if (!app._tl) app._tl = { pps: 60, magnet: true, interaction: null };
-  if (app._tl?.interaction) { updatePlayhead(app, app.page.playheadS); return; }   // live drag: no re-render
+  // r20 L6-1 (audit): timeline-internal drags AND curve gestures never rebuild the lanes —
+  // a curve drag fires setPathHeightCurve per pointermove (store.changed → this refresh),
+  // which would destroy the spacer row mid-gesture and re-create the lane blocks
+  if (app._tl?.interaction || app.plan?.curveDrag) { updatePlayhead(app, app.page.playheadS); return; }   // live drag: no re-render
   const pps = app._tl?.pps ?? 60;
   const magnet = app._tl?.magnet ?? true;
   const layout = showLayout(app.show.show);
@@ -1448,8 +1461,34 @@ export function refreshTimeline(app) {
   wireTimelineInteractions(app, lanes, pps, magnet, layout);
   updatePlayhead(app, app.page.playheadS);
   renderTakeRange(app);   // _Tr ruler label + wTr lane overlay (box/grips/ghost/guides/draw)
+  renderHeightStrip(app);   // r20 L6: the height-curve strip overlay + its lane spacer
   refreshHierarchy(app);
   refreshCameras(app);
+}
+
+// r20 L6: position/reveal the height-curve strip under the selected cam-path's lane.
+// The PANEL lives in .tl-body (persistent — never inside the rebuilt #tlLanes subtree,
+// audit L6-1) as an absolutely-positioned OVERLAY row right below the target lane — the
+// take-range overlay pattern. It deliberately takes NO layout space: the stage canvas
+// geometry must be selection-independent (the pixel-oracle m5 contract — selecting a
+// camera must not resize the viewport). Lower lanes' sticky heads (z7) still paint and
+// click above the strip (z6); the target lane's body (above the strip) stays interactive.
+function renderHeightStrip(app) {
+  const panel = app._heightStrip?.panel;
+  const lanes = document.getElementById('tlLanes');
+  const body = document.getElementById('tlBody');
+  if (!panel || !lanes || !body) return;
+  const hm = app.plan?.heightMove?.();
+  if (!hm || app.page.mode !== 'edit') { panel.style.display = 'none'; return; }
+  const lane = lanes.querySelector(`.lane[data-track="${hm.trackId}"]`);
+  if (!lane) { panel.style.display = 'none'; return; }
+  // overlay the content right below the lane row (content-space coordinates — the panel
+  // is an absolutely-positioned child of the .tl-body scroll container)
+  const lr = lane.getBoundingClientRect(), br = body.getBoundingClientRect();
+  panel.style.top = `${lr.bottom - br.top + body.scrollTop}px`;
+  panel.style.left = `${lr.left - br.left + body.scrollLeft}px`;
+  panel.style.width = `${lr.width}px`;
+  app._heightStrip.render();
 }
 
 function blockHTML(app, u, tr, pps, isWalker) {
@@ -1931,6 +1970,7 @@ function updatePlayhead(app, t) {
       d.classList.toggle('active', Math.abs(+d.dataset.ts - local) <= KEY_EPS);
     });
   });
+  app._heightStrip?.tick?.();   // r20 L6: the height strip's playhead + disabled state ride this tick
 }
 
 // lane gutter width (must match --lane-gutter in CSS)
