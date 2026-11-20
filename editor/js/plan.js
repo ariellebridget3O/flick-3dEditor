@@ -837,13 +837,18 @@ export class PlanStore {
     }
     return lo === Infinity ? { minY: obj.position[1], maxY: obj.position[1] } : { minY: lo, maxY: hi };
   }
-  heightMove() {                                                                                     // rDr.heightMove verbatim
-    const e = this.a.objects.selectedIds, n = e.length === 1 ? e[0] : null;
-    if (!n || this.a.objects.get(n)?.kind !== 'camera' || this.stroking()) return null;
-    const r = this.a.show.show.tracks.find(a => a.characterId === n),
-      s = r?.items.find(a => a.kind === 'cam-path' && a.anchors?.length > 1);
-    if (!r || s?.kind !== 'cam-path') return null;
-    return { trackId: r.id, itemId: s.id, startS: s.startS, durationS: itemDuration(s), curve: sLr(s), drawn: !!s.heightCurve, maxM: this.heightMaxM() };
+  heightMove() {                                                                                     // rDr.heightMove @5488432 verbatim (r20 L6-3: the selected-SEGMENT branch + the stroking gate on TOP)
+    if (this.stroking()) return null;                                                                // the stroke gate leads (audit L6-3)
+    const e = this.a.show.show.tracks, n = this.a.page.selectedSegment;
+    let r = n && e.find(a => a.id === n.trackId), s = r?.items.find(a => a.id === n?.itemId);
+    if (s?.kind !== 'cam-path') {                                                                    // selected segment not a cam-path →
+      const a = this.a.objects.selectedIds, o = a.length === 1 ? a[0] : null;                        // …fall back to the single selected CAMERA
+      if (!o || this.a.objects.get(o)?.kind !== 'camera') return null;
+      r = e.find(l => l.characterId === o),
+      s = r?.items.find(l => l.kind === 'cam-path' && l.anchors?.length > 1);
+    }
+    return !r || s?.kind !== 'cam-path' || s.anchors?.length < 2 ? null
+      : { trackId: r.id, itemId: s.id, startS: s.startS, durationS: itemDuration(s), curve: sLr(s), drawn: !!s.heightCurve, maxM: this.heightMaxM() };
   }
   heightCurveShown() { return !!this.heightMove(); }
   curveDrag = null;
