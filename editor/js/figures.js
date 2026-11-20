@@ -226,7 +226,10 @@ export class HumanoidRig {
 const _jzE = new THREE.Euler(), _jzQ = new THREE.Quaternion();
 export function ezHeadRotation(yaw, pitch) { // EZt
   _jzQ.setFromEuler(_jzE.set(pitch, yaw, 0, 'YXZ'));
-  _jzE.setFromQuaternion(_jzQ);
+  // the live passes the extraction order EXPLICITLY (AL.setFromQuaternion(Uit, "XYZ"));
+  // without it the Euler keeps the STICKY 'YXZ' from the set() above and the "conversion"
+  // degenerates to the identity (the naive euler) — caught by r20 T4 (roll == 0)
+  _jzE.setFromQuaternion(_jzQ, 'XYZ');
   return [_jzE.x, _jzE.y, _jzE.z];
 }
 export function headLookOffsets(split) {

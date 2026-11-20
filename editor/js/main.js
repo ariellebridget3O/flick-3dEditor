@@ -906,7 +906,9 @@ export class App {
       }
       if (v) keyed = v;
     }
-    if (split) return [split.headPitchRad ?? 0, split.headYawRad, 0];
+    // D2: the live runs kje = tIe = EZt(headYaw, headPitch) — the YXZ→XYZ conversion that
+    // yields a ROLL for combined yaw∧pitch (up to .72 rad off the naive [pitch, yaw, 0])
+    if (split) return ezHeadRotation(split.headYawRad, split.headPitchRad ?? 0);
     return keyed ?? obj.headRotation ?? [0, 0, 0];
   }
 
