@@ -824,7 +824,11 @@ export class App {
         }
         const ownAim = [p[0], y + C.EYE_HEIGHT_K * (obj.scale?.[1] ?? 1), p[2]];
         const wantYaw = (aimTarget ? gazeSplit(yaw.yawRad, ownAim, aimTarget).bodyYawRad : yaw.yawRad) - parentYaw;
-        const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()));
+        // D5 (pe @5733467: F.set(0,0,-1).applyQuaternion(Oe.quaternion)): the current visual
+        // yaw comes from the mesh's LOCAL quaternion — wantYaw is already parent-compensated,
+        // so reading the WORLD quaternion double-counts parentYaw and mis-directs the
+        // 8 rad/s approach for walkers under rotated parents
+        const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(mesh.quaternion);
         const curYaw = Math.atan2(-fwd.x, -fwd.z);
         const newYaw = approachAngle(curYaw, wantYaw, poseNow ? Math.PI : C.YAW_TURN_RATE * dt);
         mesh.rotation.set(0, newYaw, 0);
