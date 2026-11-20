@@ -679,7 +679,7 @@ export function createRealisticSky({ renderer }) {
 
   // ---- state ----
   const _cam = new THREE.Vector3();
-  let paramKey = '', camHeightKm = -1, lutDirty = true, svDirty = true;
+  let paramKey = '', camHeightKm = -1, lutDirty = true, svDirty = true, _lastAtmK = null;
   let lastBakeAt = -1e9, lastPmremAt = -1e9, pmremPending = false;
   let enabled = false, altitudeM = 0;
 
@@ -691,13 +691,20 @@ export function createRealisticSky({ renderer }) {
     const mieE = EARTH.mieExtinction.map(v => v * sw.mieK);
     const mieA = mieE.map((v, i) => Math.max(0, v - mieS[i]));
     altitudeM = p.altitudeM ?? 0;
-    const key = [
-      p.sunDir.x.toFixed(5), p.sunDir.y.toFixed(5), p.sunDir.z.toFixed(5),
-      p.sunIlluminance.map(v => v.toFixed(4)).join(','),
-      ray.join(','), mieS.join(','), mieE.join(','),
-      altitudeM.toFixed(1),
-    ].join('|');
-    if (key !== paramKey) { paramKey = key; lutDirty = true; }
+    // r20 L2a: split the dirt — the transmittance + multi-scatter LUTs depend only on the
+    // ATMOSPHERE (ray/mie/altitude), NOT on the sun; the sky-view LUT is the sun-dependent
+    // one. A sun drag/sweep now rebakes ONLY sky-view (192x108) instead of the full chain —
+    // the live sky has no LUTs at all (3 uniforms), so this is purely our perf parity.
+    const sunK = [p.sunDir.x.toFixed(5), p.sunDir.y.toFixed(5), p.sunDir.z.toFixed(5),
+      p.sunIlluminance.map(v => v.toFixed(4)).join(',')].join('|');
+    const atmK = [ray.join(','), mieS.join(','), mieE.join(','), altitudeM.toFixed(1)].join('|');
+    const key = sunK + '||' + atmK;
+    if (key !== paramKey) {
+      paramKey = key;
+      if (atmK !== _lastAtmK) lutDirty = true;         // atmosphere changed → full bake
+      else svDirty = true;                             // sun-only → sky-view only
+      _lastAtmK = atmK;
+    }
     for (const m of mats) {
       const u = m.uniforms;
       u.uSunDir.value.copy(p.sunDir);
@@ -798,7 +805,12 @@ export function createRealisticSky({ renderer }) {
   // linearHDR (round 13, optional): finish+HDR composites ACES downstream — the dome outputs
   // LINEAR HDR (uCurve = 0, uOutputSRGB = 0) so the sun disc / stars / moon cross the bloom
   // threshold. Default false = byte-identical legacy behavior (demo curve on the visible dome).
-  function update(camera, outputSRGB, scene, linearHDR = false, iblOn = true) {
+  // r20 L2a: sunIdleFor (ms since the light last changed) gates the PMREM — the expensive
+  // cubemap+convolution rebake waits for stillness so sun drags and light-track sweeps never
+  // hitch; the sky-view LUT keeps its 80ms throttle (cheap, keeps the gradient live). The
+  // IBL trails ≤ the motion duration + 250ms by design (design L2a-2/L3-4).
+  const PMREM_IDLE_MS = 250;
+  function update(camera, outputSRGB, scene, linearHDR = false, iblOn = true, sunIdleFor = Infinity) {
     if (!enabled) return null;
     setCamera(camera);
     domeMat.uniforms.uOutputSRGB.value = outputSRGB ? 1 : 0;
@@ -809,7 +821,7 @@ export function createRealisticSky({ renderer }) {
     if ((lutDirty || svDirty) && now - lastBakeAt >= REBAKE_MIN_MS) {
       if (lutDirty) bake(); else bakeSkyView();
     }
-    if (iblOn && pmremPending && now - lastPmremAt >= PMREM_MIN_MS) bakePMREM();   // r19 L5: skip indoor
+    if (iblOn && pmremPending && now - lastPmremAt >= PMREM_MIN_MS && sunIdleFor >= PMREM_IDLE_MS) bakePMREM();   // r19 L5: skip indoor; r20 L2a: + stillness
     if (scene && scene.environment !== (pmremRT?.texture ?? null)) {
       scene.environment = pmremRT ? pmremRT.texture : null;
     }

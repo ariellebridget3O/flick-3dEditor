@@ -295,6 +295,10 @@ export function createEnvironment(scene, settings) {
   scene.add(floor);
 
   let _lastKey = '', glow = 0;
+  let _lightChangedAt = -1e9;   // r20 L2a: light-idle stamp — written on every memo-key change
+                                // (drags, L3 playback, any light edit). Feeds the realistic-sky
+                                // PMREM deferral: the IBL rebake waits for ≥PMREM_IDLE_MS of
+                                // light stillness so a sun drag/sweep never hitched the frame.
   function applyDaylight(light) {
     const glowAmount = () => light.nightLights === false ? 0 : glow;
     _lastLight = light;
@@ -306,6 +310,7 @@ export function createEnvironment(scene, settings) {
       + '|h' + (light.hdr?.enabled ? [light.hdr.exposure, light.hdr.bloom, light.hdr.bloomThreshold, light.hdr.bloomRadius, light.hdr.shadowBoost].join(',') : 'off');   // r13 HDR: memo-key parity with setHdr (shadowBoost r13 review)
     if (key === _lastKey) return glowAmount();
     _lastKey = key;
+    _lightChangedAt = performance.now();   // r20 L2a: the stamp (drags + playback + edits)
     const g = daylightAt(light.elevationDeg);
     const alt = light.geo?.altitudeM ?? 0;
     const altK = 1 + Math.min(alt, 4000) / 4000 * 0.06;         // air-mass thinning (audit P1-7)
@@ -458,8 +463,11 @@ export function createEnvironment(scene, settings) {
     // r19 L5: indoor skips the PMREM rebake entirely (the IBL contributes 0 there; the stale
     // texture stays bound at intensity 0 — no material recompiles on toggle). pmremPending is
     // left set, so the FIRST outdoor frame rebakes fresh.
+    // r20 L2a: sunIdleFor — ms since the light last changed; realistic.update gates the PMREM
+    // on ≥250ms of stillness so drags + L3 sweeps never bake mid-motion (LUT/sky-view bakes
+    // keep their own 80ms throttle — cheap and keep the atmosphere gradient live).
     const indoor = !!(_lastLight?.indoor);
-    realistic.update(camera, outputSRGB, scene, linearHDR, !indoor);
+    realistic.update(camera, outputSRGB, scene, linearHDR, !indoor, performance.now() - _lightChangedAt);
     if (cloudLayer.enabled) cloudLayer.update(camera, outputSRGB, linearHDR);   // P2: wind drift + camera + sRGB gate
   }
   return { sky, floor, sun, hemi, ambient, applyDaylight, walkableSurfaces, shadowMapPx: mapPx, keyDirection: _keyDir,

@@ -151,21 +151,25 @@ export class App {
     this.planView = new PlanCanvas(this, document.getElementById('viewport'), this.plan);
     this._drawPreview = null; this._drawPreviewId = null;
     this.light = normalizeLight(null);
-    // round 6 (D): light mutators — every write is one undo gesture at the UI layer.
-    // geo edits (re)enter geographic mode; a knob/drag/preset edit enters custom mode.
+    // r20 L2a: the 5 light setters are STORE-WRITE ONLY (the live's adjustLight = pure atom
+    // write @5828432; the per-frame CHr closure applies once per frame — our _frame at :1407
+    // does the same, memo-gated). The old synchronous shadowFit.force()+applyDaylight per
+    // pointermove (120-240x/s) saturated the input path — the 'lags behind severely' report.
+    // setSkyStyle/setClouds/setAmbient keep their synchronous applies (r18 T2/T3/T4 read
+    // setClouds' chain synchronously — design L2a-1).
     this.setLightGeo = (patch, opts = {}) => {
       const geo = { ...this.light.geo, ...patch };
       const next = geoToSceneLight(geo, this.light);
       delete next._rawElevation;
       this.light = { ...this.light, ...next, geo, mode: 'geographic', _rawElevation: next.elevationDeg };
-      if (opts.silent !== true) { this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); }
+      if (opts.silent !== true) { this.markAutosave?.(); }
       return this.light;
     };
     this.setLightCustom = (azimuthDeg, elevationDeg) => {
       this.light = { ...this.light, mode: 'custom', azimuthDeg: ((azimuthDeg % 360) + 360) % 360, elevationDeg: Math.min(90, Math.max(-30, elevationDeg)) };
-      this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.();
+      this.markAutosave?.();
     };
-    this.setWeather = weather => { if (!C.WEATHER[weather]) return; this.light = { ...this.light, weather }; this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); };
+    this.setWeather = weather => { if (!C.WEATHER[weather]) return; this.light = { ...this.light, weather }; this.markAutosave?.(); };
     // round 10 (skybox P1): sky style — classic (byte-identical flick dome) | realistic (Hillaire atmosphere)
     this.setSkyStyle = style => {
       const v = style === 'realistic' ? 'realistic' : 'classic';
@@ -188,7 +192,7 @@ export class App {
         this.light = { ...this.light, clouds: next };
       }
       this.env.setClouds(this.light);
-      this.env.applyDaylight(this.light);
+      this.env.applyDaylight(this.light);   // r18 T2/T3/T4 read stats synchronously — KEEP (L2a-1)
       this.markAutosave?.();
     };
     // round 13 (HDR): bloom chain (idle until hdr enables the finish path — no RTs, no cost)
@@ -212,10 +216,11 @@ export class App {
           writeFinishPref(this.finishPref);
         }
       }
-      this.env.applyDaylight(this.light);          // memo-key parity (key includes |h…)
+      // r20 L2a: the memo-key parity apply moved to the per-frame path (the finishOn flip
+      // re-applies inside renderFrame at the enable case); only the store write stays here.
       this.markAutosave?.();
     };
-    this.setIndoor = indoor => { this.light = { ...this.light, indoor: !!indoor }; this.shadowFit.force(); this.env.applyDaylight(this.light); this.markAutosave?.(); };
+    this.setIndoor = indoor => { this.light = { ...this.light, indoor: !!indoor }; this.markAutosave?.(); };
     this.setAmbient = v => { this.light = { ...this.light, ambientLevel: Math.min(1, Math.max(0, v)) }; this.env.applyDaylight(this.light); this.markAutosave?.(); };
     this.recomputeGeoLight = () => this.setLightGeo({});
 
