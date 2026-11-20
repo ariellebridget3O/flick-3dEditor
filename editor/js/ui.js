@@ -351,10 +351,37 @@ function buildLightPopover(app) {
   el = document.createElement('div');
   el.id = 'lightPop'; el.className = 'light-pop hud-window light-panel';
   el.innerHTML = `
-    <div class="lp-puck-row">
-      <div class="puck-wrap"><div class="puck" id="sunPuck" tabindex="0" role="slider"
-        aria-label="Sun position" aria-valuemin="-30" aria-valuemax="90"><span class="horizon"></span><span class="hub"></span>
-        <div class="knob" id="sunKnob"></div><div class="knob ghost" id="sunGhost" style="display:none"></div></div></div>
+    <div class="lp-sun-row">
+      <div class="dir-wrap">
+        <div class="dir-disc" id="sunDir" tabindex="0" role="slider"
+          aria-label="Sun direction" aria-valuemin="0" aria-valuemax="360">
+          <svg class="compass" viewBox="0 0 108 108" aria-hidden="true">
+            ${Array.from({ length: 24 }, (_, i) => {
+              const a = i * Math.PI / 12, r1 = i % 6 === 0 ? 46 : 49.5, r2 = 52.5;
+              return `<line x1="${54 + r1 * Math.sin(a)}" y1="${54 - r1 * Math.cos(a)}" x2="${54 + r2 * Math.sin(a)}" y2="${54 - r2 * Math.cos(a)}" stroke="${i % 6 === 0 ? '#5a6580' : '#3a4152'}" stroke-width="1"/>`;
+            }).join('')}
+          </svg>
+          <span class="dir-lab" data-c="0">N</span><span class="dir-lab" data-c="90">E</span>
+          <span class="dir-lab" data-c="180">S</span><span class="dir-lab" data-c="270">W</span>
+          <span class="dir-caret" title="Up = camera heading"></span>
+          <div class="knob" id="sunDirKnob"></div>
+          <div class="knob ghost" id="sunDirGhost" style="display:none"></div>
+        </div>
+        <span class="sun-cap">direction</span>
+      </div>
+      <div class="rail-wrap">
+        <div class="el-rail" id="sunRail" tabindex="0" role="slider"
+          aria-label="Sun height" aria-valuemin="-30" aria-valuemax="90">
+          <span class="rail-horizon" title="Horizon"></span>
+          <span class="rail-stop s1" title="${C.LIGHT_PRESETS[0].elevationDeg}°"></span>
+          <span class="rail-stop s2" title="${C.LIGHT_PRESETS[1].elevationDeg}°"></span>
+          <span class="rail-stop s3" title="${C.LIGHT_PRESETS[2].elevationDeg}°"></span>
+          <span class="rail-stop s4" title="${C.LIGHT_PRESETS[3].elevationDeg}°"></span>
+          <div class="rail-handle" id="sunRailHandle"></div>
+          <div class="rail-handle ghost" id="sunRailGhost" style="display:none"></div>
+        </div>
+        <span class="sun-cap">height</span>
+      </div>
       <div class="lp-side">
         <div class="lp-phase" id="lpPhase">Full day</div>
         <div class="lp-az" id="lpAzEl">az 129° · el 57°</div>
@@ -412,10 +439,12 @@ function buildLightPopover(app) {
   document.querySelector('.stage-header').appendChild(el);
 
   const $id = id => el.querySelector('#' + id);
-  const puck = $id('sunPuck'), knob = $id('sunKnob'), ghost = $id('sunGhost');
-  let dragging = false;
+  const disc = $id('sunDir'), dirKnob = $id('sunDirKnob'), dirGhost = $id('sunDirGhost');
+  const rail = $id('sunRail'), railHandle = $id('sunRailHandle'), railGhost = $id('sunRailGhost');
+  const dirLabs = [...el.querySelectorAll('.dir-lab')];
+  let dragging = null;   // 'dir' | 'rail' | null
 
-  // view-yaw-rotated knob (live AQr P8r): "up" = current view heading; ≥0.5° adoption (xQr)
+  // view-yaw-rotated disc (live AQr P8r lineage): "up" = current view heading; ≥0.5° adoption (xQr)
   let _yaw = 0, _yawT = 0;
   const adoptYaw = now => {
     if (now - _yawT < 120) return _yaw;
@@ -426,29 +455,55 @@ function buildLightPopover(app) {
     return _yaw;
   };
 
-  const knobAt = (node, az, elv, yaw) => {
+  // r20 L2b: direction = rim position (azimuth only); height = the rail (elevation only).
+  // Knob position maps to the STORED light.azimuthDeg/elevationDeg always — no flip at the
+  // moon handoff (aSr remaps elevation only; realistic night key = anti-solar, derived).
+  const MOON_EL = -8;   // the live's exact aSr moon-handoff threshold
+  const rimAt = (node, az, yaw) => {
     const n = (az - yaw) * Math.PI / 180;
-    const r = (90 - elv) / 120;
-    const x = Math.sin(n) * r, y = -Math.cos(n) * r;
-    node.style.left = `calc(50% + (50% - 8px) * ${x.toFixed(4)})`;   // $ye 8px inset
-    node.style.top = `calc(50% + (50% - 8px) * ${y.toFixed(4)})`;
+    const x = Math.sin(n), y = -Math.cos(n);
+    node.style.left = `calc(50% + (50% - 9px) * ${(x * 0.92).toFixed(4)})`;
+    node.style.top = `calc(50% + (50% - 9px) * ${(y * 0.92).toFixed(4)})`;
+  };
+  const railAt = (node, elv) => {
+    const p = (90 - Math.min(90, Math.max(-30, elv))) / 120;   // 0..1 top..bottom
+    node.style.top = `calc(${(p * 100).toFixed(2)}% - 9px)`;
+  };
+  const labAt = (node, cardinal, yaw) => {
+    const n = (cardinal - yaw) * Math.PI / 180;
+    const x = Math.sin(n), y = -Math.cos(n);
+    node.style.left = `calc(50% + (50% - 7px) * ${(x * 1.02).toFixed(4)})`;
+    node.style.top = `calc(50% + (50% - 7px) * ${(y * 1.02).toFixed(4)})`;
   };
 
   function render() {
     const l = app.light;
-    const yaw = _yaw;
-    knobAt(knob, l.azimuthDeg, l.elevationDeg, yaw);
-    knob.classList.toggle('gliding', false);
+    const now = performance.now();
+    const yaw = adoptYaw(now);
+    const night = l.elevationDeg <= MOON_EL;
+    rimAt(dirKnob, l.azimuthDeg, yaw);
+    dirKnob.classList.toggle('moon', night);
+    railAt(railHandle, l.elevationDeg);
+    railHandle.classList.toggle('moon', night);
+    for (const s of dirLabs) labAt(s, +s.dataset.c, yaw);
+    disc.setAttribute('aria-valuenow', Math.round(l.azimuthDeg));
+    disc.setAttribute('aria-valuetext', `${Math.round(l.azimuthDeg)}°`);
+    rail.setAttribute('aria-valuenow', Math.round(l.elevationDeg));
+    rail.setAttribute('aria-valuetext', `${Math.round(l.elevationDeg)}°, ${night ? 'moon' : 'sun'}`);
+    dirKnob.classList.remove('gliding');
     $id('lpPhase').textContent = PHASE_OF(l.elevationDeg);
     $id('lpAzEl').textContent = `az ${Math.round(l.azimuthDeg)}° · el ${Math.round(l.elevationDeg)}°`;
     $id('lpMode').textContent = l.mode === 'geographic' ? 'geo' : 'custom';
     $id('lpMode').className = 'lp-mode ' + (l.mode === 'geographic' ? 'geo' : 'custom');
-    // ghost knob: in custom mode show where the geo solver WOULD put the sun (audit P2-24)
+    // ghost: in custom mode show where the geo solver WOULD put the sun (audit P2-24) —
+    // rim marker for azimuth + rail tick for elevation
     if (l.mode === 'custom') {
       const g = geoToSceneLight(l.geo, l);
-      ghost.style.display = '';
-      knobAt(ghost, g.azimuthDeg, g.elevationDeg, yaw);
-    } else ghost.style.display = 'none';
+      dirGhost.style.display = '';
+      railGhost.style.display = '';
+      rimAt(dirGhost, g.azimuthDeg, yaw);
+      railAt(railGhost, g.elevationDeg);
+    } else { dirGhost.style.display = 'none'; railGhost.style.display = 'none'; }
     // geo fields — NEVER clobber the field the user is typing into (review P1-4)
     const setVal = (node, v) => { if (node && document.activeElement !== node) node.value = v; };
     setVal($id('lpTime'), fmtHHMM(l.geo.timeOfDay ?? 9.5));
@@ -530,32 +585,51 @@ function buildLightPopover(app) {
 
   const commit = fn => { app.show.beginEditGesture(); try { fn(); } finally { app.show.endEditGesture(); } };
 
-  // ---- puck drag → custom mode ----
-  puck.addEventListener('pointerdown', e => { dragging = true; app.show.beginEditGesture(); try { puck.setPointerCapture(e.pointerId); } catch (_) {} });
-  puck.addEventListener('pointermove', e => {
-    if (!dragging) return;
-    const r = puck.getBoundingClientRect();
-    const y = r.height / 2 - 8;
-    const x = (e.clientX - r.left - r.width / 2) / y;
-    const yy = (r.top + r.height / 2 - e.clientY) / y;
-    const rad = Math.min(1, Math.hypot(x, yy));
-    const az = Math.atan2(x, yy) * 180 / Math.PI + _yaw;
-    const elv = 90 - rad * 120;
-    app.setLightCustom(((az % 360) + 360) % 360, elv);
+  // ---- r20 L2b: direction disc + height rail drags → custom mode ----
+  const dragStart = (which, e) => {
+    dragging = which;
+    app.show.beginEditGesture();
+    try { (which === 'dir' ? disc : rail).setPointerCapture(e.pointerId); } catch (_) {}
+  };
+  const dragEnd = () => { if (dragging) { dragging = null; app.show.endEditGesture(); } };
+
+  disc.addEventListener('pointerdown', e => { if (e.button === 0) dragStart('dir', e); });
+  disc.addEventListener('pointermove', e => {
+    if (dragging !== 'dir') return;
+    const r = disc.getBoundingClientRect();
+    const x = (e.clientX - r.left - r.width / 2) / (r.width / 2);
+    const yy = (r.top + r.height / 2 - e.clientY) / (r.height / 2);
+    const az = Math.atan2(x, yy) * 180 / Math.PI + _yaw;   // radius ignored — az only
+    app.setLightCustom(((az % 360) + 360) % 360, app.light.elevationDeg);
     render();
   });
-  const puckUp = () => { if (dragging) { dragging = false; app.show.endEditGesture(); } };
-  puck.addEventListener('pointerup', puckUp);
-  puck.addEventListener('pointercancel', puckUp);
-  // arrow keys (live olt/llt: az ±10°, el ±5°) — one gesture per keypress
-  puck.addEventListener('keydown', e => {
-    const k = e.key;
-    let d = null;
-    if (k === 'ArrowUp') d = [0, 5]; else if (k === 'ArrowDown') d = [0, -5];
-    else if (k === 'ArrowLeft') d = [-10, 0]; else if (k === 'ArrowRight') d = [10, 0];
-    if (!d) return;
+  rail.addEventListener('pointerdown', e => { if (e.button === 0) dragStart('rail', e); });
+  rail.addEventListener('pointermove', e => {
+    if (dragging !== 'rail') return;
+    const r = rail.getBoundingClientRect();
+    const elv = 90 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) * 120;
+    app.setLightCustom(app.light.azimuthDeg, elv);
+    render();
+  });
+  for (const node of [disc, rail]) {
+    node.addEventListener('pointerup', dragEnd);
+    node.addEventListener('pointercancel', dragEnd);
+    node.addEventListener('lostpointercapture', dragEnd);   // audit L2a-4: stuck-gesture safety
+  }
+
+  // arrow keys (live olt/llt lineage: az ±10° on the disc, el ±5° on the rail) — one gesture per keypress
+  disc.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
-    commit(() => app.setLightCustom(app.light.azimuthDeg + d[0], app.light.elevationDeg + d[1]));
+    const d = e.key === 'ArrowLeft' ? -10 : 10;
+    commit(() => app.setLightCustom(app.light.azimuthDeg + d, app.light.elevationDeg));
+    render();
+  });
+  rail.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    const d = e.key === 'ArrowUp' ? 5 : -5;
+    commit(() => app.setLightCustom(app.light.azimuthDeg, app.light.elevationDeg + d));
     render();
   });
 
@@ -563,10 +637,10 @@ function buildLightPopover(app) {
   el.querySelectorAll('.presets button').forEach(b => b.onclick = () => {
     const p = C.LIGHT_PRESETS[+b.dataset.i];
     commit(() => app.setLightCustom(app.light.azimuthDeg, p.elevationDeg));
-    knob.classList.add('gliding');   // CSS glide; cleared on transitionend/pointerdown
+    dirKnob.classList.add('gliding'); railHandle.classList.add('gliding');   // CSS glide; cleared on transitionend/pointerdown
     render();
   });
-  knob.addEventListener('transitionend', () => knob.classList.remove('gliding'));
+  for (const n of [dirKnob, railHandle]) n.addEventListener('transitionend', () => n.classList.remove('gliding'));
 
   // ---- geo fields: every edit (re)enters geographic mode ----
   const doyFrom = (m, d) => { let n = 0; for (let i = 0; i < m - 1; i++) n += MONTH_DAYS[i]; return n + d; };

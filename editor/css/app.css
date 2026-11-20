@@ -114,21 +114,39 @@ button.small { padding: 2px 8px; font-size: 12px; }
 
 /* round 6 (D): light panel */
 .light-panel { width: 308px; max-height: min(560px, 72vh); overflow-y: auto; padding: 12px; gap: 10px; }
-.lp-puck-row { display: flex; gap: 12px; align-items: center; }
+/* r20 L2b: direction disc + height rail (replaces the r6 polar puck — user-redesign) */
+.lp-sun-row { display: flex; gap: 10px; align-items: stretch; }
+.dir-wrap, .rail-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.light-panel .dir-disc { position: relative; width: 106px; height: 106px; border-radius: 50%; border: 1px solid var(--border); background: radial-gradient(circle at 50% 42%, #3a4152 0%, #232936 70%); touch-action: none; }
+.light-panel .dir-disc svg.compass { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.light-panel .dir-lab { position: absolute; font-size: 9px; font-weight: 700; color: #7c8aa5; transform: translate(-50%, -50%); pointer-events: none; letter-spacing: .3px; }
+.light-panel .dir-caret { position: absolute; left: 50%; top: 2px; transform: translateX(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--accent); pointer-events: none; }
+.light-panel .dir-disc:focus-visible, .light-panel .el-rail:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.light-panel .knob { position: absolute; width: 18px; height: 18px; margin: 0; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe9c4, #ffb347); box-shadow: 0 0 10px rgba(255,180,70,.55); cursor: grab; transition: left .22s ease, top .22s ease; }
+.light-panel .knob.moon { background: radial-gradient(circle at 62% 36%, #c9d2ec 0%, #9aa7cf 55%, #6f7ba6 100%); box-shadow: 0 0 10px rgba(190,200,240,.5); }
+.light-panel .knob.moon::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: #232936; transform: translate(30%, -24%) scale(.86); }
+.light-panel .knob.gliding { transition: left .3s cubic-bezier(.2,.8,.2,1), top .3s cubic-bezier(.2,.8,.2,1); }
+.light-panel .knob:active { cursor: grabbing; }
+.light-panel .knob.ghost { opacity: .32; box-shadow: none; background: #8fa3c8; pointer-events: none; }
+.light-panel .knob.ghost::after { display: none; }
+.light-panel .el-rail { position: relative; width: 22px; height: 106px; border-radius: 8px; border: 1px solid var(--border);
+  background: linear-gradient(to bottom, #2b3242 0%, #2b3242 74.8%, #3d4a63 75.2%, #323a4e 90.5%, #1a2130 91%, #131826 100%); touch-action: none; }
+.light-panel .rail-horizon { position: absolute; left: 2px; right: 2px; top: 75%; height: 1px; background: #56647e; }
+.light-panel .rail-stop { position: absolute; left: 1px; width: 5px; height: 1px; background: #6b7893; }
+.light-panel .rail-handle { position: absolute; left: 50%; width: 18px; height: 18px; transform: translate(-50%, 0); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe9c4, #ffb347); box-shadow: 0 0 10px rgba(255,180,70,.55); cursor: grab; transition: top .22s ease; }
+.light-panel .rail-handle.moon { background: radial-gradient(circle at 62% 36%, #c9d2ec 0%, #9aa7cf 55%, #6f7ba6 100%); box-shadow: 0 0 10px rgba(190,200,240,.5); }
+.light-panel .rail-handle.moon::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: #232936; transform: translate(30%, -24%) scale(.86); }
+.light-panel .rail-handle.gliding { transition: top .3s cubic-bezier(.2,.8,.2,1); }
+.light-panel .rail-handle:active { cursor: grabbing; }
+.light-panel .rail-handle.ghost { opacity: .32; box-shadow: none; background: #8fa3c8; pointer-events: none; }
+.light-panel .rail-handle.ghost::after { display: none; }
+.sun-cap { font-size: 9px; text-transform: uppercase; letter-spacing: .6px; color: var(--text-dim); }
 .lp-side { flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .lp-phase { font-weight: 700; font-size: 13px; color: var(--text); }
 .lp-az { font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .lp-mode { font-size: 10px; text-transform: uppercase; letter-spacing: .6px; border-radius: 4px; padding: 1px 6px; width: max-content; }
 .lp-mode.geo { background: #23402f; color: #9fd8b4; }
 .lp-mode.custom { background: #40331f; color: #e8c98a; }
-.light-panel .puck { position: relative; width: 118px; height: 118px; border-radius: 50%; border: 1px solid var(--border); background: radial-gradient(circle at 50% 42%, #3a4152 0%, #232936 70%); }
-.light-panel .puck .horizon { position: absolute; left: 8%; right: 8%; top: 50%; height: 1px; background: #3a4152; }
-.light-panel .puck .hub { position: absolute; inset: 14px; border-radius: 50%; border: 1px dashed #3a4152; }
-.light-panel .knob { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe9c4, #ffb347); box-shadow: 0 0 10px rgba(255,180,70,.55); cursor: grab; transition: left .22s ease, top .22s ease; }
-.light-panel .knob.gliding { transition: left .3s cubic-bezier(.2,.8,.2,1), top .3s cubic-bezier(.2,.8,.2,1); }
-.light-panel .knob:active { cursor: grabbing; }
-.light-panel .knob.ghost { opacity: .32; box-shadow: none; background: #8fa3c8; pointer-events: none; }
-.light-panel .puck:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .light-panel .presets { display: flex; gap: 4px; }
 .light-panel .presets button { flex: 1; font-size: 11px; padding: 4px 2px; white-space: nowrap; }
 .light-panel .presets button.on { background: #2b3140; border-color: var(--accent); }
