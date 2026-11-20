@@ -439,11 +439,13 @@ r = ev_file("t7", r'''
   } else {
     out.noExport = true;
   }
-  // integration: FigWalker (still subject-aimed from T4, look sinceS 0) + a keyed
-  // headRotation transform item starting at 2 → at t=4 the KEYED rotation wins
-  const kItem = show.addItem(%s, { kind: 'transform', startS: 2, durationS: 4,
-    keys: [{ tS: 0, position: [-3, 0, -3], rotation: [0, 0, 0], scale: [1, 1, 1], headRotation: [0, 0.9, 0] }] });
-  a.page.seek(4);
+  // integration: FigWalker (still subject-aimed from T4, look sinceS 0 via the path 0-6,
+  // whose CARRY branch keeps the lookAt active after the end) + a keyed headRotation
+  // transform item AFTER the path (startS 6 — packItems bumps overlap; lje semantics) →
+  // at t=7 the KEYED rotation wins over the still-active look
+  const kItem = show.addItem(%s, { kind: 'transform', startS: 6, durationS: 4,
+    keys: [{ tS: 0, position: [3, 0, -3], rotation: [0, 0, 0], scale: [1, 1, 1], headRotation: [0, 0.9, 0] }] });
+  a.page.seek(7);
   await new Promise(r => setTimeout(r, 400));
   const mesh = a.meshById.get(%s);
   out.keyedWins = +mesh.userData.figure.head.rotation.y.toFixed(4);
@@ -465,7 +467,7 @@ else:
           len(la) == 3 and abs(la[1] - 0.2) < 1e-6, str(la))
     check("T7 precedence: keyed item starting after the look wins (sinceS < startS)",
           len(le) == 3 and abs(le[1] - 0.8) < 1e-6, str(le))
-    check("T7 integration: keyed headRotation (startS 2 > look sinceS 0) beats the subject look at t=4",
+    check("T7 integration: keyed headRotation (startS 6 > look sinceS 0) beats the still-active carry look at t=7",
           abs((d.get("keyedWins") or 0) - 0.9) < 1e-3, str(d.get("keyedWins")))
 
 # ================================================================= T8: curYaw local quaternion (D5)

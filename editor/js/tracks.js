@@ -152,6 +152,43 @@ export const stepClamp = (y, g) => (g - y > C.STEP_CLAMP ? y : g);
 // ---------- keys eval (Bzt/cZt/Vzt/T2r) ----------
 const lerp3 = (a, b, f) => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
 
+// ---------- keyed headRotation resolver (Kae family: xie/Xyr/Yyr @3933882/@3933491/@3934122) ----------
+// _2r (Yyr): the latest-starting transform item at/before t whose keys carry headRotation
+function headKeyedItemAt(items, tS) {
+  let n = null;
+  for (const it of items) {
+    if (it.kind !== 'transform' || !(it.keys ?? []).some(k => k.headRotation) || it.startS > tS) continue;
+    if (!n || it.startS >= n.startS) n = it;
+  }
+  return n;
+}
+// w2r (Xyr): lerped headRotation over the keys — keys WITHOUT headRotation BEFORE the
+// first headRotation key inherit prevValue (smooth transition in); after it they drop
+function headKeysLerp(keys, tS, prevValue) {
+  const first = keys.findIndex(k => k.headRotation);
+  if (first < 0) return prevValue;
+  const s = keys.flatMap((k, i) => k.headRotation ? [k] : i < first ? [{ ...k, headRotation: prevValue }] : []);
+  const a = s[0];
+  if (tS <= a.tS || s.length === 1) return a.headRotation;
+  const o = s[s.length - 1];
+  if (tS >= o.tS) return o.headRotation;
+  const l = Math.max(1, s.findIndex(k => k.tS >= tS));
+  const c = s[l - 1], d = s[l], u = d.tS - c.tS;
+  return lerp3(c.headRotation, d.headRotation, u <= 0 ? 0 : (tS - c.tS) / u);
+}
+// Kae (xie): keyed headRotation with the live-look precedence — the subject look
+// (liveAt(t) → {sinceS, headRotation} | null) wins ONLY when it started at/after the
+// keyed item's startS; the previous value at the item start resolves RECURSIVELY
+export function keyedHeadRotation(items, timeS, fallback, liveAt) {
+  const s = headKeyedItemAt(items, timeS);
+  const live = liveAt?.(timeS);
+  if (live && (!s || live.sinceS >= s.startS)) return live.headRotation;
+  if (!s) return fallback ?? [0, 0, 0];
+  const t = Math.min(timeS - s.startS, s.durationS);
+  const prev = keyedHeadRotation(items.filter(it => it.startS < s.startS), s.startS, fallback, liveAt);
+  return headKeysLerp(s.keys ?? [], t, prev);
+}
+
 export function transformKeysAt(keys, tS) { // Bzt — plain lerp
   if (!keys || keys.length === 0) return null;
   const first = keys[0];

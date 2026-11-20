@@ -13,7 +13,7 @@ import { loadScene, saveScene, itemDuration } from './schema.js';
 import {
   showLayout, evalCharacterTrack, yawOf, gazeSplit, approachAngle, stepClamp,
   evalCameraObject, rigJointsAtTime, evalObjectItems, fovFromFocal, itemsOfTrack, isPersonKind, itemAtTime,
-  pathStateAt, pathRotation,
+  pathStateAt, pathRotation, keyedHeadRotation,
 } from './tracks.js';
 import { headLookOffsets, mergeRigOffsets, applyHeadRotation, getHeadRotation, ezHeadRotation, isMajorJoint, sampleBonePose, diffRigPose } from './figures.js';
 const _hoeV = new THREE.Vector3(), _hoeE = new THREE.Euler(), _hoeQ = new THREE.Quaternion(), _hoePQ = new THREE.Quaternion(); // hoe scratch (verbatim units, SKILL #46)
@@ -849,9 +849,11 @@ export class App {
       const mesh = this.meshById.get(track.characterId);
       if (!mesh || this.manipulator?.isMeshDragged(mesh)) continue;
       if (obj.kind === 'simple_figure') {
-        // headRotation from transform keys (Kae) or head look (o$)
-        const hr = this._figureHeadRotation(track, timeS, obj);
-        if (hr) applyHeadRotation(mesh, hr);
+        // headRotation from transform keys (Kae) with the live-look resolver (J) at ANY
+        // time — the keyed-lerp previous-value recursion asks for the look at item starts
+        const hr = keyedHeadRotation(track.items.map(u => u.item), timeS, obj.headRotation ?? [0, 0, 0],
+          t => this._subjectLookAtTime(obj, track, t));
+        applyHeadRotation(mesh, hr);
       }
       const foldMode = !isPersonKind(obj.kind);
       const r = evalObjectItems(track, timeS, foldMode, this.resolvers(), obj);
@@ -885,8 +887,13 @@ export class App {
         continue;
       }
       const track = this.layout().tracks.find(t => t.characterId === id);
-      const hr = this._figureHeadRotation(track, timeS, obj, split);
-      if (hr) applyHeadRotation(mesh, hr);
+      if (!track) continue;   // live: if (!Fe) continue
+      // kje via Kae: the CURRENT split (tIe = ezHeadRotation) is the live override at
+      // timeS; other times resolve through J (the subject look re-split at that time)
+      const live = { sinceS: look.sinceS, headRotation: ezHeadRotation(split.headYawRad, split.headPitchRad ?? 0) };
+      const hr = keyedHeadRotation(track.items.map(u => u.item), timeS, obj.headRotation ?? [0, 0, 0],
+        t => (t === timeS ? live : this._subjectLookAtTime(obj, track, t)));
+      applyHeadRotation(mesh, hr);
     }
 
     // humanoid rigs: apply clip + offsets (b())
@@ -897,29 +904,24 @@ export class App {
     }
   }
 
-  _figureHeadRotation(track, timeS, obj, split) {
-    // Kae: keyed headRotation from transform items (latest key at t); subject look wins when sinceS >= item.startS
-    let keyed = null;
-    if (track) for (const u of track.items) {
-      const it = u.item;
-      if (it.kind !== 'transform' || timeS < u.startS) continue;
-      const t = Math.min(timeS - u.startS, it.durationS);
-      const keys = it.keys ?? [];
-      let v = null;
-      if (keys.length) {
-        const last = keys[keys.length - 1];
-        v = last.headRotation;
-        for (let i = 0; i < keys.length; i++) if (keys[i].tS >= t) {
-          v = (i === 0 ? keys[0] : keys[i - 1]).headRotation ?? keys[Math.max(0, i - 1)].headRotation;
-          break;
-        }
-      }
-      if (v) keyed = v;
-    }
-    // D2: the live runs kje = tIe = EZt(headYaw, headPitch) — the YXZ→XYZ conversion that
-    // yields a ROLL for combined yaw∧pitch (up to .72 rad off the naive [pitch, yaw, 0])
-    if (split) return ezHeadRotation(split.headYawRad, split.headPitchRad ?? 0);
-    return keyed ?? obj.headRotation ?? [0, 0, 0];
+  // J (subjectLookAtTime @5732291): the character's subject look evaluated at an ARBITRARY
+  // time — feeds the Kae keyed-head previous-value recursion. The live re-splits against
+  // the objectPoseAt fold (le); ours recomputes the fold's walk branch directly from the
+  // character state (position + ground + gazeSplit body yaw) — same math, no fold scratch.
+  _subjectLookAtTime(obj, track, t) {
+    const state = evalCharacterTrack(track, t);
+    const look = state.lookAt;
+    if (!look) return null;
+    const target = this.resolvers().aim(look.subjectId, look.atS, 0);
+    const p = state.position;
+    if (!target || !p) return null;
+    const yaw = yawOf(state);
+    if (!yaw || yaw.exact) return null;   // play items carry no lookAt anyway
+    const gy = state.exactY ? p[1] : (this._groundY(p[0], p[1] + C.GROUND_PROBE, p[2]) ?? p[1]);
+    const ownAim = [p[0], gy + C.EYE_HEIGHT_K * (obj.scale?.[1] ?? 1), p[2]];
+    const bodyYaw = gazeSplit(yaw.yawRad, ownAim, target).bodyYawRad;   // le walk branch
+    const split = gazeSplit(bodyYaw, ownAim, target);                    // J re-split
+    return { sinceS: look.sinceS, headRotation: ezHeadRotation(split.headYawRad, split.headPitchRad ?? 0) };
   }
 
   _groundY(x, fromY, z) {
