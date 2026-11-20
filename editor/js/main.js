@@ -1391,6 +1391,14 @@ export class App {
       r.toneMappingExposure = (this.light.hdr.exposure ?? C.HDR_DEFAULTS.exposure) * 0.6;
     }
     r.setScissorTest(true);
+    // labels + the gizmo hidden for the whole pass (monitor feeds carry no editor overlays;
+    // the gizmo sizes by this.camera — wrong through the feed cameras — see the single-tile note)
+    const _hidden = [];
+    for (const sprite of this.objectManager.labels.values()) {
+      if (sprite.visible) { sprite.visible = false; _hidden.push(sprite); }
+    }
+    const _tc = this.manipulator?.transform;
+    if (_tc?.visible) { _tc.visible = false; _hidden.push(_tc); }
     // 1. dark gap rects: per cell, the area around the record-aspect tile
     r.setClearColor(0x0a0d14, 1);
     const cellW = size.x / (wall.tiles.length <= 2 ? Math.min(2, wall.tiles.length) : 3);
@@ -1429,6 +1437,7 @@ export class App {
     r.setViewport(0, 0, size.x, size.y);
     r.setClearColor(prevClear, 1);
     r.toneMapping = prevTone; r.toneMappingExposure = prevExp;
+    for (const s of _hidden) s.visible = true;
   }
 
   // ================= camera marker evaluation (edit mode) =================
@@ -1671,22 +1680,37 @@ export class App {
     // m1/m5 pixel-oracle contract — full canvas at the record aspect, finish included).
     const wall = this.camWallActive() ? this._wallLayout : null;
     let frameCam = this.camera;
-    let wallMeshHidden = null;
+    let wallRestore = null;
     if (wall && wall.tiles.length === 1) {
       if (!this._wallCam) this._wallCam = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 1000);
       const cam = this._wallCameraFor(wall.tiles[0].id, this._wallCam);
       if (cam) {
         frameCam = cam;
+        // the old lens's certified occlusion set (m1/m5): the tile camera's own mesh subtree
+        // + ALL label sprites (the live feed canvas carries no editor labels — the golden
+        // proves it; the audit L4-5 'keep labels' advice was wrong for the feed render)
+        const hidden = [];
         const mesh = this.meshById.get(wall.tiles[0].id);
-        if (mesh?.visible) { mesh.visible = false; wallMeshHidden = mesh; }   // self-occlusion only (L4-5)
+        if (mesh?.visible) { mesh.visible = false; hidden.push(mesh); }
+        for (const sprite of this.objectManager.labels.values()) {
+          if (sprite.visible) { sprite.visible = false; hidden.push(sprite); }
+        }
+        // r20 L4 (the m5 regression root cause): TransformControls sizes its gizmo by
+        // THIS.camera's distance (a constant screen size for the EDITOR view) — rendered
+        // through the wall camera it blows up to ~8x and fills the feed center. The old
+        // lens sat this.camera ON the gizmo (distance ~0 → invisible); hiding it is the
+        // same visual result, structurally.
+        const tc = this.manipulator?.transform;
+        if (tc?.visible) { tc.visible = false; hidden.push(tc); }
+        if (hidden.length) wallRestore = () => { for (const o of hidden) o.visible = true; };
       }
     }
     this.env.updateRealisticSky(frameCam, !finishOn, hdrOn && finishOn);   // round 10: bakes + IBL + sRGB mode (P2: clouds ride the same pass)
     if (!finishOn) this.finish.release();
     if (finishOn) this._renderFinishWithHdr(frameCam);
     else this.renderer.render(this.scene, frameCam);
-    if (wallMeshHidden) wallMeshHidden.visible = true;
-    this._autoMeasure();
+    if (wallRestore) wallRestore();
+    this._autoMeasure(frameCam);
     if (wall && wall.tiles.length > 1) this.renderCamWallTiles(wall);   // monitor feeds over the editor render
     // the single-tile wall keeps the overlays (the old lens drew stroke+planning aids through
     // the lens camera — the m1/m5 goldens include them); multi-tile monitor feeds are clean
@@ -1708,7 +1732,7 @@ export class App {
   editView() { return this.page.mode === 'edit'; }   // isEditView (C) — stroke/footprints gate
 
   // Q(): auto-measure after 30 frames, retries every 300 up to 2, skipped while interacting
-  _autoMeasure() {
+  _autoMeasure(frameCam = null) {
     this._frameCount++;
     if (!this._finishScheduler.frame() || !this.finishNeedsMeasuring) return;
     if (this.renderer.getContext().isContextLost()) return;
@@ -1723,11 +1747,15 @@ export class App {
     if (!validMeasurementSize(pixels)) return;
     const px = new Uint8Array(4);
     const aidsHidden = this._hidePlanningAids();
+    // r20 L4: the measurement draws through the SAME frame camera the frame rendered with —
+    // under the single-tile wall this.camera is the EDITOR view and drawing it OVER the feed
+    // corrupted mid-capture backbuffer chunks (the m5 regression's second half)
+    const mc = frameCam ?? this.camera;
     let m;
     try {
       m = measureFinish({
-        drawPlain: () => { this.env.updateRealisticSky(this.camera, true); this.renderer.setRenderTarget(null); this.renderer.render(this.scene, this.camera); },
-        drawFinished: () => this._renderFinishWithHdr(),   // HDR: bloom cost rides inside the measured composite
+        drawPlain: () => { this.env.updateRealisticSky(mc, true); this.renderer.setRenderTarget(null); this.renderer.render(this.scene, mc); },
+        drawFinished: () => this._renderFinishWithHdr(frameCam),   // HDR: bloom cost rides inside the measured composite — SAME frame camera (r20 L4)
         finishGpu: () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px),
         pixels,
       });

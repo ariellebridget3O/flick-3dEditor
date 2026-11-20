@@ -20,6 +20,7 @@ CAM = "ff46ae76-c56a-417b-8f51-7dfe5996803a"
 OLD_LENS_ON = """(function(){
   const a=window.__app, d=document;
   d.querySelector('#viewSwitch button[data-v=editor]').click();
+  a.orbit.enabled = false;   // the old lens disabled orbit — else the rAF loop re-poses this.camera
   const camIds=Object.keys(a.objects.all()).filter(k=>a.objects.all()[k].kind==='camera');
   const mesh=a.objectManager.meshById.get(camIds[0]);
   const pose=mesh.userData.evalPose;
@@ -32,6 +33,7 @@ OLD_LENS_ON = """(function(){
 
 OLD_LENS_OFF = """(function(){
   const a=window.__app;
+  a.orbit.enabled = true;
   const camIds=Object.keys(a.objects.all()).filter(k=>a.objects.all()[k].kind==='camera');
   const mesh=a.objectManager.meshById.get(camIds[0]);
   mesh.visible=true;
@@ -67,6 +69,6 @@ for name in ["ab_oldlens", "ab_wall"]:
     X = np.asarray(Image.open(os.path.join(OUT, name + ".png")).convert("RGB")).astype(np.float32)
     D = np.abs(X - G).mean(axis=2)
     print(f"{name}: mean {D.mean():.3f}  %>8 {(D > 8).mean() * 100:.2f}")
-    # hot region
     print(f"   hot rows 56-168 cols 300-500: {D[56:168, 300:500].mean():.1f}")
+    print(f"   hot pixel (367,117): ours {X[117,367].round(0)} golden {G[117,367].round(0)}")
 ab.close(S)
