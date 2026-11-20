@@ -816,7 +816,9 @@ export class Manipulator {
       const t = e.target;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       const k = e.key.toLowerCase();
-      app._keys.add(k);
+      // r20 L4 (audit D5, qqt @5679987): modifier-held keys NEVER enter the drive set —
+      // Ctrl/Cmd+Z/C/V and Alt-combos must not drive the rig ('shift' itself always allowed)
+      if (!(e.metaKey || e.ctrlKey || e.altKey) || k === 'shift') app._keys.add(k);
       if (app.page.keyboardOwner !== 'stage') return;
       if (app.page.mode !== 'edit') return;   // Hzr @5637413: the stage keymap is edit-mode only (r17 P2-1)
       const mod = e.metaKey || e.ctrlKey;
@@ -874,7 +876,9 @@ export class Manipulator {
         syncToolHighlight(app);   // toolbar reflects keyboard mode changes too
       }
     });
-    window.addEventListener('keyup', e => app._keys.delete(e.key.toLowerCase()));
+    // r20 L4 (audit D5, X @5680393): delete by key AND code — a Ctrl-held WASD press that
+    // never entered the set still clears on keyup (no stuck keys across modifier changes)
+    window.addEventListener('keyup', e => { app._keys.delete(e.key.toLowerCase()); app._keys.delete((e.code || '').toLowerCase()); });
     window.addEventListener('blur', () => app._keys.clear());
   }
 }

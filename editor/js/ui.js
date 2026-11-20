@@ -80,16 +80,15 @@ export function buildUI(app) {
   $('viewSwitch').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (app.page.mode !== 'edit') return;   // r17 P2-2: the view switcher is edit-mode UI
-    [...$('viewSwitch').children].forEach(x => x.classList.toggle('on', x === b));
     app.page.stageView = b.dataset.v;
     app.page.changed();          // nav ball pad / lasso button visibility ride this
-    updateFrameGuide(app);
-    // pixel-oracle R9: the camera Height/Lens footer is editor-view-only (live feed wall has
-    // no camera HUD); refreshCameras only runs on timeline refreshes — toggle here too
-    const footer = document.getElementById('camFooter');
-    const single = app.objects.selectedId && app.objects.get(app.objects.selectedId)?.kind === 'camera';
-    footer.style.display = single && b.dataset.v !== 'cameras' ? 'flex' : 'none';
+    syncViewSwitch(app);          // r20 L4: state-driven (the wall also flips stageView on tile click)
   });
+  // r20 L4 (audit L4-7/D3): the viewSwitch is STATE-DRIVEN — anything can flip stageView
+  // (the wall's tile click, camera-mode entry/exit) and the segmented control follows
+  // (the live's Ylt renders from the value prop reactively).
+  if (app.page.subscribe) app.page.subscribe(() => syncViewSwitch(app));
+  syncViewSwitch(app);
   // round 6 E2: Default/Unreal control-mode switch REMOVED by user direction
   // (standard units/format only; controlMode stays 'default' — WASD nav unaffected)
   document.querySelectorAll('[data-collapse]').forEach(btn => {
@@ -738,12 +737,28 @@ function buildLightPopover(app) {
 }
 
 // ================= frame guide (XGt/o2r/MGr port) =================
+// r20 L4: state-driven viewSwitch sync (audit D3/L4-7 — the segmented control follows
+// page.stageView from ANY writer: clicks, the wall's tile click, mode transitions). Also
+// rides along: the camera Height/Lens footer (editor-view-only) and the frame guide.
+export function syncViewSwitch(app) {
+  const vs = document.getElementById('viewSwitch');
+  if (!vs) return;
+  const cur = app.page.stageView === 'cameras' ? 'cameras' : 'editor';
+  [...vs.children].forEach(x => x.classList.toggle('on', x.dataset.v === cur));
+  const footer = document.getElementById('camFooter');
+  if (footer) {
+    const single = app.objects.selectedId && app.objects.get(app.objects.selectedId)?.kind === 'camera';
+    footer.style.display = single && cur !== 'cameras' ? 'flex' : 'none';
+  }
+  updateFrameGuide(app);
+}
+
 export function updateFrameGuide(app) {
   const guide = document.getElementById('frameGuide');
   if (!guide) return;
-  // r17: the guide shows in the cameras view AND in camera mode (the monitor viewfinder); the
-  // camera-mode fov adoption (applyCameraModeFov = UGr c()) IS this formula — one path for both
-  const inCamMode = app.page.stageView === 'cameras' || app.page.mode === 'camera';
+  // r20 L4 (audit L4-2): the guide div + the editor-fov adoption are CAMERA-MODE ONLY — the
+  // feed wall must NOT touch the editor camera (it stays live behind the wall at EDITOR_FOV).
+  const inCamMode = app.page.mode === 'camera';
   if (!inCamMode) { guide.style.display = 'none'; app.camera.fov = C.EDITOR_FOV; app.camera.updateProjectionMatrix(); return; }
   const host = document.getElementById('viewport');
   const w = host.clientWidth, h = host.clientHeight;

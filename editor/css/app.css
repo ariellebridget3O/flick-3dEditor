@@ -663,3 +663,17 @@ button.mon-field { cursor: pointer; } button.mon-field:hover { background: rgba(
 .mon-toggles button { padding: 0 10px; height: 28px; border: 1px solid rgba(255,255,255,.1); border-radius: 6px;
   background: rgba(255,255,255,.04); color: inherit; cursor: pointer; font-size: 11px; }
 .mon-toggles button[aria-pressed="true"] { background: rgba(58,111,216,.35); border-color: rgba(58,111,216,.6); }
+
+/* r20 L4: the cameras feed wall (monitor bank over the viewport; tile holes show the canvas) */
+.cam-wall { position: absolute; inset: 0; z-index: 30; pointer-events: none; }   /* chrome-only: the feed pixels + dark gaps are ON THE CANVAS (renderCamWallTiles) */
+.cam-wall .cam-tile, .cam-wall .cam-wall-page, .cam-wall .cam-wall-count { pointer-events: auto; }
+.cam-wall .cam-tile { position: absolute; border: 1px solid #2c3446; border-radius: 6px; overflow: hidden; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+.cam-wall .cam-tile:hover { border-color: var(--accent); }
+.cam-wall .cam-tile-name { position: absolute; left: 7px; top: 5px; font-size: 10.5px; font-weight: 700; color: #e8ecf4; text-shadow: 0 1px 3px rgba(0,0,0,.9); pointer-events: none; }
+.cam-wall .cam-tile-focal { position: absolute; right: 7px; top: 5px; font-size: 10px; color: #aab4c6; font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,.9); pointer-events: none; }
+.cam-wall .cam-wall-page { position: absolute; top: 50%; transform: translateY(-50%); width: 26px; height: 44px; border: 1px solid #2c3446; border-radius: 7px; background: rgba(22,27,38,.92); color: #cdd6e4; font-size: 16px; cursor: pointer; }
+.cam-wall .cam-wall-page:hover { border-color: var(--accent); }
+.cam-wall .cam-wall-page.prev { left: 6px; }
+.cam-wall .cam-wall-page.next { right: 6px; }
+.cam-wall .cam-wall-count { position: absolute; right: 10px; bottom: 7px; font-size: 10.5px; color: #8f9ab0; font-variant-numeric: tabular-nums; }
+.cam-wall.empty::after { content: 'No cameras — add one from the Actions palette'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #8f9ab0; font-size: 12px; }
