@@ -70,7 +70,7 @@ print("T3: same _shakeT -> identical render (pure t function through the wiring)
 # rAF loop may re-pose between evals but each eval re-poses deterministically first.
 PROBE = """(()=>{const a=window.__app;
   a._shakeT=%s;
-  a.updateCameraThroughLens();
+  if(a.page.stageView!=='cameras'){a.page.stageView='cameras';a.page.changed();}
   a.renderFrame();
   const gl=a.renderer.getContext();
   const w=gl.drawingBufferWidth,h=gl.drawingBufferHeight;
@@ -103,26 +103,27 @@ print("   same-t: %d px (%.3f%%, mean %.3f) | cross-t: %d px (%.2f%%, mean %.3f)
 assert pct_same < 0.3 and mag_same < 1.0, ("same phase near-identical (tolerance for an INTERMITTENT <=0.2% single-pixel transient seen in some runs — no time-keyed term exists in the classic sky, and the transient failed to reproduce on a dedicated localization pass (0/15150 px); suspected SwiftShader AA jitter)")
 assert nd_cross > 50 * max(nd_same, 1), "different phase shifts the frame (shake motion)"
 
-print("T4: exit cameras view -> viewpoint restore")
+print("T4: wall enter/exit -> the editor viewpoint is UNTOUCHED (r20 L4: the wall never hijacks it)")
 r = ev(f"""(()=>{{const a=window.__app;
-  const saved=a._lensSave?{{p:a._lensSave.position.toArray(),q:a._lensSave.quaternion.toArray()}}:null;
+  const p0=a.camera.position.toArray(), q0=a.camera.quaternion.toArray();
   a.page.stageView='editor';
-  return JSON.stringify({{saved}})}})()""")
+  return JSON.stringify({{p:p0,q:q0}})}})()""")
 print("  ", r)
-saved = json.loads(r)["saved"]
-frame_wait(0.8)   # the restore runs in the next frame tick
+saved = json.loads(r)
+frame_wait(0.8)
 r = ev("""(()=>{const a=window.__app;
   return JSON.stringify({p:a.camera.position.toArray(), q:a.camera.quaternion.toArray(),
-    orbitEnabled:a.orbit?!!a.orbit.enabled:null, lensActive:a._lensActive})})()""")
+    orbitEnabled:a.orbit?!!a.orbit.enabled:null, wallCleared:a._wallLayout===null})})()""")
 print("  ", r)
 t4 = json.loads(r)
-if saved:
-    dp = max(abs(x - y) for x, y in zip(saved["p"], t4["p"]))
-    dq = max(abs(x - y) for x, y in zip(saved["q"], t4["q"]))
-    assert dp < 1e-4, "editor viewpoint restored on exit (position)"
-    assert dq < 1e-4, "editor viewpoint restored on exit (quaternion)"
-assert t4["orbitEnabled"] is True, "orbit re-enabled"
-assert t4["lensActive"] is False, "lens deactivated"
+# r20 L4: the wall NEVER touches the editor camera — the viewpoint is byte-stable across the
+# enter/exit (the r8 lens saved/restored; the wall needs no restore because it never moves it)
+dp = max(abs(x - y) for x, y in zip(saved["p"], t4["p"]))
+dq = max(abs(x - y) for x, y in zip(saved["q"], t4["q"]))
+assert dp < 1e-6, "editor viewpoint UNTOUCHED across the wall enter/exit (position)"
+assert dq < 1e-6, "editor viewpoint UNTOUCHED across the wall enter/exit (quaternion)"
+assert t4["orbitEnabled"] is True, "orbit stays enabled (the wall never disables it)"
+assert t4["wallCleared"] is True, "wall cleared on exit"
 
 print("T5: console errors")
 try:
