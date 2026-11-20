@@ -502,7 +502,14 @@ ${GLSL_COMMON}
     bool intersectGround = raySphereIntersectNearest(worldPos, worldDir, vec3(0.0), uBottomRadius) >= 0.0;
     vec2 uv;
     skyViewLutParamsToUv(intersectGround, viewZenithCosAngle, lightViewCosAngle, viewHeight, uv);
-    vec3 L = texture(uSkyViewLut, uv).rgb;
+    // r20 L1: the gain applies to the ATMOSPHERIC BODY SAMPLE ONLY. The raw sky-view
+    // radiance is ~0.006-0.03 (illuminance-normalized — the plain path's demo curve
+    // amplifies it ~10x via uExposure); under finish+HDR the body needs its own ~30x to
+    // sit at display scale and cross the bloom threshold. The ADDITIVE visuals below
+    // (sun disc 30, moon 3.2+halo, stars) are ABSOLUTE, r19-calibrated THROUGH the output
+    // transform — they must NOT ride the body gain (a blanket L *= gain destroyed the moon
+    // tune and blackened the body at small gains — the r18/r19 pendulum's real root cause).
+    vec3 L = texture(uSkyViewLut, uv).rgb * uHdrGain;
 
     float visible = uToneMap;   // disc/moon/stars are sky-VISUALS — excluded from the IBL bake
 
@@ -550,7 +557,8 @@ ${GLSL_COMMON}
       L += visible * uNightAmount * horizonFade * vec3(0.86, 0.88, 0.95) * (disc * 3.2 * limb + halo);
     }
 
-    L *= uHdrGain;   // r18: finish+HDR visible path — the sky body crosses the bloom threshold
+    // (r20 L1: the old blanket L *= uHdrGain moved UP to the LUT sample — the visuals
+    //  must not ride the body gain; see the comment at the sample)
 
     // --- weather mood (same Rec.601 desat + darken as the classic dome) ---
     float lum = dot(L, vec3(0.299, 0.587, 0.114));

@@ -115,6 +115,12 @@ export const C = {
   // brightness match; do not chase display parity with a bigger lift — that re-creates the
   // r18 whole-sky bloom). Gated hdr && finishOn (the plain+HDR fallback has no ACES).
   HDR_SKY_LIFT: 1.06,
+  // r20 L1: the classic dome BODY's own HDR gain (on top of the lift; the fog keeps the lift
+  // only). Structural reason: the dome horizon == fog color by construction, so a shared lift
+  // crosses the fog first and washes the whole frame (the r18 'blindly bright' / r19 'no sky
+  // bloom' pendulum — both were the same cliff). The dome-only gain lets the SKY cross the
+  // bloom threshold softly while the fogged ground stays below. Byte-inert at 1 (x*1.0).
+  HDR_CLASSIC_BODY_GAIN: 1.20,
   // r19 L4: the classic dome's FLARE (sun glow) term only — puts the region right around the
   // sun ABOVE the bloom threshold (peak body 0.88 + flare ~1.0 = ~1.9) so the sun glows
   // naturally while the far sky stays quiet. Same hdr && finishOn gate as the body lift.
@@ -127,7 +133,12 @@ export const C = {
   // r19 L2/L3: the moon tone SHARED by the visible disc (sky.js GLSL literal — keep in sync)
   // and the night key-light color lerp (env.js MOON_TONE). 0.86/0.88/0.95 linear.
   MOON_TONE: 0xdbe0f2,
-  HDR_REALISTIC_GAIN: 1.22,              // r19 L4: body-sub-threshold calibration (raw LUT body
+  HDR_REALISTIC_GAIN: 80.0,              // r20 L1: BODY-SAMPLE-only gain (the raw sky-view LUT
+                                         // radiance is illuminance-normalized ~0.006-0.03 — the plain
+                                         // path's demo curve amplifies ~10x; under finish the body needs
+                                         // ~80x to sit at display scale AND cross the bloom threshold
+                                         // SOFTLY: sky-region +6.0 display, p25 +1.2, no lid (p99 234).
+                                         // The sun disc/moon/stars are ABSOLUTE and do NOT ride this.
                                          // luma ~0.76-0.81 x 1.22 = 0.93-0.99 < 1.0; verified in
                                          // the display domain — r19 E2E T6b: body bloom delta +0.00
                                          // at thr 1.0, p95 display luma 203). The sun disc (30xT)

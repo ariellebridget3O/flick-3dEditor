@@ -223,15 +223,23 @@ ab.eval_js(S, "window.__app.setSkyStyle('classic')"); time.sleep(1.5)
 set_hdr(0.0); cap("r19_T6_c_b0.png")
 set_hdr(0.35); cap("r19_T6_c_t10.png")
 d6 = (luma(load("r19_T6_c_t10.png")) - luma(load("r19_T6_c_b0.png"))).mean()
-check("T6a classic sky body no bloom (|d| < 2)", abs(d6) < 2.0, f"{d6:+.2f}")
+# r20 L1: the body now blooms SOFTLY (user: 'sky is not showing bloom its illumination is
+# not high') — HDR_CLASSIC_BODY_GAIN 1.20 dome-only. Window [+1,+9]: visible, not the wash.
+p25c = float(np.percentile(luma(load("r19_T6_c_t10.png")) - luma(load("r19_T6_c_b0.png")), 25))
+check("T6a classic sky body SOFT bloom visible (+1..+9, p25<=+3)", 1.0 <= d6 <= 9.0 and p25c <= 3.0, f"{d6:+.2f} p25 {p25c:+.2f}")
 
 # T6b realistic body (anti-sun aim)
 ab.eval_js(S, "window.__app.setSkyStyle('realistic')"); time.sleep(2.5)
 aim(308.66, 57.38)
 set_hdr(0.0); cap("r19_T6_r_b0.png")
 set_hdr(0.35); cap("r19_T6_r_t10.png")
-d6r = (luma(load("r19_T6_r_t10.png")) - luma(load("r19_T6_r_b0.png"))).mean()
-check("T6b realistic sky body no bloom (|d| < 2)", abs(d6r) < 2.0, f"{d6r:+.2f}")
+R0, R1 = luma(load("r19_T6_r_b0.png")), luma(load("r19_T6_r_t10.png"))
+d6r = (R1 - R0).mean()
+skyb0 = float(R0[:BH // 2, :].mean())
+# r20 L1: NON-VACUOUS body guard (the r19 '+0.00' was black-vs-black — the raw LUT body
+# ~0.01-0.03 rendered black under finish; nobody noticed for two rounds) + the soft-bloom
+# window at the aimed sky (gain 80: +6.0 measured)
+check("T6b realistic body RENDERS (b0 sky mean > 60) + soft bloom (+2..+15)", skyb0 > 60 and 2.0 <= d6r <= 15.0, f"sky {skyb0:.0f} d {d6r:+.2f}")
 
 # T7a realistic sun disc (midday, at the sun)
 aim(128.66, 57.38)
@@ -241,7 +249,11 @@ S0, S1 = luma(load("r19_T7_sun_b0.png")), luma(load("r19_T7_sun_t10.png"))
 yy, xx = np.mgrid[0:BH, 0:BW]
 rad = np.sqrt((yy - BH//2)**2 + (xx - BW//2)**2)
 core_d = (S1 - S0)[rad < 12].mean()
-check("T7a realistic sun disc blooms (core delta > +20)", core_d > 20, f"core={core_d:+.1f}")
+ring_d = (S1 - S0)[(rad >= 30) & (rad < 60)].mean()
+# r20 L1 re-baseline: the body now sits bright (194+) around the sun, so the ACES ceiling
+# compresses the disc core delta (was +53.8 against the old BLACK body). The disc's bloom
+# presence: core > +5 and the spreading ring > +8 (measured +10.7/+14.0 at gain 80).
+check("T7a realistic sun region blooms (core > +5, ring 30-60 > +8)", core_d > 5 and ring_d > 8, f"core={core_d:+.1f} ring={ring_d:+.1f}")
 
 # T7b realistic moon (night, at the moon)
 ab.eval_js(S, "window.__app.setLightCustom(0, -30)"); time.sleep(2.5)

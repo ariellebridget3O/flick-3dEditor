@@ -268,8 +268,15 @@ time.sleep(1.6)
 cap("r18_T9_bloom0.png")
 l0 = sky_sliver_luma("r18_T9_bloom0.png").mean()
 l10 = sky_sliver_luma("r18_T9_thr1.0.png").mean()
-check("T9a sky body does NOT bloom at thr 1.0 (r19 recalibration)", abs(l10 - l0) < 2.0,
-      f"bloom0={l0:.1f} thr1.0={l10:.1f} ({l10-l0:+.1f}; the r18 whole-sky bloom was +20.8)")
+# r20 L1: the sky body now blooms SOFTLY by design (HDR_CLASSIC_BODY_GAIN 1.20 dome-only —
+# user: 'sky is not showing bloom'). This pose aims at the GOLDEN-HOUR SUN SIDE — the sliver
+# reads the flare+body glow (+19..+22 measured). The WASH GUARD is the frame p25 (the r18
+# wash was uniform +20.8 across the whole frame; the r20 profile decays +19 -> +0.2 by row 300).
+_B9 = np.asarray(Image.open(os.path.join(OUT, "r18_T9_bloom0.png")).convert("RGB")).astype(np.float32) @ [0.299, 0.587, 0.114]
+_N9 = np.asarray(Image.open(os.path.join(OUT, "r18_T9_thr1.0.png")).convert("RGB")).astype(np.float32) @ [0.299, 0.587, 0.114]
+_p25_9 = float(np.percentile(_N9 - _B9, 25)); _fm9 = float((_N9 - _B9).mean())
+check("T9a golden-hour sky GLOWS (sliver +15..+30) w/o wash (p25<=+3, mean<=+8)", 15.0 <= (l10 - l0) <= 30.0 and _p25_9 <= 3.0 and _fm9 <= 8.0,
+      f"sliver {l10-l0:+.1f} p25 {_p25_9:+.1f} mean {_fm9:+.1f} (r18 wash was uniform +20.8, r19 was +0.0)")
 # sun arm: golden hour (el 9, flare 0.60), high-vantage aim AT the sun. The stale boot-pose
 # maxPolarAngle clamp eats fresh aims — pre-clear it (see the r19 harness lesson).
 _sun_aim = """(function(){

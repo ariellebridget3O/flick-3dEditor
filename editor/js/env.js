@@ -221,13 +221,17 @@ const SKY_FRAG = /* glsl */`
   uniform vec3 horizon;
   uniform vec3 flare;
   uniform vec3 flareDirection;
+  uniform float uHdrGain;   // r20 L1: dome-BODY-only HDR gain (1 = byte-inert). The dome
+                            // horizon is LOCKED to the fog color by design (continuity), so a
+                            // shared lift can never bloom the sky without washing the fog —
+                            // the gain lifts only the body; the flare keeps its own lifts.
   void main() {
     vec3 direction = normalize(vDirection);
     float height = max(direction.y, 0.0);
-    vec3 color = mix(horizon, zenith, pow(height, 0.55));
+    vec3 body = mix(horizon, zenith, pow(height, 0.55));
     // Kept off the horizon itself, where the sky has to match the haze exactly.
-    color += flare * pow(max(dot(direction, flareDirection), 0.0), 7.0) * smoothstep(0.0, 0.06, height);
-    gl_FragColor = vec4(color, 1.0);
+    vec3 flareTerm = flare * pow(max(dot(direction, flareDirection), 0.0), 7.0) * smoothstep(0.0, 0.06, height);
+    gl_FragColor = vec4(body * uHdrGain + flareTerm, 1.0);
     #include <colorspace_fragment>
   }`;
 
@@ -240,6 +244,7 @@ function makeSkyDome() {
       uniforms: {
         zenith: { value: new THREE.Color() }, horizon: { value: new THREE.Color() },
         flare: { value: new THREE.Color() }, flareDirection: { value: new THREE.Vector3() },
+        uHdrGain: { value: 1 },
       },
     }));
   mesh.frustumCulled = false;
@@ -343,6 +348,11 @@ export function createEnvironment(scene, settings) {
     hemi.color.copy(g.fillSky); desat(hemi.color, w.desat);
     hemi.groundColor.copy(g.fillGround); desat(hemi.groundColor, w.desat);
     const u = sky.material.uniforms;
+    // r20 L1: the dome BODY gets its own gain on top of the lift (the fog keeps the lift
+    // only) — the shared lift alone could never bloom the sky without washing the fog band
+    // (the dome horizon == fog color by construction; the cliff is structural). Byte-inert
+    // at 1 (x*1.0) — the classic non-finish path and every hdr-off arm are untouched.
+    u.uHdrGain.value = light.hdr?.enabled && _finishOn ? C.HDR_CLASSIC_BODY_GAIN : 1;
     u.zenith.value.copy(g.zenith).multiplyScalar((1 - w.darken) * lift); desat(u.zenith.value, w.desat);
     u.horizon.value.copy(g.horizon).multiplyScalar((1 - w.darken) * lift); desat(u.horizon.value, w.desat);
     scene.fog.color.copy(g.horizon); desat(scene.fog.color, w.desat);   // fog matches the weathered horizon
