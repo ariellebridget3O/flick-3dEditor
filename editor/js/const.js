@@ -2,11 +2,13 @@
 // Policy [A:F23]: semantic names; minified id in comment; values are byte-exact (decimals kept
 // as-is where the bundle uses them because THREE.Color(number) is hex-semantics on ints).
 
-// r21 L2: the editor BUILD STAMP — shown as a badge in the stage header; a mismatch with
-// localStorage 'flickBuild' toasts "updated, hard-reload if the UI looks old" on boot. This
-// exists because round-21 forensics proved the user reviewed a STALE TAB (every r20 fix
-// verified live). The badge makes freshness checkable by eye.
-export const BUILD = 'r21';
+// r21 L2 (bumped r22): the editor BUILD STAMP — shown as a badge in the stage header; a
+// mismatch with localStorage 'flickBuild' toasts "updated, hard-reload if the UI looks old"
+// on boot. This exists because round-21 forensics proved the user reviewed a STALE TAB
+// (every r20 fix verified live). The badge makes freshness checkable by eye.
+// r22: view auto-fit removals (plan re-fit on show [r7 divergence] + draw-start centerOn
+// [r21 L3a divergence]) — the ORIGINAL does neither.
+export const BUILD = 'r22';
 export const C = {
   // ---------- viewport / renderer (COr, fZt) ----------
   EDITOR_FOV: 50,            // FP

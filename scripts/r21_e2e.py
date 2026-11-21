@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """r21_e2e.py — round-21 regression suite (L2 sun control v2 + L3 draw trio).
 
-T1  build badge: #buildBadge exists, text 'r21'; localStorage flickBuild === 'r21'
+T1  build badge: #buildBadge exists, text 'r22'; localStorage flickBuild === 'r22'
 T2  the sunpath ARC: #sunRail is .el-arc 60x128; the handle sits at arcXY(el) (±2px)
 T3  ARC REAL-TIME: synthetic drag updates light.elevationDeg + handle pos in the SAME eval
 T4  arc clamps: pointer below -30 -> -30; above 90 -> 90; moon class at el <= -8
 T5  the light WEDGE: #sunWedge d non-empty, changes with a disc az drag, .moon at night
 T6  disc drag = azimuth only (elevation unchanged) — r20 contract preserved
-T7  draw-mode centering: pan the view away -> toggle draw ON -> view eases to the target
+T7  draw must NOT re-center (r22: r21 centerOn removed — live has no view adaptation on
+    draw start); T7b plan view PERSISTS across 2D->3D->2D toggles (r22: r7 re-fit removed)
 T8  first-step GLIDE: far press (>3m) + 1m first move -> stroke.at pulled toward the
     walker (not the raw pointer): |at - pointer| > 0.3m
 T9  drawn cam-path default aim === 'travel' (auto-adjust); figure path keeps aim-omission
@@ -40,7 +41,7 @@ time.sleep(7)
 # T1 badge
 r = ev("(() => { const b = document.getElementById('buildBadge'); return JSON.stringify({badge: b ? b.textContent : null, stamp: localStorage.getItem('flickBuild')}); })()")
 d = json.loads(r)
-ok("T1 build badge", d["badge"] == "r21" and d["stamp"] == "r21", d)
+ok("T1 build badge", d["badge"] == "r22" and d["stamp"] == "r22", d)
 
 # open the light popover
 ev("document.getElementById('btnLight').click()")
@@ -108,7 +109,8 @@ ev("document.getElementById('btnLight').click()")   # close popover
 ev("(() => { const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='2D'); b.click(); return '2d'; })()")
 time.sleep(1.2)
 
-# T7 center-on-draw
+# T7 draw must NOT re-center (r22: the r21 centerOn removed — the live's toggleDrawing has
+# no view adaptation; the user's "self-adapting/auto-fit" complaint). Pan away, start draw, view stays.
 r = ev("""(() => { const a = window.__app; const pv = a.planView;
   pv.w = { ...pv.w, view: { ...pv.w.view, centerX: 40, centerZ: -25 } };
   const hid = Object.keys(a.objects.all()).find(id => a.objects.get(id).kind === 'humanoid');
@@ -119,7 +121,7 @@ r = ev("""(() => { const a = window.__app; const pv = a.planView;
 time.sleep(0.8)
 r = ev("(() => { const v = window.__app.planView.w.view; return JSON.stringify({c: [+v.centerX.toFixed(2), +v.centerZ.toFixed(2)]}); })()")
 d = json.loads(r)
-ok("T7 draw centers on walker", abs(d["c"][0]) < 1 and abs(d["c"][1]) < 1, d)
+ok("T7 draw does NOT re-center (view stays put)", abs(d["c"][0] - 40) < 0.5 and abs(d["c"][1] + 25) < 0.5, d)
 
 # T8 glide (far press, small first move)
 r = ev("""(() => { const a = window.__app; const c = document.querySelector('[data-testid=stage-plan]');
@@ -168,6 +170,20 @@ r = ev("""(() => { const a = window.__app;
   return JSON.stringify({aim: it ? it.aim : null, anchors: it ? it.anchors.length : 0}); })()""")
 d = json.loads(r)
 ok("T9 cam-path default aim=travel", d["aim"] == "travel" and d["anchors"] >= 2, d)
+
+# T7b plan view PERSISTS across 2D->3D->2D toggles (r22: the r7 setVisible re-fit removed —
+# the live resets `fitted` only from the Fit button; toggling viewport mode must keep the pan/zoom)
+r = ev("""(() => { const a = window.__app; const pv = a.planView;
+  pv.w = { ...pv.w, view: { ...pv.w.view, centerX: 12, centerZ: -7, pxPerM: 30 } };
+  return JSON.stringify({c0: [+pv.w.view.centerX.toFixed(2), +pv.w.view.centerZ.toFixed(2)], z0: +pv.w.view.pxPerM.toFixed(2)}); })()""")
+d0 = json.loads(r)
+ev("(() => { const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='3D'); if(b) b.click(); return '3d'; })()")
+time.sleep(0.6)
+ev("(() => { const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='2D'); if(b) b.click(); return '2d'; })()")
+time.sleep(1.0)
+r = ev("(() => { const v = window.__app.planView.w.view; return JSON.stringify({c: [+v.centerX.toFixed(2), +v.centerZ.toFixed(2)], z: +v.pxPerM.toFixed(2)}); })()")
+d = json.loads(r)
+ok("T7b plan view persists across toggles", abs(d["c"][0] - 12) < 0.5 and abs(d["c"][1] + 7) < 0.5 and abs(d["z"] - 30) < 0.5, {"before": d0, "after": d})
 
 # T11 dblclick to edit (aim at the cam-path first anchor + 0.3m along)
 r = ev("""(() => { const a = window.__app; const pv = a.planView; const v = pv.w.view;

@@ -977,9 +977,11 @@ export class PlanStore {
   toggleDrawing() {
     this.pendingWalkerFocus = null;
     this.drawingFor = this.drawing() ? null : this.drawTarget();
-    // r21 L3a: center the view on the draw target when draw mode STARTS so the walker sits
-    // mid-screen and strokes begin at its feet (kills the far-press first-segment leap).
-    if (this.drawingFor) this.centerOn(this.drawingFor);
+    // r22: the r21 L3a centerOn here is REMOVED (user: self-adapting/auto-fit "tends to
+    // cause problems" — turn off by default). The live's toggleDrawing is verbatim
+    // `pendingWalkerFocus=null; drawingFor.set(drawing.peek()?null:drawTarget.peek())` —
+    // NO view adaptation on draw start. The actual first-step-leap fix is the glide radius
+    // (tDr 1->3, below in grab easing), which stays.
     this._onDrawingChange?.(); this.a.markAutosave?.();
   }
   stopDrawing() { this.endStroke(), this.pendingWalkerFocus = null, this.drawingFor = null, this.hideRehearseTip(), this._onDrawingChange?.(); }
@@ -1430,7 +1432,13 @@ export class PlanCanvas {
     if (pad) pad.style.display = on ? 'none' : '';
     if (tb) tb.style.display = on ? 'none' : (this.app.objects?.selectedIds?.length ? 'flex' : 'none');
   }
-  setVisible(v) { this.canvas.style.display = v ? 'block' : 'none'; if (v) { this.w = OLr(this.w); } }
+  // r22: the r7 `if (v) { this.w = OLr(this.w); }` re-fit is REMOVED — it re-fit the plan
+  // view EVERY time it was shown (the user's "self-adapting / auto-fit across all
+  // viewports"). The ORIGINAL resets `fitted` ONLY from the zoom-by-"fit" button
+  // (OLr has exactly ONE call site in the live bundle); the view state persists across
+  // show/hide toggles, and ILr's fit runs ONCE on first sizing. The Fit button
+  // (#pbZoomFit) remains the explicit re-fit affordance.
+  setVisible(v) { this.canvas.style.display = v ? 'block' : 'none'; }
 
   // ---- deps snapshot for reducers ($()) ----
   _deps() {
