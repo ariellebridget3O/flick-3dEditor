@@ -317,3 +317,10 @@ Harness: scripts/pixel_oracle/ — the live-session chain scripted end-to-end (l
 - PORTED VERBATIM: ensureTargetMarker/dropTargetMarker/reconcileTargetMarkers + U2r/YN + Oye=5 + lastAimPosition/Name (bundle @5258833/@5258988/@5794929/@4316400).
 - FIXED (pre-existing, review P1): ShowStore.detachReferences threw on every call since r6 (this.objects/update are ObjectStore members) — camera delete now completes; live-verified.
 - L4 battery: no HDR blackout (day/golden black-frac 0.0); realistic+HDR sky bloom +109/+122; night arms dark by design (moonless aim).
+
+## Round 22 (2026-11-21)
+- DIVERGENCE REVERSALS (fidelity RESTORED — two self-added auto-fits deleted per the user's "turn that off by default"):
+  - plan setVisible re-fit (r7) — REMOVED. The live resets `fitted` ONLY from the zoom-by-"fit" button (OLr: exactly ONE call site in the bundle); plan view state now persists across 2D↔3D toggles like the original. The Fit button (#pbZoomFit) is the explicit re-fit affordance.
+  - toggleDrawing centerOn (r21 L3a) — REMOVED. The live's toggleDrawing is verbatim `pendingWalkerFocus=null; drawingFor.set(drawing.peek()?null:drawTarget.peek())`. The tDr 1→3 glide (r21) STAYS (divergence ledgered r21, user-ordered).
+- PROVENANCE TABLE (verified against index-DBE17t4T.js this round): focusObject fly-to on add/drop/dblclick/alt-click/camera-click = ORIGINAL (`u&&t.focusObject(u)` @onDropComponent; the UUr duration constant matches our FOCUS_DURATION); plan fit-once (ILr), zoom Fit (OLr), goToCamera, edge autopan (BLr), resize-keeps-center (jLr) = ORIGINAL verbatim; cam-wall responsive tiles = OUR r20 design (sanctioned divergence, the live's per-tile-canvas feed bank replaced); focusOnCreate/autoFitOnMount bundle hits = node-graph/storyboard subsystem, NOT the stage viewports.
+- Gates: r21 E2E 13/13 (T7 inverted + T7b added); plan oracle 485/485; walklook 27/27; r17 camera 31/31 + seams 3/3; r19 light 12/12.
