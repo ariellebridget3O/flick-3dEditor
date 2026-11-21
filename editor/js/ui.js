@@ -2,7 +2,7 @@
 // right dock (inspector + add palette + hierarchy), timeline footer, camera pills, toasts.
 // Layout per analysis/DOM_REFERENCE.md; vanilla DOM per DESIGN D1.
 // Called AFTER boot with the live app instance.
-import { C, CLIPS, CAM_MOVES, CAM_MOVE_PRESETS } from './const.js';
+import { C, CLIPS, CAM_MOVES, CAM_MOVE_PRESETS, BUILD } from './const.js';
 import { normalizeLight, solarPositionDeg, geoToSceneLight } from './env.js';
 import { itemDuration } from './schema.js';
 import { showLayout, ITEM_LABELS, fovFromFocal } from './tracks.js';
@@ -33,6 +33,25 @@ function wireComponentDrag(app, root, specFor) {
 
 export function buildUI(app) {
   // DOM shell is static in index.html — only wire events here.
+  // r21 L2: the BUILD badge (stage header, always visible) + the stale-tab toast — the
+  // round-21 review was served from a stale tab; this makes freshness checkable by eye.
+  {
+    const hdr = document.querySelector('.stage-header');
+    if (hdr && !document.getElementById('buildBadge')) {
+      const b = document.createElement('div');
+      b.id = 'buildBadge';
+      b.className = 'build-badge';
+      b.textContent = BUILD;
+      b.title = 'Editor build. If the UI looks old, hard-reload (Ctrl/Cmd+Shift+R).';
+      hdr.appendChild(b);
+    }
+    try {
+      if (localStorage.getItem('flickBuild') !== BUILD) {
+        localStorage.setItem('flickBuild', BUILD);
+        setTimeout(() => app.toast(`Editor updated (${BUILD}). If anything looks unchanged, hard-reload the page (Ctrl/Cmd+Shift+R).`), 1200);
+      }
+    } catch (_) { /* storage unavailable — badge still shows */ }
+  }
   // toast(msg, action?) — action = {label, onClick} renders a snackbar action button
   // (live ot.error(msg, {action}) semantic equivalent; i18n catalog unavailable SKILL #34)
   app.toast = (msg, action) => {
@@ -361,6 +380,17 @@ function buildLightPopover(app) {
               return `<line x1="${54 + r1 * Math.sin(a)}" y1="${54 - r1 * Math.cos(a)}" x2="${54 + r2 * Math.sin(a)}" y2="${54 - r2 * Math.cos(a)}" stroke="${i % 6 === 0 ? '#5a6580' : '#3a4152'}" stroke-width="1"/>`;
             }).join('')}
           </svg>
+          <svg class="wedgesvg" viewBox="0 0 106 106" aria-hidden="true">
+            <defs>
+              <radialGradient id="wedgeGrad" cx="53" cy="53" r="50" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#ffcf7e" stop-opacity="0"/>
+                <stop offset=".55" stop-color="#ffcf7e" stop-opacity=".10"/>
+                <stop offset="1" stop-color="#ffd98f" stop-opacity=".38"/>
+              </radialGradient>
+            </defs>
+            <path id="sunWedge" fill="url(#wedgeGrad)"/>
+            <circle class="scene-dot" cx="53" cy="53" r="3.2"/>
+          </svg>
           <span class="dir-lab" data-c="0">N</span><span class="dir-lab" data-c="90">E</span>
           <span class="dir-lab" data-c="180">S</span><span class="dir-lab" data-c="270">W</span>
           <span class="dir-caret" title="Up = camera heading"></span>
@@ -369,14 +399,21 @@ function buildLightPopover(app) {
         </div>
         <span class="sun-cap">direction</span>
       </div>
-      <div class="rail-wrap">
-        <div class="el-rail" id="sunRail" tabindex="0" role="slider"
+      <div class="arc-wrap">
+        <div class="el-arc" id="sunRail" tabindex="0" role="slider"
           aria-label="Sun height" aria-valuemin="-30" aria-valuemax="90">
-          <span class="rail-horizon" title="Horizon"></span>
-          <span class="rail-stop s1" title="${C.LIGHT_PRESETS[0].elevationDeg}°"></span>
-          <span class="rail-stop s2" title="${C.LIGHT_PRESETS[1].elevationDeg}°"></span>
-          <span class="rail-stop s3" title="${C.LIGHT_PRESETS[2].elevationDeg}°"></span>
-          <span class="rail-stop s4" title="${C.LIGHT_PRESETS[3].elevationDeg}°"></span>
+          <svg class="arc-svg" viewBox="0 0 60 128" aria-hidden="true">
+            <path class="arc-moonzone" d="M 58 100 A 48 48 0 0 1 51.57 124 L 10 100 Z"/>
+            <path class="arc-moonline" d="M 58 100 A 48 48 0 0 1 51.57 124"/>
+            <path class="arc-line" d="M 58 100 A 48 48 0 0 0 10 52"/>
+            <line class="arc-horizon" x1="2" y1="100" x2="59" y2="100"/>
+            <line class="arc-tick" x1="35.86" y1="57.57" x2="39.72" y2="51.66" title="${C.LIGHT_PRESETS[0].elevationDeg}°"/>
+            <line class="arc-tick" x1="57.41" y1="90.49" x2="58.66" y2="84.03" title="${C.LIGHT_PRESETS[1].elevationDeg}°"/>
+            <line class="arc-tick" x1="57.88" y1="103.35" x2="58.36" y2="109.9" title="${C.LIGHT_PRESETS[2].elevationDeg}°"/>
+            <line class="arc-tick" x1="54.16" y1="123.47" x2="57.63" y2="129.15" title="${C.LIGHT_PRESETS[3].elevationDeg}°"/>
+            <circle class="arc-star" cx="40" cy="116" r="1"/>
+            <circle class="arc-star" cx="30" cy="121" r=".8"/>
+          </svg>
           <div class="rail-handle" id="sunRailHandle"></div>
           <div class="rail-handle ghost" id="sunRailGhost" style="display:none"></div>
         </div>
@@ -459,15 +496,31 @@ function buildLightPopover(app) {
   // Knob position maps to the STORED light.azimuthDeg/elevationDeg always — no flip at the
   // moon handoff (aSr remaps elevation only; realistic night key = anti-solar, derived).
   const MOON_EL = -8;   // the live's exact aSr moon-handoff threshold
+  // r21 L2: arc geometry — a protractor centered at viewBox (10,100), R=48: el 0 = the
+  // horizon point (right), el 90 = zenith (up), el -30 = the deepest moon-zone point.
+  const ARC = { cx: 10, cy: 100, r: 48, w: 60, h: 128 };
   const rimAt = (node, az, yaw) => {
     const n = (az - yaw) * Math.PI / 180;
     const x = Math.sin(n), y = -Math.cos(n);
     node.style.left = `calc(50% + (50% - 9px) * ${(x * 0.92).toFixed(4)})`;
     node.style.top = `calc(50% + (50% - 9px) * ${(y * 0.92).toFixed(4)})`;
   };
+  const arcXY = elv => {
+    const a = Math.min(90, Math.max(-30, elv)) * Math.PI / 180;
+    return { x: ARC.cx + ARC.r * Math.cos(a), y: ARC.cy - ARC.r * Math.sin(a) };
+  };
   const railAt = (node, elv) => {
-    const p = (90 - Math.min(90, Math.max(-30, elv))) / 120;   // 0..1 top..bottom
-    node.style.top = `calc(${(p * 100).toFixed(2)}% - 9px)`;
+    const p = arcXY(elv);
+    node.style.left = p.x.toFixed(2) + 'px';
+    node.style.top = p.y.toFixed(2) + 'px';
+  };
+  // the light wedge on the disc: a tapered sector from the rim sun toward the scene dot
+  const wedgeEl = () => el.querySelector('#sunWedge');
+  const wedgeAt = (az, yaw) => {
+    const w = wedgeEl(); if (!w) return;
+    const th = (az - yaw) * Math.PI / 180, SPREAD = 13 * Math.PI / 180, TAPER = 8 * Math.PI / 180;
+    const P = (r, a) => `${(53 + r * Math.sin(a)).toFixed(2)} ${(53 - r * Math.cos(a)).toFixed(2)}`;
+    w.setAttribute('d', `M ${P(16, th - SPREAD)} L ${P(50, th - TAPER)} A 50 50 0 0 1 ${P(50, th + TAPER)} L ${P(16, th + SPREAD)} A 16 16 0 0 0 ${P(16, th - SPREAD)} Z`);
   };
   const labAt = (node, cardinal, yaw) => {
     const n = (cardinal - yaw) * Math.PI / 180;
@@ -486,6 +539,8 @@ function buildLightPopover(app) {
     const yaw = adoptYaw(now);
     const night = l.elevationDeg <= MOON_EL;
     rimAt(dirKnob, l.azimuthDeg, yaw);
+    wedgeAt(l.azimuthDeg, yaw);
+    wedgeEl()?.classList.toggle('moon', night);
     dirKnob.classList.toggle('moon', night);
     railAt(railHandle, l.elevationDeg);
     railHandle.classList.toggle('moon', night);
@@ -636,7 +691,9 @@ function buildLightPopover(app) {
   rail.addEventListener('pointermove', e => {
     if (dragging !== 'rail') return;
     const r = rail.getBoundingClientRect();
-    const elv = 90 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) * 120;
+    const px = (e.clientX - r.left) * ARC.w / r.width, py = (e.clientY - r.top) * ARC.h / r.height;
+    const ang = Math.atan2(ARC.cy - py, px - ARC.cx) * 180 / Math.PI;   // up = 90, horizon = 0
+    const elv = Math.min(90, Math.max(-30, ang));
     app.setLightCustom(app.light.azimuthDeg, elv);
     render();
   });
