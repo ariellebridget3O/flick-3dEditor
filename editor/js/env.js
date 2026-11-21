@@ -171,18 +171,18 @@ function buildSkyParams(light, fogColor, g) {
 }
 
 // ---------- clouds (P2): params from light.clouds + weather coupling (realistic branch only) ----------
-// r18 rework: WEATHER is the primary coverage driver (user feedback: 'from clear to overcast
-// to rain / fog (100% coverage) with color changes'). effective = anchor[weather] x userFactor
-// (user slider / schema default = a RELATIVE control now), clamped to the rain/fog floors.
-// Cloud lighting follows the scene weather (Lc x w.sun, msAmb x w.hemi — audit P1-10) plus a
-// residual per-weather cloud darken for the overcast/rain gray-lid look.
+// r21 revert (user: 'COMPLETELY revert to the earlier approach'): the r13 coupling is back —
+// the USER coverage is authoritative; weather modulates ±30% max. The r18 anchor×factor+floors
+// table (weather DRIVES coverage, user slider relative, rain/fog floors) went with the blob
+// rework it was built for. The old anchoring (userCov × weatherCov/0.45) crushed clear weather
+// to ×0.4 — user 0.5 rendered as 0.2 and the deck dissolved into wisps. Overcast/rain factors
+// still reach 1.0 at high user coverage. The r18 weather COLOR coupling stays (weatherSun/
+// weatherHemi/cloudDarken below — an explicit r18 user ask, shape-neutral).
 function buildCloudParams(light, sp) {     // sp = buildSkyParams bundle (shares night/moon/fog)
   const cl = light.clouds ?? {};
   const w = C.WEATHER[light.weather] ?? C.WEATHER.clear;
-  const anchor = C.CLOUD_COVERAGE_BY_WEATHER[light.weather] ?? 0.45;
-  const floor = C.CLOUD_COVERAGE_FLOOR[light.weather] ?? 0;
-  const userFactor = (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT) / C.CLOUD_COVERAGE_DEFAULT;
-  const coverage = Math.min(1, Math.max(floor, anchor * userFactor));
+  const wFac = C.CLOUD_COV_FACTOR[light.weather] ?? 1;
+  const coverage = Math.min(1, Math.max(0, (cl.coverage ?? C.CLOUD_COVERAGE_DEFAULT) * wFac));
   return {
     coverage,
     density: cl.density ?? 1,

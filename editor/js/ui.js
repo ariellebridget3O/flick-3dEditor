@@ -591,12 +591,11 @@ function buildLightPopover(app) {
     const cl = l.clouds ?? { enabled: false, coverage: C.CLOUD_COVERAGE_DEFAULT, density: 1, cirrus: 0.15, altitudeM: 2500, thicknessM: 1200 };
     const cmode = cl.enabled ? 'layered' : 'off';
     const cloudsUsable = l.skyStyle === 'realistic';     // clouds are a realistic-sky feature — classic stays byte-identical
-    // r18: the effective coverage the engine will use (weather anchor x user factor, floored)
+    // r21 revert: the effective coverage the engine will use (user coverage x weather ±30% —
+    // the r13 coupling; the r18 anchor x factor + floors table went with the blob rework)
     const effCoverage = ll => {
-      const anchor = C.CLOUD_COVERAGE_BY_WEATHER[ll.weather ?? 'clear'] ?? 0.45;
-      const floor = C.CLOUD_COVERAGE_FLOOR[ll.weather ?? 'clear'] ?? 0;
-      const factor = (ll.clouds?.coverage ?? C.CLOUD_COVERAGE_DEFAULT) / C.CLOUD_COVERAGE_DEFAULT;
-      return Math.min(1, Math.max(floor, anchor * factor));
+      const fac = C.CLOUD_COV_FACTOR[ll.weather ?? 'clear'] ?? 1;
+      return Math.min(1, Math.max(0, (ll.clouds?.coverage ?? C.CLOUD_COVERAGE_DEFAULT) * fac));
     };
     el.querySelectorAll('#lpClouds button').forEach(b => { b.classList.toggle('on', cloudsUsable && b.dataset.c === cmode); b.disabled = !cloudsUsable && b.dataset.c !== 'off'; });
     const cloudRows = [['lpCovRow', cl.enabled && cloudsUsable], ['lpDenRow', cl.enabled && cloudsUsable], ['lpCirRow', cl.enabled && cloudsUsable], ['lpCloudDims', cl.enabled && cloudsUsable], ['lpSeedRow', cl.enabled && cloudsUsable]];
@@ -612,7 +611,7 @@ function buildLightPopover(app) {
     setVal($id('lpCSeed'), cl.seed ?? 0);
     $id('lpCloudsHint').textContent = !cloudsUsable ? 'Clouds need the Realistic sky style (classic stays byte-identical).'
       : !cl.enabled ? 'Clear sky (default).'
-      : 'Sheets on the dome; weather drives coverage: now ' + Math.round(100 * effCoverage(l)) + '% (' + (l.weather ?? 'clear') + ').';
+      : 'Layered parallax sheets; weather nudges coverage \u00b130%: now ' + Math.round(100 * effCoverage(l)) + '% (' + (l.weather ?? 'clear') + ').';
     // round 13 (HDR): tone mapping + bloom — off by default (absence = classic look)
     const hdr = l.hdr ?? { enabled: false, ...C.HDR_DEFAULTS };
     el.querySelectorAll('#lpHdr button').forEach(b => b.classList.toggle('on', b.dataset.h === (hdr.enabled ? 'on' : 'off')));

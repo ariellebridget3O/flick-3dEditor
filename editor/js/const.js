@@ -86,14 +86,11 @@ export const C = {
   // skyStyle: 'classic' (flick DAYLIGHT_STOPS dome, byte-identical default) | 'realistic'
   SKY_STYLES: ['classic', 'realistic'],
   // round 13 (P2): cloud layer — realistic-sky feature (classic stays byte-identical).
-  // Weather couples to coverage in env.js's realistic branch ONLY (multiplied against the
-  // schema default 0.45 so the table values are the anchors at default coverage).
-  // r18: weather DRIVES the effective coverage (anchor x user factor coverage/0.45),
-  // with rain/fog floors regardless of the slider (the deck must read coherent with the
-  // rain/fog lighting — audit P1-7 'floors, not force').
-  CLOUD_COVERAGE_BY_WEATHER: { clear: 0.18, cloudy: 0.55, overcast: 0.85, rain: 0.90, fog: 0.95 },
-  CLOUD_COVERAGE_FLOOR: { rain: 0.88, fog: 0.93 },
-  CLOUD_WEATHER_DARKEN: { clear: 0.0, cloudy: 0.0, overcast: 0.16, rain: 0.50, fog: 0.40 },
+  // r21 revert: the r13 coverage coupling — the USER coverage is authoritative; weather
+  // modulates ±30% max in env.js's realistic branch ONLY. (The r18 anchor table
+  // CLOUD_COVERAGE_BY_WEATHER + CLOUD_COVERAGE_FLOOR went with the blob rework it fed.)
+  CLOUD_COV_FACTOR: { clear: 0.85, cloudy: 1.15, overcast: 1.3, rain: 1.35, fog: 1.2 },
+  CLOUD_WEATHER_DARKEN: { clear: 0.0, cloudy: 0.0, overcast: 0.16, rain: 0.50, fog: 0.40 },   // r18 (kept): color coupling, shape-neutral
   CLOUD_COVERAGE_DEFAULT: 0.45,          // schema light.clouds.coverage default
   CLOUD_MODES: ['layered'],              // r18: procedural removed (unusably slow)
   // (r13 CLOUD_BUDGET_MS removed r18 — the budget auto-gate went with the procedural tier)

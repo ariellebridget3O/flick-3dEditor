@@ -329,7 +329,16 @@ const PALETTE = { background: '#1a1e28', grid: 'rgba(255,255,255,.05)', gridMajo
     const { facade: fp, tracks: tp } = mkFacade(old); fp.objects = { subj: obj, fig1: { kind: 'simple_figure', position: [1, 0, 2], rotation: [0, 0, 0], scale: [1, 1, 1] } }; if (old) { const t = fp.addPerformanceTrack('subj'); fp.updateTrackItems(t, items => [old, ...items]); }
     const p = P.replaceMoveFromSamples(fp, 'subj', 0, samples, { focusId: focus, steady });
     const strip = x => JSON.parse(JSON.stringify(x, (k, v) => k === 'id' ? undefined : v));
-    eq(strip(r ? [p, tp] : [p, tp]) !== null && r !== null ? [strip(p), strip(tp)] : [p, strip(tp)], r !== null ? [strip(r), strip(tr)] : [p ?? false, strip(tp)], `T8 replace ${kind} steady=${steady} focus=${focus} existing=${existing}`);
+    // r21 L3c (SANCTIONED DIVERGENCE, ledgered in docs/FIDELITY.md): the port's drawn
+    // cam-path defaults aim 'travel' (the camera follows the curve — the user's r20/r21
+    // "not auto-adjusting" ask); the live reference emits 'locked'. Normalize BOTH sides'
+    // cam-path/no-subject items to 'locked' before comparing so T8 stays byte-strict on
+    // everything else replaceMoveFromSamples produces (anchors, tangents, pace, speed).
+    const normAim = o => (o && o.kind === 'cam-path' && o.aim === 'travel' && o.subjectId == null) ? { ...o, aim: 'locked' } : o;
+    const normItems = trs => trs.map(t => ({ ...t, items: (t.items ?? []).map(normAim) }));
+    const L = r !== null ? [strip(p), normItems(strip(tp))] : [p, strip(tp)];
+    const Rr = r !== null ? [strip(r), normItems(strip(tr))] : [p ?? false, strip(tp)];
+    eq(L, Rr, `T8 replace ${kind} steady=${steady} focus=${focus} existing=${existing}`);
   }
 }
 
