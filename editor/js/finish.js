@@ -37,7 +37,21 @@ const NAME_COLOR_KINDS = new Set(['cube', 'sphere', 'cylinder', 'prop']); // JHr
 
 // glow detection (e$r/t$r/n$r/r$r + eKt)
 const GLOW_RE = GC('lanterns?|lamps?|candles?|windows?|lancets?|stained[_\\s-]glass|glass[_\\s-]panes?|moons?');
-const GLOW_NOT_RE = GC('frames?|mullions?|sills?|arch(es)?|recess(es)?|jambs?|posts?|poles?|bases?|caps?|roofs?|brackets?|stone|tracery|hoods?|moldings?|holders?|sticks?|wine');
+// r23 L4 (user bug report: "some window or wall lighten up in extreme brightness at night"):
+// the live's t$r is byte-faithful here, but its keyword-anywhere match false-positives on
+// STRUCTURE sub-parts whose names merely CONTAIN the keyword — e.g. the CC0 Living Room's
+// window mullion grids (window_horizontal_*_*, window_vertical_*_*), rails/uprights
+// (*_window_rail_*, *_window_upright_*), a wall section (left_wall_below_window) and lamp
+// stands/legs/consoles/stems — all rendered as flat unlit 0xFFC98A panels at night (the
+// user: "abnormal lighting... when the sun is above horizon they go back to normal" — the
+// DAYLIGHT_STOPS glow column ramps 0.35→1.0 below the horizon and is 0 above el 5).
+// SANCTIONED DIVERGENCE (ledgered r23): structural words ANYWHERE in the name now kill the
+// glow. Keepers verified across every fixture: Console lamp 1/2, shaded_lamp_*_shade,
+// lamp_burner/chimney (the flame housing), paper_window_* (the pane) still glow.
+const GLOW_NOT_RE = GC('frames?|mullions?|sills?|arch(es)?|recess(es)?|jambs?|posts?|poles?|bases?|caps?|roofs?|brackets?|stone|tracery|hoods?|moldings?|holders?|sticks?|wine'
+  + '|rails?|uprights?|stiles?|transoms?|horizontals?|verticals?|grids?|lattices?'
+  + '|stems?|stands?|legs?|consoles?|supports?|supporting'
+  + '|walls?|floors?|ceilings?|columns?|pillars?|plinths?|chimneys?|shutters?|shelves?');
 const GLOW_TAIL_NOT_RE = GC('tables?|seats?|walls?|blinds?|cords?|chains?|handles?|feet|foot');
 const GLOW_KINDS = new Set(['cube', 'sphere', 'cylinder']);
 const GLOW_EMISSIVE = 16763274;   // cOr = 0xFFB90A
