@@ -347,20 +347,48 @@ ${CL_ATMOS_CHUNK}
     }
 
     {
-      // ---- layered sheets: parallax alpha sheets (atlas rows), Lambert + HG-style glint ----
+      // ---- layered sheets on the DOME (r23 L2, user: "sky when layered + procedural is
+      // flat, i asked for dome"): direction-based UV — the pattern wraps the full sky at
+      // constant angular texel density instead of smearing on a planar XZ projection (the
+      // planar mapping sampled thousands of km of slant at grazing angles -> textureless lid
+      // -> 'the sky is flat'). Per-sheet INTEGER azimuth repeats (seam-safe under
+      // RepeatWrapping: the atan2 wrap jumps u by exactly the repeat) + per-sheet phase
+      // offsets (no aligned seam columns) + differing repeats (parallax/depth illusion).
+      // SHAPES stay the r13 soft atlas the r21 revert restored (the r18 blob machinery is
+      // still gone); only the PROJECTION is dome again. Camera-translation parallax is
+      // intentionally dropped: negligible at 2.5 km for a stage-scale editor camera.
+      float uAz = atan(worldDir.x, worldDir.z) / 6.2831853;    // -0.5..0.5, wrap at azimuth seam
+      float vEl = pow(1.0 - max(worldDir.y, 0.0), 0.6);        // 0 zenith .. 1 horizon (dome curve)
       for (int i = 0; i < ${CL_SHEET_COUNT}; i++) {
         if (i >= uSheetCount) break;
         float fi = (float(i) + 0.5) / float(uSheetCount);
-        float altKm = uBaseKm + uHeightKm * fi;
-        vec2 span = shellSpan(camPos, worldDir, uBottomRadius + altKm, uBottomRadius + altKm + 0.01);
-        if (span.x < 0.0 || span.y <= 0.0) continue;
-        vec3 p = camPos + worldDir * span.y;
-        vec2 uv = p.xz / SHAPE_TILE_KM + uWindOffset * (1.0 + fi);
-        vec4 sh = texture(uSheetAtlas, vec2(uv.x, (float(i) + fract(uv.y)) / ${CL_SHEET_COUNT.toFixed(1)}));
+        float ru = 4.0 + float(i);                             // integer repeats: 4..9
+        float ph = fract(float(i) * 0.318);                    // per-sheet phase (seam stagger)
+        vec2 uv = vec2((uAz + ph) * ru + uWindOffset.x * (1.0 + 0.3 * fi) + uSeedOffset.x * ru,
+                       vEl * (2.0 + 0.4 * fi) + uWindOffset.y * (0.2 + 0.1 * fi) + uSeedOffset.y);
+        // textureGrad with CLAMPED gradients — the dome mapping compresses v near the
+        // horizon (and u converges at the zenith), so the automatic LOD over-minifies and
+        // the soft field washes to a flat veil. Capping the per-pixel uv delta at 1/16
+        // tile limits the mip chain to ~level 4 where the r13 cumulus structure still
+        // lives; mild minification aliasing beats a textureless lid (the soft pow-knee
+        // edge keeps it clean — no blob hard-edges to shimmer).
+        // v inset: sampling exactly at the row boundary cross-bleeds the adjacent atlas
+        // row through the mip chain (thin dark streaks + razor-straight cloud bottoms).
+        // Keep 2% inside the row on both ends (the r18 P2-2 accepted nit, same here).
+        float fv = 0.02 + 0.96 * fract(uv.y);
+        vec2 suv = vec2(uv.x, (float(i) + fv) / ${CL_SHEET_COUNT.toFixed(1)});
+        // cap in TEXEL space per axis: the atlas is 256 x (256*6), so the v axis has 6x
+        // the texel density of u — a symmetric uv cap let the v axis select mip ~6.6
+        // (rows crushed to ~2.6px; the field averaged back into an invisible veil — the
+        // r18 it3 lesson). 16 texels/px on both axes caps the chain at level 4.
+        vec2 gcap = vec2(16.0 / ${CL_SHEET_ATLAS_W.toFixed(1)}, 16.0 / (${CL_SHEET_ATLAS_W.toFixed(1)} * ${CL_SHEET_COUNT.toFixed(1)}));
+        vec2 gdx = clamp(dFdx(uv), -gcap, gcap);
+        vec2 gdy = clamp(dFdy(uv), -gcap, gcap);
+        vec4 sh = textureGrad(uSheetAtlas, suv, gdx, gdy);
         float aS = sh.a;
         if (aS < 0.004) continue;
         vec3 N = normalize(vec3((sh.r * 2.0 - 1.0) * ${CL_SHEET_RELIEF.toFixed(2)}, 1.0, (sh.g * 2.0 - 1.0) * ${CL_SHEET_RELIEF.toFixed(2)}));
-        float wrap = sat((dot(N, Ld) + 0.35) / 1.35);
+        float wrap = sat((dot(N, Ld) + 0.35) / 1.35);   // r13 soft lighting (kept through the dome graft)
         vec3 Hv = normalize(Ld - worldDir);
         vec3 sheetL = (Lc * wrap + msAmb * 0.7) * 0.75            // r13 tune: sheets were full-sun white (Lc*wrap ~0.8 linear saturates the exposure-10 curve) — dim to keep deck texture readable. NOTE: the SKY_EXPOSURE-10 curve saturates at L≈0.35, so the 6-sheet zenith stack clips ~245-253 display regardless of this scale (0.68 tried r13 acceptance — identical display); layered is the FALLBACK tier, zenith clip documented as the known nit
           + Lc * pow(max(mu, 0.0), 8.0) * 0.25           // silver lining
