@@ -410,7 +410,7 @@ function buildLightPopover(app) {
             <line class="arc-tick" x1="35.86" y1="57.57" x2="39.72" y2="51.66" title="${C.LIGHT_PRESETS[0].elevationDeg}°"/>
             <line class="arc-tick" x1="57.41" y1="90.49" x2="58.66" y2="84.03" title="${C.LIGHT_PRESETS[1].elevationDeg}°"/>
             <line class="arc-tick" x1="57.88" y1="103.35" x2="58.36" y2="109.9" title="${C.LIGHT_PRESETS[2].elevationDeg}°"/>
-            <line class="arc-tick" x1="54.16" y1="123.47" x2="57.63" y2="129.15" title="${C.LIGHT_PRESETS[3].elevationDeg}°"/>
+            <line class="arc-tick" x1="54.16" y1="123.47" x2="56.9" y2="126.5" title="${C.LIGHT_PRESETS[3].elevationDeg}°"/>
             <circle class="arc-star" cx="40" cy="116" r="1"/>
             <circle class="arc-star" cx="30" cy="121" r=".8"/>
           </svg>
@@ -611,7 +611,7 @@ function buildLightPopover(app) {
     setVal($id('lpCSeed'), cl.seed ?? 0);
     $id('lpCloudsHint').textContent = !cloudsUsable ? 'Clouds need the Realistic sky style (classic stays byte-identical).'
       : !cl.enabled ? 'Clear sky (default).'
-      : 'Layered parallax sheets; weather nudges coverage \u00b130%: now ' + Math.round(100 * effCoverage(l)) + '% (' + (l.weather ?? 'clear') + ').';
+      : 'Layered parallax sheets; weather nudges coverage (up to +35%): now ' + Math.round(100 * effCoverage(l)) + '% (' + (l.weather ?? 'clear') + ').';
     // round 13 (HDR): tone mapping + bloom — off by default (absence = classic look)
     const hdr = l.hdr ?? { enabled: false, ...C.HDR_DEFAULTS };
     el.querySelectorAll('#lpHdr button').forEach(b => b.classList.toggle('on', b.dataset.h === (hdr.enabled ? 'on' : 'off')));

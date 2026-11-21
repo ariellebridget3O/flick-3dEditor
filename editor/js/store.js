@@ -1135,9 +1135,14 @@ export class ShowStore extends StoreBase {
   // ---- detach references on object delete (DHr) ----
   detachReferences(deletedId) {
     this.beginEditGesture();
-    // unlinkTarget: cameras referencing the deleted target drop the reference (live Xu)
-    for (const o of Object.values(this.objects))
-      if (o.kind === 'camera' && o.targetId === deletedId) this.update(o.id, { targetId: null });
+    // unlinkTarget: cameras referencing the deleted target drop the reference (live Xu).
+    // r21 review P1: this is ShowStore — the objects live on the _companion ObjectStore
+    // (setUndoCompanion); `this.objects`/`this.update` never existed here, so EVERY call
+    // threw at Object.values(undefined) and deleteObjects died mid-loop (dangling
+    // subjectId/objectId, orphan tracks, dead targetIds kept by surviving cameras).
+    if (this._companion)
+      for (const o of Object.values(this._companion.all()))
+        if (o.kind === 'camera' && o.targetId === deletedId) this._companion.update(o.id, { targetId: null });
     for (const tr of this.show.tracks) {
       for (let i = 0; i < tr.items.length; i++) {
         const it = tr.items[i];

@@ -528,7 +528,9 @@ export class App {
       if (o.kind !== 'camera') continue;
       const items = tracks.find(t => t.characterId === id)?.items ?? [];
       const need = ObjectStore.cameraNeedsTarget(items);
-      if (need && !o.targetId) {
+      // r21 review P2: also heal a DANGLING targetId (the id survives but the target was
+      // removed by a path that bypassed unlink) — ensureTargetMarker self-heals it.
+      if (need && (!o.targetId || !this.objects.objects[o.targetId])) {
         const e = o.rotation ?? [0, 0, 0];
         // oBe: Euler XYZ -> forward -Z (verified: yaw 90 -> (-1,0,0); pitch 90 -> (0,1,0))
         const cy = Math.cos(e[1]), sy = Math.sin(e[1]), cp = Math.cos(e[0]), sp = Math.sin(e[0]);

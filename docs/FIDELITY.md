@@ -309,3 +309,11 @@ Harness: scripts/pixel_oracle/ — the live-session chain scripted end-to-end (l
 - L6/L3: the height strip 14/14; the light track 10/10 (the L3-1 byte-unchanged guard, the v13 round-trip, the no-track byte-identity).
 - Review: 4 P1 + 4 P2 applied (the empty-cell clear, the plan gate, the try/finally, the knob transition; nightLights step-at-key, the z-40 toolbar, the gesture-local adoption, the effLight sync-applies).
 - KNOWN DIVERGENCES (sanctioned, documented): the wall replaces the live's per-tile-canvas feed bank (the single-camera wall preserves the m1 pixel contract); the height strip on the timeline (the live has none; the plan popout removed); the Daylight track (the live has no light track); the disc/rail control (the live's polar puck retained as the base interaction vocabulary).
+
+## Round 21 (2026-11-21)
+- VERDICT on the r21 review: STALE TAB (all r20 layers verified live). Countermeasure: BUILD badge + boot toast (const.js BUILD).
+- Clouds: COMPLETE REVERT to r13 (soft pow-knee field + planar XZ parallax sheets). SANCTIONED DIVERGENCE from r18: the anchor×factor coverage table, rain/fog floors, blob masks, bisection solve, morphological open, dome UV — all DELETED per the user's explicit order. Kept: seed, weather color coupling, uHdrGain, debounce, dispose. r18 sky T2/T2b/T3 now fail by design.
+- DIVERGENCES (user-ordered, oracle-normalized): tDr 1→3 (glide); drawn cam-path aim 'travel' (plan-oracle T8 normalizes both sides); toggleDrawing centers on the target; plan-canvas dblclick enters path edit.
+- PORTED VERBATIM: ensureTargetMarker/dropTargetMarker/reconcileTargetMarkers + U2r/YN + Oye=5 + lastAimPosition/Name (bundle @5258833/@5258988/@5794929/@4316400).
+- FIXED (pre-existing, review P1): ShowStore.detachReferences threw on every call since r6 (this.objects/update are ObjectStore members) — camera delete now completes; live-verified.
+- L4 battery: no HDR blackout (day/golden black-frac 0.0); realistic+HDR sky bloom +109/+122; night arms dark by design (moonless aim).
