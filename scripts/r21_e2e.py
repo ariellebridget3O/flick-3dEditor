@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """r21_e2e.py — round-21 regression suite (L2 sun control v2 + L3 draw trio).
 
-T1  build badge: #buildBadge exists, text 'r22'; localStorage flickBuild === 'r22'
+T1  build badge: #buildBadge exists, text 'r23'; localStorage flickBuild === 'r23'
 T2  the sunpath ARC: #sunRail is .el-arc 60x128; the handle sits at arcXY(el) (±2px)
 T3  ARC REAL-TIME: synthetic drag updates light.elevationDeg + handle pos in the SAME eval
 T4  arc clamps: pointer below -30 -> -30; above 90 -> 90; moon class at el <= -8
@@ -41,7 +41,7 @@ time.sleep(7)
 # T1 badge
 r = ev("(() => { const b = document.getElementById('buildBadge'); return JSON.stringify({badge: b ? b.textContent : null, stamp: localStorage.getItem('flickBuild')}); })()")
 d = json.loads(r)
-ok("T1 build badge", d["badge"] == "r22" and d["stamp"] == "r22", d)
+ok("T1 build badge", d["badge"] == "r23" and d["stamp"] == "r23", d)
 
 # open the light popover
 ev("document.getElementById('btnLight').click()")

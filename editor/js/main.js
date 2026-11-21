@@ -60,6 +60,7 @@ import {
   createAutoMeasureScheduler,
 } from './finish.js';
 import { createBloom } from './bloom.js';   // round 13 (HDR): UnrealBloomPass recipe port
+import { createAutoExposure } from './autoexposure.js';   // r23 L1: eye adaptation
 import { shakeOffsets, applyShakePose, rigShake } from './shake.js';   // r15 Dzt/cL + r17 the rig path (oEr) wakes in camera mode
 import { RigStore, rigWithWeight, cycleRigKey, stepSpeed, carrySpeeds, isRigKey } from './rigs.js';   // r17 kIr state subset + helpers
 import { createDrive, createLook, springStep, zoomMm, zoomLog } from './drive.js';   // r17 en/szr + jCr/ICr zoom map
@@ -197,6 +198,7 @@ export class App {
     };
     // round 13 (HDR): bloom chain (idle until hdr enables the finish path — no RTs, no cost)
     this._bloom = createBloom({ renderer: this.renderer });
+    this._autoexp = createAutoExposure({ renderer: this.renderer, speed: C.AUTO_EXPOSURE_SPEED });   // r23 L1
     // round 13 (HDR): tone mapping + bloom mutator — mirrors setClouds (light.hdr owns the
     // state; absence = off, schema parity). patch: {enabled, exposure, bloom, bloomThreshold,
     // bloomRadius}. HDR ON auto-enables the finish composer (capability-probed) so the
@@ -592,7 +594,7 @@ export class App {
       this.finishPref = { enabled: true, source: 'manual' };
       writeFinishPref(this.finishPref);
     }
-    if (!this.light.hdr?.enabled) this._bloom.dispose?.();   // review r13 P3: no mip RTs resident while hdr is off
+    if (!this.light.hdr?.enabled) { this._bloom.dispose?.(); this._autoexp.dispose?.(); }   // review r13 P3: no mip RTs resident while hdr is off (r23: + the meter chain)
     this.page.recordAspect = scene.recordAspect ?? '16:9';
     this._syncObjects();
     this.shadowFit.force();
@@ -1749,10 +1751,19 @@ export class App {
     const hdr = this.light.hdr;
     if (!hdr?.enabled) return null;
     const strength = (hdr.bloom ?? C.HDR_DEFAULTS.bloom) * C.HDR_BLOOM_STRENGTH_K;
+    // r23 L1: eye adaptation — when autoExposure is on, meter the scene RT each frame and
+    // hand the composite the adapted-luminance texture (exposure stays as the BIAS).
+    // The plain fallback path (finish off) keeps MANUAL exposure: three's
+    // toneMappingExposure is a CPU number and the metered value lives on the GPU.
+    const auto = hdr.autoExposure !== false;   // default ON (r23)
     return {
-      run: (tSrc, bloomTex, dt) => this._bloom.render(tSrc, bloomTex, dt),
+      run: (tSrc, bloomTex, dt) => {
+        this._bloom.render(tSrc, bloomTex, dt);
+        if (auto) this._autoexp.render(tSrc, dt);
+      },
       strength,
       exposure: hdr.exposure ?? C.HDR_DEFAULTS.exposure,
+      luminanceTex: auto ? this._autoexp.texture : null,
     };
   }
 

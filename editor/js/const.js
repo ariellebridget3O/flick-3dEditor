@@ -8,7 +8,7 @@
 // (every r20 fix verified live). The badge makes freshness checkable by eye.
 // r22: view auto-fit removals (plan re-fit on show [r7 divergence] + draw-start centerOn
 // [r21 L3a divergence]) — the ORIGINAL does neither.
-export const BUILD = 'r22';
+export const BUILD = 'r23';
 export const C = {
   // ---------- viewport / renderer (COr, fZt) ----------
   EDITOR_FOV: 50,            // FP
@@ -105,7 +105,17 @@ export const C = {
                                          // inside it (no new scheduler)
   // R13_HDR_RESEARCH §4.5/§4.6 (HDR-only contrast multipliers — the "more obvious
   // light/shadow" ask; applied in env.applyDaylight, never touching DAYLIGHT_STOPS):
-  HDR_DEFAULTS: { exposure: 1.0, bloom: 0.35, bloomThreshold: 1.0, bloomRadius: 0.4, shadowBoost: 0.5 },
+  HDR_DEFAULTS: { exposure: 1.0, bloom: 0.35, bloomThreshold: 1.0, bloomRadius: 0.4, shadowBoost: 0.5, autoExposure: true },
+  // r23 L1 (eye adaptation): the auto-exposure metering constants, CALIBRATED on real
+  // metered values (autoexposure.debugRead): the default outdoor synthetic scene meters
+  // L≈0.94, the CC0 interior (day) L≈0.44, the same interior at night L≈0.125. KEY=0.95
+  // anchors the OUTDOOR look at ~1.0 (== the fixed default — enabling auto outdoors does
+  // not change the picture); interiors adapt up to ~2.1x (about one stop — the 'no auto
+  // tone-map from outdoor to indoor' gap), night clamps at EV_MAX so dark stays dark.
+  AUTO_EXPOSURE_KEY: 0.95,          // exposure = KEY / adaptedLum (anchored to outdoor)
+  AUTO_EXPOSURE_EV_MIN: 0.6,        // floor: a noon sky never dims past ×0.6
+  AUTO_EXPOSURE_EV_MAX: 2.5,        // ceiling: night gains ~1.3 stops, still reads as night
+  AUTO_EXPOSURE_SPEED: 1.2,         // adaptation time constant (per second)
   HDR_SHADOW_BOOST_SUN_K: 1.6,           // sunBoostK = 1 + 1.6·shadowBoost  (0.5 → ×1.8)
   HDR_SHADOW_BOOST_FILL_K: 0.30,         // fillK     = 1 − 0.30·shadowBoost (0.5 → ×0.85, hemi + ambient)
   HDR_SHADOW_BOOST_RADIUS_K: 0.75,       // sun.shadow.radius = C.SUN_RADIUS × (1 + 0.75·shadowBoost)

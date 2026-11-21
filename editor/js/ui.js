@@ -467,6 +467,7 @@ function buildLightPopover(app) {
         <button data-h="on">On</button>
       </div>
       <label class="lp-row" id="lpExpRow">Exposure<input id="lpExp" type="range" min="0.5" max="2" step="0.05"><span id="lpExpVal"></span></label>
+      <label class="lp-row" id="lpAutoRow" style="display:none">Auto exposure<input id="lpAutoExp" type="checkbox"><span id="lpAutoState"></span></label>   <!-- r23 L1: eye adaptation -->
       <label class="lp-row" id="lpBloomRow">Bloom<input id="lpBloom" type="range" min="0" max="1" step="0.05"><span id="lpBloomVal"></span></label>
       <label class="lp-row" id="lpThrRow">Threshold<input id="lpThr" type="range" min="0.6" max="2" step="0.05"><span id="lpThrVal"></span></label>
       <label class="lp-row" id="lpRadRow">Radius<input id="lpRad" type="range" min="0" max="1" step="0.05"><span id="lpRadVal"></span></label>
@@ -621,9 +622,14 @@ function buildLightPopover(app) {
     // round 13 (HDR): tone mapping + bloom — off by default (absence = classic look)
     const hdr = l.hdr ?? { enabled: false, ...C.HDR_DEFAULTS };
     el.querySelectorAll('#lpHdr button').forEach(b => b.classList.toggle('on', b.dataset.h === (hdr.enabled ? 'on' : 'off')));
-    for (const [id, vis] of [['lpExpRow', hdr.enabled], ['lpBloomRow', hdr.enabled], ['lpThrRow', hdr.enabled], ['lpRadRow', hdr.enabled], ['lpSbRow', hdr.enabled]]) $id(id).style.display = vis ? '' : 'none';
+    for (const [id, vis] of [['lpExpRow', hdr.enabled], ['lpAutoRow', hdr.enabled], ['lpBloomRow', hdr.enabled], ['lpThrRow', hdr.enabled], ['lpRadRow', hdr.enabled], ['lpSbRow', hdr.enabled]]) $id(id).style.display = vis ? '' : 'none';
     setVal($id('lpExp'), hdr.exposure ?? C.HDR_DEFAULTS.exposure);
     $id('lpExpVal').textContent = (hdr.exposure ?? C.HDR_DEFAULTS.exposure).toFixed(2);
+    // r23 L1: eye adaptation state (the Exposure slider reads as the bias when auto is on)
+    const autoOn = hdr.enabled && (hdr.autoExposure !== false);
+    $id('lpAutoExp').checked = hdr.autoExposure !== false;
+    $id('lpAutoState').textContent = autoOn ? 'metered' : 'manual';
+    $id('lpExpRow').firstChild.textContent = autoOn ? 'Exposure bias' : 'Exposure';
     setVal($id('lpBloom'), hdr.bloom ?? C.HDR_DEFAULTS.bloom);
     $id('lpBloomVal').textContent = (hdr.bloom ?? C.HDR_DEFAULTS.bloom).toFixed(2);
     setVal($id('lpThr'), hdr.bloomThreshold ?? C.HDR_DEFAULTS.bloomThreshold);
@@ -633,7 +639,9 @@ function buildLightPopover(app) {
     setVal($id('lpSb'), hdr.shadowBoost ?? C.HDR_DEFAULTS.shadowBoost);
     $id('lpSbVal').textContent = (hdr.shadowBoost ?? C.HDR_DEFAULTS.shadowBoost).toFixed(2);
     $id('lpHdrHint').textContent = hdr.enabled
-      ? 'ACES filmic tone map + bloom (auto-enables the Finish composer; highlights roll off instead of clipping).'
+      ? (hdr.autoExposure !== false
+          ? 'ACES filmic tone map + bloom + AUTO EXPOSURE (eye adaptation: interiors brighten, night stays night). The slider biases the meter.'
+          : 'ACES filmic tone map + bloom (auto-enables the Finish composer; highlights roll off instead of clipping).')
       : 'Default SDR look (byte-identical).';
     // presets: elevation-only (aria-pressed when |el - preset| < .5)
     el.querySelectorAll('.presets button').forEach(b => {
@@ -805,6 +813,7 @@ function buildLightPopover(app) {
     });
   };
   hdrSlider('lpExp', 'lpExpVal', v => v.toFixed(2), 'exposure');
+  $id('lpAutoExp').onchange = () => { commit(() => app.setHdr({ autoExposure: $id('lpAutoExp').checked })); render(); };   // r23 L1: eye adaptation toggle
   hdrSlider('lpBloom', 'lpBloomVal', v => v.toFixed(2), 'bloom');
   hdrSlider('lpThr', 'lpThrVal', v => v.toFixed(2), 'bloomThreshold');
   hdrSlider('lpRad', 'lpRadVal', v => v.toFixed(2), 'bloomRadius');

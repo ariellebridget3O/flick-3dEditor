@@ -4,6 +4,7 @@
 // Exact port of hKt/DWr/BWr/HWr/Dje/qqr/Xqr/$ot/Hqr/Fje/oKt/wWr/lKt/_Wr/xWr/Mje/eKt
 // (analysis/FINISH_RENDERER.md, raw: analysis/tmp_d/{finish_raw,finish_raw2,auto_measure}.js).
 import * as THREE from 'three';
+import { C } from './const.js';   // r23 L1: AUTO_EXPOSURE_* calibration (eye adaptation)
 
 // ---------- constants (EWr…FWr, yKt, Bqr, $qr, Vqr, Wqr, Gqr, Zqr, Kqr) ----------
 const OCCLUSION_MAX_H = 540;      // EWr
@@ -50,7 +51,7 @@ const GLOW_RE = GC('lanterns?|lamps?|candles?|windows?|lancets?|stained[_\\s-]gl
 // lamp_burner/chimney (the flame housing), paper_window_* (the pane) still glow.
 const GLOW_NOT_RE = GC('frames?|mullions?|sills?|arch(es)?|recess(es)?|jambs?|posts?|poles?|bases?|caps?|roofs?|brackets?|stone|tracery|hoods?|moldings?|holders?|sticks?|wine'
   + '|rails?|uprights?|stiles?|transoms?|horizontals?|verticals?|grids?|lattices?'
-  + '|stems?|stands?|legs?|consoles?|supports?|supporting'
+  + '|stems?|stands?|legs?|supports?|supporting'
   + '|walls?|floors?|ceilings?|columns?|pillars?|plinths?|chimneys?|shutters?|shelves?');
 const GLOW_TAIL_NOT_RE = GC('tables?|seats?|walls?|blinds?|cords?|chains?|handles?|feet|foot');
 const GLOW_KINDS = new Set(['cube', 'sphere', 'cylinder']);
@@ -220,8 +221,10 @@ const COMPOSITE_FRAG = `
   uniform vec3 occlusionTint;
   uniform vec3 edgeTint;
   uniform float uHdr;            // 1 = HDR path (linear add + ACES), 0 = exact SDR path
-  uniform float uExposure;       // light.hdr.exposure (linear pre-tonemap multiplier)
+  uniform float uExposure;       // light.hdr.exposure (linear pre-tonemap multiplier — the BIAS under auto)
   uniform float uBloomStrength;  // strength = light.hdr.bloom × C.HDR_BLOOM_STRENGTH_K
+  uniform sampler2D tAdaptLum;   // r23 L1: 1×1 adapted scene luminance (eye adaptation); null → manual
+  uniform vec3 uAutoParams;      // KEY, EV_MIN, EV_MAX (C.AUTO_EXPOSURE_*)
 
   // 1/z runs straight across any flat face in screen space, so its second difference
   // is zero on a face and non-zero only on a crease or a silhouette.
@@ -302,7 +305,16 @@ const COMPOSITE_FRAG = `
     // highlights off instead of clipping. uHdr = 0 keeps the exact SDR path below.
     if (uHdr > 0.5) {
       color += texture2D(tBloom, vUv).rgb * uBloomStrength;
-      color = acesHill(color * uExposure);
+      // r23 L1 (eye adaptation): metered exposure — the manual slider stays as the bias.
+      // exposureAuto = clamp(KEY / adaptedLum, EV_MIN, EV_MAX) — interiors gain up to
+      // ~2.5 stops over the fixed look; night clamps at the floor so dark stays dark.
+      float ev = uExposure;
+      float ad = texture2D(tAdaptLum, vec2(0.5)).r;
+      if (ad > 0.0) {
+        float evAuto = clamp(uAutoParams.x / max(ad, 1e-4), uAutoParams.y, uAutoParams.z);
+        ev *= evAuto;
+      }
+      color = acesHill(color * ev);
     }
     gl_FragColor = vec4(toSrgb(clamp(color, 0.0, 1.0)) + dither(), 1.0);
     // Kept for whatever draws after this, depth tested against the set.
@@ -344,6 +356,7 @@ export function createFinishComposer(renderer) {
     fogDensity: { value: 0 }, near: { value: 0.1 }, far: { value: 500 },
     occlusionTint: { value: OCCLUSION_TINT }, edgeTint: { value: EDGE_TINT },
     tBloom: { value: null }, uHdr: { value: 0 }, uExposure: { value: 1 }, uBloomStrength: { value: 0 },
+    tAdaptLum: { value: null }, uAutoParams: { value: new THREE.Vector3(1, 1, 1) },
   }, { depthTest: true, depthFunc: THREE.AlwaysDepth, depthWrite: true });
 
   let rtScene = null, rtA = null, rtB = null, rtBloom = null;
@@ -433,6 +446,9 @@ export function createFinishComposer(renderer) {
       cu.uHdr.value = hdrTex ? 1 : 0;
       cu.uBloomStrength.value = hdrTex ? hdrHook.strength : 0;
       cu.uExposure.value = hdrTex ? hdrHook.exposure : 1;
+      // r23 L1: eye adaptation — bind the metered luminance when the hook provides it
+      cu.tAdaptLum.value = hdrTex && hdrHook.luminanceTex ? hdrHook.luminanceTex : null;
+      if (cu.tAdaptLum.value) cu.uAutoParams.value.set(C.AUTO_EXPOSURE_KEY, C.AUTO_EXPOSURE_EV_MIN, C.AUTO_EXPOSURE_EV_MAX);
       blit(composite, null);
     },
     repaint(mainCamera) {  // re-composite only (aspect-stable)
