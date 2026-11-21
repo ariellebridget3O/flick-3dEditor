@@ -42,7 +42,10 @@ const gvr = ["cam-still", "cam-move", "cam-path", "cam-follow", "cam-transform",
 const eit = 40, VLr = .05, ULr = 4e3, zLr = .05, WLr = 20, GLr = 12, qLr = 4, ZLr = 50,       // consts_drag
   KLr = .18, XLr = .12, YLr = 1.6, QLr = 1.4, JLr = { minX: -3, minZ: -3, maxX: 3, maxZ: 3 },
   tit = { prop: 0, cube: 0, sphere: 0, cylinder: 0, group: 0, humanoid: 1, simple_figure: 1, target: 2, spotlight: 3, camera: 3 },
-  eDr = .4, tDr = 1;
+  eDr = .4, tDr = 3;   // r21 L3a: tDr 1->3 (DIVERGENCE, ledgered) — the live's 1m grab-easing
+                       // radius is exhausted by the first mouse move when pressing >1m from the
+                       // walker, so the drawn point SNAPS to the pointer (the user's "first step
+                       // is jumping"); 3m makes the leader glide out from the walker's feet.
 const fHr = .3, mHr = .7, gHr = .25, bHr = .1, yHr = .2, Tit = 1e4;                            // consts_stroke
 const Aje = .2, pLr = .005, fLr = .02, mLr = 2, gLr = 1;                                       // consts_wheel
 const yLr = 2, vLr = 8;                                                                        // consts_hit
@@ -657,8 +660,13 @@ export function replaceMoveFromSamples(facade, e, n, r, s) {                    
     m = facade.moveSegmentOf(d, n),
     g = s?.focusId && s.focusId !== e && a[s.focusId] ? s.focusId : null,
     b = { id: facade.an(), startS: Math.max(0, n), anchors: h, speedUnitsPerS: f, ...s?.steady ? {} : { pace: c.pace } },
-    y = l ? { ...b, kind: "cam-path", aim: g ? "subject" : "locked", subjectId: g, ...m && "focalLengthMm" in m && m.focalLengthMm !== void 0 ? { focalLengthMm: m.focalLengthMm } : {} }
+    y = l ? { ...b, kind: "cam-path", aim: g ? "subject" : "travel", subjectId: g, ...m && "focalLengthMm" in m && m.focalLengthMm !== void 0 ? { focalLengthMm: m.focalLengthMm } : {} }
       : { ...b, kind: "path", ...o.kind === "humanoid" ? { gait: JCe } : {}, ...el(o.kind) ? g ? { aim: "subject", subjectId: g } : {} : { aim: "locked" } };
+    // r21 L3c (DIVERGENCE, ledgered): a drawn CAM-PATH defaults aim 'travel' (the camera
+    // follows the curve direction) — the live defaults 'locked' (the r20 feedback: "the
+    // camera just fixed at whatever angle it is looking at the whole time, not
+    // auto-adjusting"). Figure paths keep the live's field-omission (aim undefined ==
+    // 'travel' at eval). The L7 Look-at combobox still overrides per segment.
   return facade.updateTrackItems(d, v => [y, ...v.filter(x => x.id !== m?.id)]), !0;
 }
 
@@ -966,7 +974,14 @@ export class PlanStore {
     s && this.a.show.setCameraFocus(e, s);                                                       // @5469975 via the store machine
     this.a.show.endEditGesture();
   }
-  toggleDrawing() { this.pendingWalkerFocus = null; this.drawingFor = this.drawing() ? null : this.drawTarget(); this._onDrawingChange?.(); this.a.markAutosave?.(); }
+  toggleDrawing() {
+    this.pendingWalkerFocus = null;
+    this.drawingFor = this.drawing() ? null : this.drawTarget();
+    // r21 L3a: center the view on the draw target when draw mode STARTS so the walker sits
+    // mid-screen and strokes begin at its feet (kills the far-press first-segment leap).
+    if (this.drawingFor) this.centerOn(this.drawingFor);
+    this._onDrawingChange?.(); this.a.markAutosave?.();
+  }
   stopDrawing() { this.endStroke(), this.pendingWalkerFocus = null, this.drawingFor = null, this.hideRehearseTip(), this._onDrawingChange?.(); }
   stepBack() {                                                                                         // Esc chain (stroke → drawing → selection)
     return this.stroke ? !0 : this.drawing() ? (this.drawingFor = null, this._onDrawingChange?.(), !0) : this.a.objects.selectedIds.length ? (this.a.objects.select([]), !0) : !1;
@@ -1521,6 +1536,30 @@ export class PlanCanvas {
       if (e.button === 0) this._finish();
     });
     Z.addEventListener('pointercancel', () => { this._panPx = null; this._finish(); });
+    // r21 L3b: double-click a drawn path curve -> enter path editing for that item (the
+    // anchor/tangent handles appear immediately). Discoverability divergence (ledgered):
+    // the live only exposes path editing through the segment inspector; the r21 feedback
+    // was "the whole curve has no way to adjust". Hit-test = nearest segment in XZ world
+    // (S1 of the event px) within .5m, first match wins (z-order = track order).
+    Z.addEventListener('dblclick', e => {
+      if (!this.shown() || this.store.drawing() || this.store.locked() || this.store.stroke) return;
+      const p = S1(this.w.view, this._ev(e));
+      let best = null, bestD = .5;
+      for (const tr of this.app.show.show.tracks) {
+        for (const it of tr.items ?? []) {
+          if ((it.kind !== 'path' && it.kind !== 'cam-path') || !it.anchors || it.anchors.length < 2) continue;
+          const pl = polylineOf(it.anchors);
+          for (let i = 0; i < pl.length - 1; i++) {
+            const ax = pl[i][0], az = pl[i][2], bx = pl[i + 1][0], bz = pl[i + 1][2];
+            const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1e-9;
+            let t = ((p.x - ax) * dx + (p.z - az) * dz) / L2; t = Math.max(0, Math.min(1, t));
+            const d = Math.hypot(p.x - (ax + dx * t), p.z - (az + dz * t));
+            if (d < bestD) { bestD = d; best = { trackId: tr.id, itemId: it.id }; }
+          }
+        }
+      }
+      if (best) this.app.pathEditor?.enterPaint(best.trackId, best.itemId);
+    });
     // ---- r17 seam: plan-canvas component drop (verbatim @5498370..5498530) ----
     // onDragOver: V6 payload + not drawing → preventDefault + dropEffect copy
     // onDrop: dropComponentAt({x,z}) @5866170 — draggingComponent → facade addComponent([x,z]);

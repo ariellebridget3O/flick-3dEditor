@@ -231,6 +231,40 @@ export class ObjectStore extends StoreBase {
     this.changed();
     return id;
   }
+  // ---- r21 L3c: the camera target-marker lifecycle (bundle ensureTargetMarker @5258833 /
+  // dropTargetMarker @5258988 / reconcileTargetMarkers @5794929). A camera needs its paired
+  // target when an item frames a free pivot: U2r/YN @4316400 — a cam-move (non-pan_sweep)
+  // with subjectId null, or a cam-path aimed at a subject that is missing. The marker
+  // spawns 5m ahead (Oye) of the camera along its forward (oBe) and is DROPPED (position
+  // remembered via lastAimPosition/lastAimName) when no item needs it. The paired target
+  // is what the Look-at combobox's paired-target option and the eval's subject fallback
+  // resolve to — without it, drawn cam-paths could never auto-track. ----
+  ensureTargetMarker(camId, pos) {
+    const o = this.objects[camId];
+    if (!o || o.kind !== 'camera') return null;
+    if (o.targetId && this.objects[o.targetId]) return o.targetId;
+    const tid = uuid();
+    this.objects[tid] = { kind: 'target', position: o.lastAimPosition ?? pos, rotation: [0, 0, 0], scale: [1, 1, 1], name: o.lastAimName ?? this.defaultName('target') };
+    this.objects[camId] = { ...o, targetId: tid };
+    this.changed();
+    return tid;
+  }
+  dropTargetMarker(camId) {
+    const o = this.objects[camId];
+    if (!o || o.kind !== 'camera' || !o.targetId) return;
+    const tid = o.targetId, t = this.objects[tid];
+    const { targetId, ...rest } = o;
+    this.objects[camId] = t
+      ? { ...rest, lastAimPosition: [...t.position], ...(t.name ? { lastAimName: t.name } : {}) }
+      : rest;
+    if (t) { delete this.objects[tid]; this.select(this.selectedIds.filter(s => s !== tid)); }
+    this.changed();
+  }
+  static cameraNeedsTarget(items) {   // U2r/YN @4316400
+    return (items ?? []).some(it =>
+      (it.kind === 'cam-move' && it.move !== 'pan_sweep' && it.subjectId == null) ||
+      (it.kind === 'cam-path' && it.aim === 'subject' && it.subjectId == null));
+  }
   addComponent(spec, pos2) {
     switch (spec.kind) {
       case 'cube': case 'sphere': case 'cylinder': return this.addObject(spec.kind, {}, pos2);

@@ -340,7 +340,7 @@ export class App {
 
     // store subscriptions → resync + autosave
     this.objects.subscribe(() => { this._syncObjects(); this.markAutosave(); });
-    this.show.subscribe(() => { this._layoutDirty = true; this.pathEditor.onShowChanged(); this.markAutosave(); });
+    this.show.subscribe(() => { this._layoutDirty = true; this.pathEditor.onShowChanged(); this.markAutosave(); this.reconcileTargetMarkers(); });
     this.page.subscribe(() => {
       this.markAutosave();
       // live performanceSeekS model: ANY seek at rest (ruler click, diamond click, keyframe jump)
@@ -517,6 +517,28 @@ export class App {
   addDefaultCameraTrack(id) {                            // @5526993
     const trackId = this.show.addPerformanceTrack(id);
     if (trackId) this.show.addCameraItem(trackId, 'still');
+  }
+  // r21 L3c: reconcileTargetMarkers @5794929 — for every camera, U2r(items) decides whether
+  // it needs its paired target marker: ensure (spawn 5m ahead along the camera forward, oBe)
+  // or drop (remembering lastAimPosition/lastAimName). Runs on show changes + after load —
+  // the same reaction the live wires over its objects+show atoms.
+  reconcileTargetMarkers() {
+    const tracks = this.show.show.tracks;
+    for (const [id, o] of Object.entries(this.objects.objects)) {
+      if (o.kind !== 'camera') continue;
+      const items = tracks.find(t => t.characterId === id)?.items ?? [];
+      const need = ObjectStore.cameraNeedsTarget(items);
+      if (need && !o.targetId) {
+        const e = o.rotation ?? [0, 0, 0];
+        // oBe: Euler XYZ -> forward -Z (verified: yaw 90 -> (-1,0,0); pitch 90 -> (0,1,0))
+        const cy = Math.cos(e[1]), sy = Math.sin(e[1]), cp = Math.cos(e[0]), sp = Math.sin(e[0]);
+        const fwd = [-sy, cy * sp, -cy * cp];
+        this.objects.ensureTargetMarker(id, [
+          (o.position?.[0] ?? 0) + fwd[0] * 5,
+          (o.position?.[1] ?? 1.6) + fwd[1] * 5,
+          (o.position?.[2] ?? 0) + fwd[2] * 5]);
+      } else if (!need && o.targetId) this.objects.dropTargetMarker(id);
+    }
   }
   showComponentList() {                                  // @5817658 — semantic equivalent: the
     // live reveals its components panel on the "mine" tab; our scene list is permanent —
