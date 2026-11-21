@@ -14,7 +14,11 @@ import { createRealisticSky } from './sky.js';
 import { createCloudLayer } from './clouds.js';
 
 export function solarPositionDeg(geo) {
-  const N = geo.dayOfYear ?? 166, h = geo.timeOfDay ?? 9.5, lat = geo.latitudeDeg ?? 45;
+  const N = geo.dayOfYear ?? 166, lat = geo.latitudeDeg ?? 45;
+  // r23 L3: longitude shifts the input clock to SOLAR time (east positive; 15° = 1 h —
+  // the input Time reads at the Greenwich meridian; at lon E 60 the sun is 4 h ahead).
+  // One solve feeds the two rings: time + season (dayOfYear) + lat + lon + northOffset.
+  const h = (geo.timeOfDay ?? 9.5) + (geo.longitudeDeg ?? 0) / 15;
   const g = 2 * Math.PI / 365 * (N - 1 + (h - 12) / 24);            // fractional year
   const decl = 0.006918                                              // Spencer declination (rad)
     - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g)

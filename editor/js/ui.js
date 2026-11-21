@@ -285,9 +285,9 @@ export function buildUI(app) {
 const PHASE_OF = el => el >= 32 ? 'Full day' : el >= 12 ? 'Morning' : el >= 0 ? 'Afternoon' : el >= -8 ? 'Golden hour' : el >= -20 ? 'Twilight' : 'Night';  // kQr thresholds
 const fmtHHMM = h => { const hh = Math.floor(h), mm = Math.round((h - hh) * 60); return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0'); };
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-const SEASON_PRESETS = [
-  { label: 'Mar 21', dayOfYear: 80 }, { label: 'Jun 21', dayOfYear: 172 },
-  { label: 'Sep 21', dayOfYear: 264 }, { label: 'Dec 21', dayOfYear: 355 },
+const SEASON_PRESETS = [   // r23 L3: season NAMES (user: 'not exact date'); doys stay the equinox/solstice anchors
+  { label: 'Spring', dayOfYear: 80 }, { label: 'Summer', dayOfYear: 172 },
+  { label: 'Autumn', dayOfYear: 264 }, { label: 'Winter', dayOfYear: 355 },
 ];
 
 // round 7 (R7-2): Scenes popover — bundled upstream flick-3dstage exports (samples/upstream
@@ -428,12 +428,13 @@ function buildLightPopover(app) {
     <div class="presets">${C.LIGHT_PRESETS.map((p, i) => `<button data-i="${i}" title="Elevation ${p.elevationDeg}° (keeps azimuth)">${p.label}</button>`).join('')}</div>
     <div class="lp-sec lp-geo">
       <div class="lp-cat">Location sun</div>
-      <label>Time<input id="lpTime" type="time" step="900"></label>
+      <label>Time<input id="lpTime" type="time" step="900" title="Solar time at the Greenwich meridian — Lon shifts it (15° east = 1 h ahead)"></label>
       <div class="lp-date">
-        ${SEASON_PRESETS.map(x => `<button data-doy="${x.dayOfYear}">${x.label}</button>`).join('')}
+        ${SEASON_PRESETS.map(x => `<button data-doy="${x.dayOfYear}" title="Season anchor: ${x.label}">${x.label}</button>`).join('')}
         <input id="lpMonth" type="number" min="1" max="12" title="Month">/<input id="lpDay" type="number" min="1" max="31" title="Day">
       </div>
       <label>Lat °N<input id="lpLat" type="number" min="-90" max="90" step="1"></label>
+      <label>Lon °E<input id="lpLon" type="number" min="-180" max="180" step="5" title="East positive; shifts the input Time to solar time (15° = 1 h)"></label>
       <label>Alt m<input id="lpAlt" type="number" min="0" max="4000" step="50"></label>
       <label>True N °<input id="lpNorth" type="number" min="-180" max="180" step="5" title="Compass bearing of the scene's -Z axis (0 = -Z is true north, +X east)"></label>
       <div class="lp-hint" id="lpGeoHint"></div>
@@ -573,8 +574,13 @@ function buildLightPopover(app) {
     if (mm > 12) mm = 12;
     setVal($id('lpMonth'), mm); setVal($id('lpDay'), rem);
     setVal($id('lpLat'), l.geo.latitudeDeg ?? 45);
+    setVal($id('lpLon'), l.geo.longitudeDeg ?? 0);
     setVal($id('lpAlt'), l.geo.altitudeM ?? 300);
     setVal($id('lpNorth'), l.geo.northOffsetDeg ?? 0);
+    // r23 L3: season segmented state — active when dayOfYear sits on a season anchor
+    // (month/day edits move off the anchor and the highlight drops, the solve keeps working)
+    el.querySelectorAll('.lp-date [data-doy]').forEach(b =>
+      b.classList.toggle('on', +b.dataset.doy === doy));
     // weather + indoor
     el.querySelectorAll('#lpWeather button').forEach(b => b.classList.toggle('on', b.dataset.w === l.weather));
     $id('lpIndoor').checked = !!l.indoor;
@@ -634,11 +640,16 @@ function buildLightPopover(app) {
       const p = C.LIGHT_PRESETS[+b.dataset.i];
       b.classList.toggle('on', Math.abs(p.elevationDeg - l.elevationDeg) < 0.5);
     });
-    // geo hint: raw solver elevation (pre-clamp)
+    // geo hint: raw solver elevation (pre-clamp). r23 L3: in custom mode LEAD with the
+    // armed-explainer — the r23 review read the params as 'completely detached' because
+    // they only re-solve on edit (mode badge alone was too subtle).
     const g2 = solarPositionDeg(l.geo);
-    $id('lpGeoHint').textContent = g2.elevationDeg < -30
+    const geoNote = g2.elevationDeg < -30
       ? 'Sun below the horizon all day at this latitude/date (clamped to ' + C.ELEV_MIN + '°)'
-      : (g2.elevationDeg < -5 ? 'Low sun — long shadows' : 'Solar time ≈ civil time ± ~30 min');
+      : (g2.elevationDeg < -5 ? 'Low sun — long shadows' : 'Solves time + season + lat/lon onto the two rings');
+    $id('lpGeoHint').textContent = l.mode === 'geographic'
+      ? geoNote
+      : 'Custom sun — editing time / season / lat / lon re-solves onto the rings. ' + geoNote;
   }
 
   const commit = fn => { app.show.beginEditGesture(); try { fn(); } finally { app.show.endEditGesture(); } };
@@ -740,6 +751,7 @@ function buildLightPopover(app) {
   $id('lpMonth').onchange = onDayChange;
   $id('lpDay').onchange = onDayChange;
   $id('lpLat').onchange = () => { commit(() => app.setLightGeo({ latitudeDeg: Math.min(90, Math.max(-90, +$id('lpLat').value || 0)) })); render(); };
+  $id('lpLon').onchange = () => { commit(() => app.setLightGeo({ longitudeDeg: Math.min(180, Math.max(-180, +$id('lpLon').value || 0)) })); render(); };   // r23 L3: lon joins the solve (solar-time shift)
   $id('lpAlt').onchange = () => { commit(() => app.setLightGeo({ altitudeM: Math.min(4000, Math.max(0, +$id('lpAlt').value || 0)) })); render(); };
   $id('lpNorth').onchange = () => { let v = +$id('lpNorth').value || 0; v = Math.min(180, Math.max(-180, v)); commit(() => app.setLightGeo({ northOffsetDeg: v })); render(); };
 

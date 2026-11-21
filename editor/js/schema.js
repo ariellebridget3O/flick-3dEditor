@@ -255,6 +255,7 @@ function normLight(t) { // g6r/N8r/SDe — round 6: geo/weather/indoor/ambient/m
     if (Number.isFinite(g.timeOfDay)) geo.timeOfDay = Math.min(24, Math.max(0, g.timeOfDay));
     if (Number.isFinite(g.dayOfYear)) geo.dayOfYear = Math.min(365, Math.max(1, g.dayOfYear));
     if (Number.isFinite(g.latitudeDeg)) geo.latitudeDeg = Math.min(90, Math.max(-90, g.latitudeDeg));
+    if (Number.isFinite(g.longitudeDeg)) geo.longitudeDeg = Math.min(180, Math.max(-180, g.longitudeDeg));
     if (Number.isFinite(g.altitudeM)) geo.altitudeM = Math.min(4000, Math.max(0, g.altitudeM));
     if (Number.isFinite(g.northOffsetDeg)) geo.northOffsetDeg = ((g.northOffsetDeg % 360) + 360) % 360 > 180 ? ((g.northOffsetDeg % 360) + 360) % 360 - 360 : ((g.northOffsetDeg % 360) + 360) % 360;
     if (Object.keys(geo).length) n.geo = geo;

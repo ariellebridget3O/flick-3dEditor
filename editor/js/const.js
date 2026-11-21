@@ -69,7 +69,7 @@ export const C = {
   EL_REMAP_K: 25,            // C8r
   LIGHT_DEFAULT: { azimuthDeg: 128.66, elevationDeg: 57.38 }, // kDe — migrated scenes keep mode:'custom'
   // round 6 (D): geographic defaults (NEVER auto-applied to existing scenes — audit P0-3)
-  LIGHT_GEO_DEFAULTS: { timeOfDay: 9.5, dayOfYear: 166, latitudeDeg: 45, altitudeM: 300, northOffsetDeg: 0 },
+  LIGHT_GEO_DEFAULTS: { timeOfDay: 9.5, dayOfYear: 166, latitudeDeg: 45, longitudeDeg: 0, altitudeM: 300, northOffsetDeg: 0 },
   // round 6 (D5): weather modifiers — clear = IDENTITY (audit P0-2). sun/hemi/flare multiply the
   // daylight-table outputs; fog multiplies the pZt density (inside createFogNearFar — audit P0-4);
   // desat = lerp→Rec.601 luma on zenith/horizon/fillSky/fillGround/fog-color; darken multiplies sky.

@@ -168,6 +168,7 @@ button.small { padding: 2px 8px; font-size: 12px; }
 .lp-geo input, .light-panel .lp-row input[type=text], .lp-geo input[type=number], .light-panel input[type=time] { width: 108px; background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 5px; padding: 3px 5px; font: inherit; font-size: 12px; }
 .lp-date { display: flex; gap: 4px; align-items: center; }
 .lp-date button { font-size: 10px; padding: 3px 6px; }
+.lp-date button.on { background: #2b3140; border-color: var(--accent); color: var(--text); }   /* r23 L3: active season */
 .lp-date input { width: 42px !important; }
 .lp-hint { font-size: 10.5px; color: var(--text-dim); background: var(--panel2); border-radius: 6px; padding: 4px 8px; }
 .weather { display: flex; gap: 2px; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
